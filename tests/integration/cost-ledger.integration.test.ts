@@ -228,19 +228,80 @@ describe("immutable project cost ledger — real local Supabase", () => {
     return { poolId: pool.id, businessDate };
   }
 
-  it("records an expense append-only, linked to tenant, pool, project, category, and actor", async () => {
+  // Gate 1E revokes record_project_expense's EXECUTE grant from
+  // `authenticated` entirely — only approve_expense_submission can still
+  // call it (via function ownership, unaffected by this revoke). Fixture
+  // rows below are created via the admin (service-role) client instead,
+  // which still goes through every table CHECK constraint, composite FK,
+  // and role-independent trigger (closed-project guard, reversal integrity,
+  // append-only) — those are enforced regardless of caller, so this still
+  // exercises the same validation surface record_project_expense used to.
+  // See expense-approvals.integration.test.ts for the approval workflow
+  // that is now the only path to the ledger, and the explicit proof below
+  // that authenticated (including owner/admin) cannot call
+  // record_project_expense directly anymore.
+  function insertLedgerEntryDirect(params: {
+    tenantId: string;
+    poolId: string;
+    projectId: string;
+    categoryId: string;
+    amount: number;
+    description: string;
+    vendorId?: string;
+    referenceNumber?: string;
+  }) {
+    return admin
+      .from("project_cost_ledger_entries")
+      .insert({
+        tenant_id: params.tenantId,
+        pool_id: params.poolId,
+        project_id: params.projectId,
+        category_id: params.categoryId,
+        entry_kind: "expense",
+        amount: params.amount,
+        description: params.description,
+        vendor_id: params.vendorId,
+        reference_number: params.referenceNumber,
+      })
+      .select("*")
+      .single();
+  }
+
+  it("authenticated (including owner) can no longer call record_project_expense directly — Gate 1E closes the bypass", async () => {
     const ownerAClient = await signInAsMember(ownerA.email);
     const { poolId } = await createFundedPoolForTenantA();
     const projectId = await createActiveProjectForTenantA();
 
-    const { data: entry, error } = await ownerAClient.rpc("record_project_expense", {
+    const { error } = await ownerAClient.rpc("record_project_expense", {
       p_pool_id: poolId,
       p_project_id: projectId,
       p_category_id: categoryAId,
       p_amount: 750_000,
-      p_description: "beli spare part",
-      p_vendor_id: vendorAId,
-      p_reference_number: "INV-IT-001",
+      p_description: "owner coba langsung ke ledger",
+    });
+    expect(error).not.toBeNull();
+    expect(error!.code).toBe("42501");
+
+    const { count } = await admin
+      .from("project_cost_ledger_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectId);
+    expect(count).toBe(0);
+  });
+
+  it("records an expense append-only, linked to tenant, pool, project, category, and actor", async () => {
+    const { poolId } = await createFundedPoolForTenantA();
+    const projectId = await createActiveProjectForTenantA();
+
+    const { data: entry, error } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: 750_000,
+      description: "beli spare part",
+      vendorId: vendorAId,
+      referenceNumber: "INV-IT-001",
     });
     expect(error).toBeNull();
     expect(entry.entry_kind).toBe("expense");
@@ -249,7 +310,6 @@ describe("immutable project cost ledger — real local Supabase", () => {
     expect(entry.project_id).toBe(projectId);
     expect(entry.category_id).toBe(categoryAId);
     expect(entry.vendor_id).toBe(vendorAId);
-    expect(entry.actor_user_id).toBe(ownerA.id);
     expect(entry.amount).toBe(750_000);
 
     const { count } = await admin
@@ -260,77 +320,80 @@ describe("immutable project cost ledger — real local Supabase", () => {
   });
 
   it("rejects a zero/negative amount and an empty description", async () => {
-    const ownerAClient = await signInAsMember(ownerA.email);
     const { poolId } = await createFundedPoolForTenantA();
     const projectId = await createActiveProjectForTenantA();
 
-    const { error: zeroError } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: 0,
-      p_description: "nominal nol",
+    const { error: zeroError } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: 0,
+      description: "nominal nol",
     });
     expect(zeroError).not.toBeNull();
 
-    const { error: negativeError } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: -100,
-      p_description: "nominal negatif",
+    const { error: negativeError } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: -100,
+      description: "nominal negatif",
     });
     expect(negativeError).not.toBeNull();
 
-    const { error: emptyDescriptionError } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: 1000,
-      p_description: "",
+    const { error: emptyDescriptionError } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: 1000,
+      description: "",
     });
     expect(emptyDescriptionError).not.toBeNull();
   });
 
   it("rejects a non-existent daily cash pool", async () => {
-    const ownerAClient = await signInAsMember(ownerA.email);
     const projectId = await createActiveProjectForTenantA();
 
-    const { error } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: "00000000-0000-0000-0000-000000000000",
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: 1000,
-      p_description: "pool tidak ada",
+    const { error } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId: "00000000-0000-0000-0000-000000000000",
+      projectId,
+      categoryId: categoryAId,
+      amount: 1000,
+      description: "pool tidak ada",
     });
     expect(error).not.toBeNull();
   });
 
   it("rejects a cross-tenant project, category, or vendor reference", async () => {
-    const ownerAClient = await signInAsMember(ownerA.email);
     const { poolId } = await createFundedPoolForTenantA();
     const projectId = await createActiveProjectForTenantA();
 
-    const { error: crossProjectError } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectBId,
-      p_category_id: categoryAId,
-      p_amount: 1000,
-      p_description: "project lintas tenant",
+    const { error: crossProjectError } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId: projectBId,
+      categoryId: categoryAId,
+      amount: 1000,
+      description: "project lintas tenant",
     });
     expect(crossProjectError).not.toBeNull();
 
-    const { error: crossCategoryError } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryBId,
-      p_amount: 1000,
-      p_description: "kategori lintas tenant",
+    const { error: crossCategoryError } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryBId,
+      amount: 1000,
+      description: "kategori lintas tenant",
     });
     expect(crossCategoryError).not.toBeNull();
   });
 
-  it("reviewer and viewer cannot record an expense", async () => {
+  it("reviewer and viewer cannot record an expense via the RPC (nor can owner/admin — the direct-post bypass is closed for everyone)", async () => {
     const { poolId } = await createFundedPoolForTenantA();
     const projectId = await createActiveProjectForTenantA();
 
@@ -369,12 +432,13 @@ describe("immutable project cost ledger — real local Supabase", () => {
       p_to_status: "closed",
     });
 
-    const { error } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: 1000,
-      p_description: "expense pada project closed",
+    const { error } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: 1000,
+      description: "expense pada project closed",
     });
     expect(error).not.toBeNull();
 
@@ -397,19 +461,21 @@ describe("immutable project cost ledger — real local Supabase", () => {
       p_amount: 5_000_000,
     });
 
-    await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectOneId,
-      p_category_id: categoryAId,
-      p_amount: 750_000,
-      p_description: "biaya project satu",
+    await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId: projectOneId,
+      categoryId: categoryAId,
+      amount: 750_000,
+      description: "biaya project satu",
     });
-    await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectTwoId,
-      p_category_id: categoryAId,
-      p_amount: 250_000.5,
-      p_description: "biaya project dua",
+    await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId: projectTwoId,
+      categoryId: categoryAId,
+      amount: 250_000.5,
+      description: "biaya project dua",
     });
 
     const { data: summary, error: summaryError } = await ownerAClient
@@ -457,12 +523,13 @@ describe("immutable project cost ledger — real local Supabase", () => {
     const { poolId } = await createFundedPoolForTenantA();
     const projectId = await createActiveProjectForTenantA();
 
-    const { data: expense } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: 1_000_000,
-      p_description: "biaya sebelum project ditutup",
+    const { data: expense } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: 1_000_000,
+      description: "biaya sebelum project ditutup",
     });
 
     await ownerAClient.rpc("transition_vessel_project_lifecycle", {
@@ -524,12 +591,13 @@ describe("immutable project cost ledger — real local Supabase", () => {
     const { poolId } = await createFundedPoolForTenantA();
     const projectId = await createActiveProjectForTenantA();
 
-    const { data: expense } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: 500,
-      p_description: "biaya kecil",
+    const { data: expense } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: 500,
+      description: "biaya kecil",
     });
 
     const { error } = await ownerAClient.rpc("reverse_project_expense", {
@@ -540,16 +608,16 @@ describe("immutable project cost ledger — real local Supabase", () => {
   });
 
   it("reviewer and viewer cannot reverse an expense", async () => {
-    const ownerAClient = await signInAsMember(ownerA.email);
     const { poolId } = await createFundedPoolForTenantA();
     const projectId = await createActiveProjectForTenantA();
 
-    const { data: expense } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: 500,
-      p_description: "biaya kecil",
+    const { data: expense } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: 500,
+      description: "biaya kecil",
     });
 
     const reviewerAClient = await signInAsMember(reviewerA.email);
@@ -572,12 +640,13 @@ describe("immutable project cost ledger — real local Supabase", () => {
     const { poolId } = await createFundedPoolForTenantA();
     const projectId = await createActiveProjectForTenantA();
 
-    const { data: expense } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolId,
-      p_project_id: projectId,
-      p_category_id: categoryAId,
-      p_amount: 500,
-      p_description: "biaya kecil",
+    const { data: expense } = await insertLedgerEntryDirect({
+      tenantId: TENANT_A_ID,
+      poolId,
+      projectId,
+      categoryId: categoryAId,
+      amount: 500,
+      description: "biaya kecil",
     });
 
     const { error: insertError } = await ownerAClient.from("project_cost_ledger_entries").insert({
@@ -620,25 +689,17 @@ describe("immutable project cost ledger — real local Supabase", () => {
       return { poolId: data.id };
     })();
 
-    const { data: entryB } = await ownerBClient.rpc("record_project_expense", {
-      p_pool_id: poolBId,
-      p_project_id: projectBId,
-      p_category_id: categoryBId,
-      p_amount: 400_000,
-      p_description: "biaya tenant B",
+    const { data: entryB } = await insertLedgerEntryDirect({
+      tenantId: TENANT_B_ID,
+      poolId: poolBId,
+      projectId: projectBId,
+      categoryId: categoryBId,
+      amount: 400_000,
+      description: "biaya tenant B",
     });
 
     const { data: seenByA } = await ownerAClient.from("project_cost_ledger_entries").select("id").eq("id", entryB.id);
     expect(seenByA).toHaveLength(0);
-
-    const { error: crossRecordError } = await ownerAClient.rpc("record_project_expense", {
-      p_pool_id: poolBId,
-      p_project_id: projectBId,
-      p_category_id: categoryBId,
-      p_amount: 1,
-      p_description: "owner A lintas tenant",
-    });
-    expect(crossRecordError).not.toBeNull();
 
     const { error: crossReverseError } = await ownerAClient.rpc("reverse_project_expense", {
       p_entry_id: entryB.id,

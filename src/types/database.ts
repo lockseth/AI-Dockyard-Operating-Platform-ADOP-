@@ -339,6 +339,281 @@ export type Database = {
           },
         ]
       }
+      expense_submission_revisions: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          pool_id: string
+          project_id: string
+          reference_number: string | null
+          revision_number: number
+          submission_id: string
+          tenant_id: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          pool_id: string
+          project_id: string
+          reference_number?: string | null
+          revision_number: number
+          submission_id: string
+          tenant_id: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          pool_id?: string
+          project_id?: string
+          reference_number?: string | null
+          revision_number?: number
+          submission_id?: string
+          tenant_id?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_submission_revisions_category_id_tenant_id_fkey"
+            columns: ["category_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_submission_id_tenant_id_fkey"
+            columns: ["submission_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["submission_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_submission_id_tenant_id_fkey"
+            columns: ["submission_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submissions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_vendor_id_tenant_id_fkey"
+            columns: ["vendor_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id", "tenant_id"]
+          },
+        ]
+      }
+      expense_submission_status_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          from_status:
+            | Database["public"]["Enums"]["expense_submission_status"]
+            | null
+          id: string
+          reason: string | null
+          revision_id: string | null
+          submission_id: string
+          tenant_id: string
+          to_status: Database["public"]["Enums"]["expense_submission_status"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["expense_submission_status"]
+            | null
+          id?: string
+          reason?: string | null
+          revision_id?: string | null
+          submission_id: string
+          tenant_id: string
+          to_status: Database["public"]["Enums"]["expense_submission_status"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["expense_submission_status"]
+            | null
+          id?: string
+          reason?: string | null
+          revision_id?: string | null
+          submission_id?: string
+          tenant_id?: string
+          to_status?: Database["public"]["Enums"]["expense_submission_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_submission_status_events_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["revision_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_status_events_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submission_status_events_submission_id_tenant_id_fkey"
+            columns: ["submission_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["submission_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_status_events_submission_id_tenant_id_fkey"
+            columns: ["submission_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submissions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_status_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_submissions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          needs_correction_revision_id: string | null
+          status: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_revision_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          ledger_entry_id?: string | null
+          needs_correction_revision_id?: string | null
+          status?: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_revision_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          ledger_entry_id?: string | null
+          needs_correction_revision_id?: string | null
+          status?: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_submissions_current_revision_id_fkey"
+            columns: ["current_revision_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["revision_id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_current_revision_id_fkey"
+            columns: ["current_revision_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_needs_correction_revision_id_fkey"
+            columns: ["needs_correction_revision_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["revision_id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_needs_correction_revision_id_fkey"
+            columns: ["needs_correction_revision_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facility_locations: {
         Row: {
           code: string | null
@@ -1005,6 +1280,48 @@ export type Database = {
           },
         ]
       }
+      expense_submission_current: {
+        Row: {
+          amount: number | null
+          category_id: string | null
+          created_at: string | null
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          description: string | null
+          ledger_entry_id: string | null
+          pool_id: string | null
+          project_id: string | null
+          reference_number: string | null
+          revision_created_at: string | null
+          revision_created_by: string | null
+          revision_id: string | null
+          revision_number: number | null
+          status:
+            | Database["public"]["Enums"]["expense_submission_status"]
+            | null
+          submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vessel_project_cost_summary: {
         Row: {
           project_id: string | null
@@ -1023,6 +1340,59 @@ export type Database = {
       }
     }
     Functions: {
+      approve_expense_submission: {
+        Args: { p_submission_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          needs_correction_revision_id: string | null
+          status: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_expense_draft: {
+        Args: {
+          p_amount: number
+          p_category_id: string
+          p_description: string
+          p_pool_id: string
+          p_project_id: string
+          p_reference_number?: string
+          p_tenant_id: string
+          p_vendor_id?: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          needs_correction_revision_id: string | null
+          status: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_or_create_daily_cash_pool: {
         Args: { p_business_date: string; p_tenant_id: string }
         Returns: {
@@ -1108,6 +1478,50 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reject_expense_submission: {
+        Args: { p_reason: string; p_submission_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          needs_correction_revision_id: string | null
+          status: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      request_expense_correction: {
+        Args: { p_reason: string; p_submission_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          needs_correction_revision_id: string | null
+          status: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       reverse_cash_pool_entry: {
         Args: { p_entry_id: string; p_reason: string }
         Returns: {
@@ -1153,6 +1567,59 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revise_expense_draft: {
+        Args: {
+          p_amount: number
+          p_category_id: string
+          p_description: string
+          p_pool_id: string
+          p_project_id: string
+          p_reference_number?: string
+          p_submission_id: string
+          p_vendor_id?: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          needs_correction_revision_id: string | null
+          status: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_expense: {
+        Args: { p_submission_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          needs_correction_revision_id: string | null
+          status: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       transition_vessel_project_lifecycle: {
         Args: {
           p_project_id: string
@@ -1187,6 +1654,12 @@ export type Database = {
     Enums: {
       cash_pool_entry_kind: "entry" | "reversal"
       cash_pool_entry_type: "opening_cash" | "cash_top_up" | "other_cash_in"
+      expense_submission_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "rejected"
+        | "needs_correction"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
       project_cost_ledger_entry_kind: "expense" | "reversal"
@@ -1326,6 +1799,13 @@ export const Constants = {
     Enums: {
       cash_pool_entry_kind: ["entry", "reversal"],
       cash_pool_entry_type: ["opening_cash", "cash_top_up", "other_cash_in"],
+      expense_submission_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected",
+        "needs_correction",
+      ],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
       project_cost_ledger_entry_kind: ["expense", "reversal"],

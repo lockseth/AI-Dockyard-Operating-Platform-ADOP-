@@ -9,6 +9,17 @@
 --
 -- Self-contained: creates its own fixtures (distinct tenant/user ids from
 -- every other pgTAP file in this directory) and rolls back at the end.
+--
+-- Amended by Gate 1E (expense_submission_approval): record_project_expense's
+-- EXECUTE grant to `authenticated` is revoked there — only
+-- approve_expense_submission can still call it. The RECORD EXPENSE section
+-- below now exercises record_project_expense's own validation/authorization
+-- logic without switching the Postgres role to 'authenticated' (see the
+-- comment at that section); reverse_project_expense keeps its authenticated
+-- grant unaffected here (Gate 1E only narrows its role check to owner-only,
+-- unrelated to the owner-only assertions already in this file). See
+-- expense_submission_approval.test.sql for proof that authenticated itself
+-- is rejected by record_project_expense.
 
 begin;
 
@@ -154,8 +165,8 @@ select ok(
   'record_project_expense has a fixed search_path'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE'),
-  'authenticated can execute record_project_expense (internal role check gates it, not the grant)'
+  not has_function_privilege('authenticated', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE'),
+  'authenticated has no EXECUTE grant on record_project_expense — Gate 1E closes the direct-posting bypass'
 );
 select ok(
   not has_function_privilege('anon', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE'),
@@ -206,11 +217,21 @@ grant select on pgtap_cost_pool_j to authenticated;
 
 -- =============================================================================
 -- RECORD EXPENSE — owner/admin only, amount > 0, description required,
--- tenant re-derived from the pool, project/category/vendor tenant-safe
+-- tenant re-derived from the pool, project/category/vendor tenant-safe.
+--
+-- Gate 1E revokes record_project_expense's EXECUTE grant from
+-- `authenticated` (only approve_expense_submission can still call it, via
+-- function ownership). To keep exercising this function's own internal
+-- validation/authorization logic here, this section deliberately does NOT
+-- switch the Postgres role to 'authenticated' (no set_config('role', ...))
+-- — it keeps request.jwt.claims set so auth.uid()-based checks still run,
+-- while calling as the unrestricted pgTAP session role, which bypasses the
+-- EXECUTE grant the same way approve_expense_submission's function-owner
+-- context does. See expense_submission_approval.test.sql for proof that
+-- authenticated itself cannot call this RPC directly.
 -- =============================================================================
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-bbbb-2222-0000-000000000001', 'role', 'authenticated')::text, true);
-select set_config('role', 'authenticated', true);
 
 select lives_ok(
   $$ select public.record_project_expense(
@@ -327,7 +348,6 @@ select results_eq(
 
 -- reviewer/viewer cannot record.
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-bbbb-2222-0000-000000000003', 'role', 'authenticated')::text, true);
-select set_config('role', 'authenticated', true);
 select throws_ok(
   $$ select public.record_project_expense(
        (select id from pgtap_cost_pool_i), 'b0000000-0000-0000-0000-0000000000a2', 'b0000000-0000-0000-0000-0000000000e1',
@@ -340,7 +360,6 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-bbbb-2222-0000-000000000004', 'role', 'authenticated')::text, true);
-select set_config('role', 'authenticated', true);
 select throws_ok(
   $$ select public.record_project_expense(
        (select id from pgtap_cost_pool_i), 'b0000000-0000-0000-0000-0000000000a2', 'b0000000-0000-0000-0000-0000000000e1',
@@ -354,7 +373,6 @@ select set_config('request.jwt.claims', '', true);
 
 -- Cross-tenant: owner J cannot record against tenant I's pool.
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-cccc-2222-0000-000000000001', 'role', 'authenticated')::text, true);
-select set_config('role', 'authenticated', true);
 select throws_ok(
   $$ select public.record_project_expense(
        (select id from pgtap_cost_pool_i), 'b0000000-0000-0000-0000-0000000000a2', 'b0000000-0000-0000-0000-0000000000e1',
@@ -372,7 +390,6 @@ select set_config('request.jwt.claims', '', true);
 -- =============================================================================
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-bbbb-2222-0000-000000000001', 'role', 'authenticated')::text, true);
-select set_config('role', 'authenticated', true);
 
 select lives_ok(
   $$ select public.transition_vessel_project_lifecycle('b0000000-0000-0000-0000-0000000000a2', 'ready_to_close', null) $$,
