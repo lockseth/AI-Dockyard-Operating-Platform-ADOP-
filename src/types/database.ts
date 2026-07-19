@@ -339,6 +339,165 @@ export type Database = {
           },
         ]
       }
+      expense_duplicate_candidate_resolution_events: {
+        Row: {
+          actor_user_id: string | null
+          candidate_id: string
+          created_at: string
+          from_status:
+            | Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+            | null
+          id: string
+          reason: string | null
+          tenant_id: string
+          to_status: Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          candidate_id: string
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+            | null
+          id?: string
+          reason?: string | null
+          tenant_id: string
+          to_status: Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          candidate_id?: string
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+            | null
+          id?: string
+          reason?: string | null
+          tenant_id?: string
+          to_status?: Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_duplicate_candidate_resolut_candidate_id_tenant_id_fkey"
+            columns: ["candidate_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_duplicate_candidate_current"
+            referencedColumns: ["candidate_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidate_resolut_candidate_id_tenant_id_fkey"
+            columns: ["candidate_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_duplicate_candidates"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidate_resolution_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_duplicate_candidates: {
+        Row: {
+          detected_at: string
+          id: string
+          match_evidence: Json
+          reason_code: Database["public"]["Enums"]["expense_duplicate_reason_code"]
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_reason: string | null
+          revision_id_1: string
+          revision_id_2: string
+          status: Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+          submission_id_1: string
+          submission_id_2: string
+          tenant_id: string
+        }
+        Insert: {
+          detected_at?: string
+          id?: string
+          match_evidence: Json
+          reason_code: Database["public"]["Enums"]["expense_duplicate_reason_code"]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_reason?: string | null
+          revision_id_1: string
+          revision_id_2: string
+          status?: Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+          submission_id_1: string
+          submission_id_2: string
+          tenant_id: string
+        }
+        Update: {
+          detected_at?: string
+          id?: string
+          match_evidence?: Json
+          reason_code?: Database["public"]["Enums"]["expense_duplicate_reason_code"]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_reason?: string | null
+          revision_id_1?: string
+          revision_id_2?: string
+          status?: Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+          submission_id_1?: string
+          submission_id_2?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_duplicate_candidates_revision_id_1_tenant_id_fkey"
+            columns: ["revision_id_1", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_revisions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_revision_id_2_tenant_id_fkey"
+            columns: ["revision_id_2", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_revisions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_submission_id_1_tenant_id_fkey"
+            columns: ["submission_id_1", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["submission_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_submission_id_1_tenant_id_fkey"
+            columns: ["submission_id_1", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submissions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_submission_id_2_tenant_id_fkey"
+            columns: ["submission_id_2", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["submission_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_submission_id_2_tenant_id_fkey"
+            columns: ["submission_id_2", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submissions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_submission_revisions: {
         Row: {
           amount: number
@@ -1280,6 +1439,82 @@ export type Database = {
           },
         ]
       }
+      expense_duplicate_candidate_current: {
+        Row: {
+          amount_1: number | null
+          amount_2: number | null
+          candidate_id: string | null
+          category_id_1: string | null
+          category_id_2: string | null
+          description_1: string | null
+          description_2: string | null
+          detected_at: string | null
+          match_evidence: Json | null
+          project_id_1: string | null
+          project_id_2: string | null
+          reason_code:
+            | Database["public"]["Enums"]["expense_duplicate_reason_code"]
+            | null
+          reference_number_1: string | null
+          reference_number_2: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_reason: string | null
+          revision_number_1: number | null
+          revision_number_2: number | null
+          status:
+            | Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+            | null
+          submission_id_1: string | null
+          submission_id_2: string | null
+          submission_status_1:
+            | Database["public"]["Enums"]["expense_submission_status"]
+            | null
+          submission_status_2:
+            | Database["public"]["Enums"]["expense_submission_status"]
+            | null
+          tenant_id: string | null
+          vendor_id_1: string | null
+          vendor_id_2: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_duplicate_candidates_submission_id_1_tenant_id_fkey"
+            columns: ["submission_id_1", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["submission_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_submission_id_1_tenant_id_fkey"
+            columns: ["submission_id_1", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submissions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_submission_id_2_tenant_id_fkey"
+            columns: ["submission_id_2", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submission_current"
+            referencedColumns: ["submission_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_submission_id_2_tenant_id_fkey"
+            columns: ["submission_id_2", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submissions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_duplicate_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_submission_current: {
         Row: {
           amount: number | null
@@ -1522,6 +1757,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_expense_duplicate_candidate: {
+        Args: {
+          p_candidate_id: string
+          p_reason: string
+          p_resolution: Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+        }
+        Returns: {
+          detected_at: string
+          id: string
+          match_evidence: Json
+          reason_code: Database["public"]["Enums"]["expense_duplicate_reason_code"]
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_reason: string | null
+          revision_id_1: string
+          revision_id_2: string
+          status: Database["public"]["Enums"]["expense_duplicate_candidate_status"]
+          submission_id_1: string
+          submission_id_2: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expense_duplicate_candidates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       reverse_cash_pool_entry: {
         Args: { p_entry_id: string; p_reason: string }
         Returns: {
@@ -1654,6 +1917,15 @@ export type Database = {
     Enums: {
       cash_pool_entry_kind: "entry" | "reversal"
       cash_pool_entry_type: "opening_cash" | "cash_top_up" | "other_cash_in"
+      expense_duplicate_candidate_status:
+        | "pending"
+        | "not_duplicate"
+        | "confirmed_duplicate"
+      expense_duplicate_reason_code:
+        | "reference_match"
+        | "exact_financial_match"
+        | "cross_project_reference_match"
+        | "same_day_amount_vendor_match"
       expense_submission_status:
         | "draft"
         | "submitted"
@@ -1799,6 +2071,17 @@ export const Constants = {
     Enums: {
       cash_pool_entry_kind: ["entry", "reversal"],
       cash_pool_entry_type: ["opening_cash", "cash_top_up", "other_cash_in"],
+      expense_duplicate_candidate_status: [
+        "pending",
+        "not_duplicate",
+        "confirmed_duplicate",
+      ],
+      expense_duplicate_reason_code: [
+        "reference_match",
+        "exact_financial_match",
+        "cross_project_reference_match",
+        "same_day_amount_vendor_match",
+      ],
       expense_submission_status: [
         "draft",
         "submitted",

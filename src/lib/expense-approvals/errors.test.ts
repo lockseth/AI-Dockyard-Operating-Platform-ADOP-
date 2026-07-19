@@ -125,6 +125,18 @@ describe("mapExpenseApprovalError", () => {
     );
   });
 
+  it("maps DUPLICATE_REVIEW_REQUIRED distinctly", () => {
+    expect(mapExpenseApprovalError(pgError("P0001", "DUPLICATE_REVIEW_REQUIRED"))).toMatch(
+      /kandidat duplikasi yang belum ditinjau/i,
+    );
+  });
+
+  it("maps DUPLICATE_CONFIRMED distinctly", () => {
+    expect(mapExpenseApprovalError(pgError("P0001", "DUPLICATE_CONFIRMED"))).toMatch(
+      /terkonfirmasi duplikat/i,
+    );
+  });
+
   it("maps a not-found exception to a not-found message", () => {
     expect(mapExpenseApprovalError(pgError("P0001", "expense submission not found"))).toMatch(/tidak ditemukan/i);
   });

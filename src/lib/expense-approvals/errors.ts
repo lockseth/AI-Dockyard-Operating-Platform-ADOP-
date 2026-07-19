@@ -77,6 +77,12 @@ export function mapExpenseApprovalError(error: PostgrestError | null | undefined
       if (error.message?.includes("reversal reason is required")) {
         return "Alasan koreksi (reversal) wajib diisi.";
       }
+      if (error.message === "DUPLICATE_REVIEW_REQUIRED") {
+        return "Submission ini memiliki kandidat duplikasi yang belum ditinjau owner. Selesaikan review duplikasi sebelum approve.";
+      }
+      if (error.message === "DUPLICATE_CONFIRMED") {
+        return "Submission ini terkonfirmasi duplikat dan tidak dapat di-approve. Gunakan reject untuk menolak submission ini.";
+      }
       if (error.message?.includes("not found")) {
         return "Data tidak ditemukan.";
       }
