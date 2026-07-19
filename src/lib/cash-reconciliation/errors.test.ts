@@ -161,6 +161,18 @@ describe("mapCashReconciliationError", () => {
     );
   });
 
+  it("maps UNRESOLVED_EXPENSES distinctly", () => {
+    expect(mapCashReconciliationError(pgError("P0001", "UNRESOLVED_EXPENSES"))).toMatch(
+      /belum memiliki keputusan final/i,
+    );
+  });
+
+  it("maps 'not authorized to view cash pool' distinctly", () => {
+    expect(mapCashReconciliationError(pgError("P0001", "not authorized to view cash pool"))).toMatch(
+      /tidak memiliki izin untuk melihat cash pool/i,
+    );
+  });
+
   it("maps a not-found exception to a not-found message", () => {
     expect(mapCashReconciliationError(pgError("P0001", "cash reconciliation not found"))).toMatch(/tidak ditemukan/i);
   });

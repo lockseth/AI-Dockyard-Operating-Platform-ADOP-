@@ -58,3 +58,9 @@ export const requestExpenseCorrectionInputSchema = z.object({
   reason: requiredText(500, "Alasan koreksi wajib diisi."),
 });
 export type RequestExpenseCorrectionInput = z.infer<typeof requestExpenseCorrectionInputSchema>;
+
+export const cancelExpenseSubmissionInputSchema = z.object({
+  submissionId: idSchema,
+  reason: requiredText(500, "Alasan pembatalan wajib diisi."),
+});
+export type CancelExpenseSubmissionInput = z.infer<typeof cancelExpenseSubmissionInputSchema>;

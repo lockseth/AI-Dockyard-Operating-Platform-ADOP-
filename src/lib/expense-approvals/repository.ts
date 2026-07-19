@@ -126,3 +126,10 @@ export async function requestExpenseCorrection(submissionId: string, reason: str
   const supabase = await createSupabaseServerClient();
   return supabase.rpc("request_expense_correction", { p_submission_id: submissionId, p_reason: reason });
 }
+
+// Owner/admin-only, only from draft/needs_correction (the RPC re-checks
+// both). Reason is required; tenant/actor/timestamp are server-derived.
+export async function cancelExpenseSubmission(submissionId: string, reason: string) {
+  const supabase = await createSupabaseServerClient();
+  return supabase.rpc("cancel_expense_submission", { p_submission_id: submissionId, p_reason: reason });
+}

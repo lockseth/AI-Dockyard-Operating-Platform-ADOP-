@@ -624,6 +624,91 @@ describe("expense submission & owner approval workflow — real local Supabase",
     expect(crossApproveError).not.toBeNull();
   });
 
+  it("admin/owner can cancel a draft or needs_correction submission with a reason; submitted/approved/rejected/cancelled cannot be cancelled, and a different tenant's owner cannot cancel", async () => {
+    const { poolId } = await createFundedPoolForTenantA();
+    const draftProjectId = await createActiveProjectForTenantA();
+    const correctionProjectId = await createActiveProjectForTenantA();
+    const submittedProjectId = await createActiveProjectForTenantA();
+    const adminAClient = await signInAsMember(adminA.email);
+    const ownerAClient = await signInAsMember(ownerA.email);
+    const ownerBClient = await signInAsMember(ownerB.email);
+
+    const { data: draft } = await adminAClient.rpc("create_expense_draft", {
+      p_tenant_id: TENANT_A_ID,
+      p_pool_id: poolId,
+      p_project_id: draftProjectId,
+      p_category_id: categoryAId,
+      p_amount: 120_000,
+      p_description: "biaya cancel draft",
+    });
+
+    const { error: crossTenantCancelError } = await ownerBClient.rpc("cancel_expense_submission", {
+      p_submission_id: draft.id,
+      p_reason: "owner B lintas tenant coba cancel",
+    });
+    expect(crossTenantCancelError).not.toBeNull();
+
+    const { error: emptyReasonError } = await adminAClient.rpc("cancel_expense_submission", {
+      p_submission_id: draft.id,
+      p_reason: "",
+    });
+    expect(emptyReasonError).not.toBeNull();
+
+    const { data: cancelledDraft, error: cancelDraftError } = await adminAClient.rpc("cancel_expense_submission", {
+      p_submission_id: draft.id,
+      p_reason: "salah input, dibatalkan sebelum submit",
+    });
+    expect(cancelDraftError).toBeNull();
+    expect(cancelledDraft.status).toBe("cancelled");
+
+    const { error: cancelAgainError } = await ownerAClient.rpc("cancel_expense_submission", {
+      p_submission_id: draft.id,
+      p_reason: "coba cancel lagi",
+    });
+    expect(cancelAgainError).not.toBeNull();
+
+    const { data: correctionSubmission } = await ownerAClient.rpc("create_expense_draft", {
+      p_tenant_id: TENANT_A_ID,
+      p_pool_id: poolId,
+      p_project_id: correctionProjectId,
+      p_category_id: categoryAId,
+      p_amount: 130_000,
+      p_description: "biaya cancel needs_correction",
+    });
+    await ownerAClient.rpc("submit_expense", { p_submission_id: correctionSubmission.id });
+    await ownerAClient.rpc("request_expense_correction", {
+      p_submission_id: correctionSubmission.id,
+      p_reason: "perlu ditinjau ulang",
+    });
+    const { data: cancelledCorrection, error: cancelCorrectionError } = await ownerAClient.rpc(
+      "cancel_expense_submission",
+      { p_submission_id: correctionSubmission.id, p_reason: "dibatalkan, tidak jadi diajukan ulang" },
+    );
+    expect(cancelCorrectionError).toBeNull();
+    expect(cancelledCorrection.status).toBe("cancelled");
+
+    const { data: submittedSubmission } = await ownerAClient.rpc("create_expense_draft", {
+      p_tenant_id: TENANT_A_ID,
+      p_pool_id: poolId,
+      p_project_id: submittedProjectId,
+      p_category_id: categoryAId,
+      p_amount: 140_000,
+      p_description: "biaya submitted tidak bisa dicancel",
+    });
+    await ownerAClient.rpc("submit_expense", { p_submission_id: submittedSubmission.id });
+    const { error: cancelSubmittedError } = await adminAClient.rpc("cancel_expense_submission", {
+      p_submission_id: submittedSubmission.id,
+      p_reason: "admin coba cancel submitted",
+    });
+    expect(cancelSubmittedError).not.toBeNull();
+
+    const { count: cancelledLedgerCount } = await admin
+      .from("project_cost_ledger_entries")
+      .select("id", { count: "exact", head: true })
+      .in("project_id", [draftProjectId, correctionProjectId]);
+    expect(cancelledLedgerCount).toBe(0);
+  });
+
   it("anonymous requests get zero access to expense submissions and the approval RPCs", async () => {
     const { createClient } = await import("@supabase/supabase-js");
     const anonClient = createClient(SUPABASE_URL!, ANON_KEY!, {

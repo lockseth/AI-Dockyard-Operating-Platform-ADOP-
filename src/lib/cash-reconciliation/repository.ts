@@ -151,3 +151,11 @@ export async function reopenCashPool(poolId: string, reason: string) {
   const supabase = await createSupabaseServerClient();
   return supabase.rpc("reopen_cash_pool", { p_pool_id: poolId, p_reason: reason });
 }
+
+// Tenant-safe: any active tenant member can call this (the RPC re-checks
+// membership against the pool's own tenant_id). Used to explain why EOD
+// close is blocked by Gate 1G.1's unresolved-expense guard.
+export async function getUnresolvedExpenseCount(poolId: string) {
+  const supabase = await createSupabaseServerClient();
+  return supabase.rpc("get_unresolved_expense_count", { p_pool_id: poolId });
+}

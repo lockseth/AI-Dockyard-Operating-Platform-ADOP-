@@ -99,8 +99,8 @@ select has_view('public', 'expense_submission_current', 'public.expense_submissi
 select has_type('public', 'expense_submission_status', 'expense_submission_status enum exists');
 select ok(
   (select array_agg(enumlabel::text order by enumsortorder) from pg_enum where enumtypid = 'public.expense_submission_status'::regtype)
-    = array['draft', 'submitted', 'approved', 'rejected', 'needs_correction'],
-  'expense_submission_status is exactly draft/submitted/approved/rejected/needs_correction'
+    = array['draft', 'submitted', 'approved', 'rejected', 'needs_correction', 'cancelled'],
+  'expense_submission_status is exactly draft/submitted/approved/rejected/needs_correction/cancelled (Gate 1G.1)'
 );
 
 select col_is_pk('public', 'expense_submissions', 'id', 'expense_submissions PK is id');

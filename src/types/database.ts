@@ -2024,6 +2024,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cancel_expense_submission: {
+        Args: { p_reason: string; p_submission_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          ledger_entry_id: string | null
+          needs_correction_revision_id: string | null
+          status: Database["public"]["Enums"]["expense_submission_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_cash_reconciliation_draft: {
         Args: {
           p_actual_counted_cash: number
@@ -2110,6 +2132,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_unresolved_expense_count: {
+        Args: { p_pool_id: string }
+        Returns: number
       }
       log_master_data_audit_event: {
         Args: {
@@ -2564,6 +2590,7 @@ export type Database = {
         | "approved"
         | "rejected"
         | "needs_correction"
+        | "cancelled"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
       project_cost_ledger_entry_kind: "expense" | "reversal"
@@ -2728,6 +2755,7 @@ export const Constants = {
         "approved",
         "rejected",
         "needs_correction",
+        "cancelled",
       ],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],

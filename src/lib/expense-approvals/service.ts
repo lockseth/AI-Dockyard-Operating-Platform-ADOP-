@@ -3,6 +3,7 @@ import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
 import { mapExpenseApprovalError } from "./errors";
 import {
   approveExpenseSubmission,
+  cancelExpenseSubmission,
   createExpenseDraft,
   listExpenseSubmissionRevisions,
   listExpenseSubmissionsCurrentForTenant,
@@ -18,6 +19,7 @@ import {
 } from "./repository";
 import {
   approveExpenseSubmissionInputSchema,
+  cancelExpenseSubmissionInputSchema,
   createExpenseDraftInputSchema,
   rejectExpenseSubmissionInputSchema,
   requestExpenseCorrectionInputSchema,
@@ -178,6 +180,24 @@ export async function requestExpenseCorrectionForActiveTenant(
   requireTenantRole(context, ["owner"]);
 
   const { data, error } = await requestExpenseCorrection(input.submissionId, input.reason);
+  if (error || !data) {
+    return { error: mapExpenseApprovalError(error) };
+  }
+
+  return { submission: data };
+}
+
+export async function cancelExpenseSubmissionForActiveTenant(rawInput: unknown): Promise<ExpenseSubmissionActionResult> {
+  const parsed = cancelExpenseSubmissionInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  const input = parsed.data;
+
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner", "admin"]);
+
+  const { data, error } = await cancelExpenseSubmission(input.submissionId, input.reason);
   if (error || !data) {
     return { error: mapExpenseApprovalError(error) };
   }

@@ -37,6 +37,9 @@ export function mapCashReconciliationError(error: PostgrestError | null | undefi
       if (error.message?.includes("not authorized to reopen")) {
         return "Hanya owner yang dapat membuka kembali cash pool yang sudah closed.";
       }
+      if (error.message?.includes("not authorized to view cash pool")) {
+        return "Anda tidak memiliki izin untuk melihat cash pool ini.";
+      }
       if (error.message?.includes("cash pool is not open for a new reconciliation")) {
         return "Cash pool ini sedang pending close atau sudah closed — tidak bisa membuat rekonsiliasi baru.";
       }
@@ -93,6 +96,9 @@ export function mapCashReconciliationError(error: PostgrestError | null | undefi
       }
       if (error.message === "RECONCILIATION_STALE") {
         return "Data keuangan cash pool berubah sejak rekonsiliasi ini disubmit. Buat revisi baru dan submit ulang.";
+      }
+      if (error.message === "UNRESOLVED_EXPENSES") {
+        return "Masih ada expense yang belum memiliki keputusan final (draft/submitted/needs_correction) pada cash pool ini. Selesaikan atau batalkan expense tersebut sebelum melakukan EOD close.";
       }
       if (error.message?.includes("no active approved reconciliation found to supersede")) {
         return "Tidak ditemukan rekonsiliasi approved aktif untuk cash pool ini.";

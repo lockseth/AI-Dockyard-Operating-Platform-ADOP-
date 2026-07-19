@@ -6,6 +6,7 @@ import {
   approveCashReconciliation,
   createCashReconciliationDraft,
   getCashPoolReconciliationCurrentForPool,
+  getUnresolvedExpenseCount,
   listCashPoolReconciliationsCurrentForTenant,
   listCashPoolReopenEvents,
   listCashReconciliationRevisions,
@@ -73,6 +74,16 @@ export async function listCashReconciliationStatusEventsForActiveTenant(
 export async function listCashPoolReopenEventsForActiveTenant(poolId: string): Promise<CashPoolReopenEventRow[]> {
   const context = await requireTenantContext();
   return listCashPoolReopenEvents(context.tenantId, poolId);
+}
+
+// Explains why EOD close is blocked by Gate 1G.1's unresolved-expense guard
+// — any active tenant member can read this (matches expense_submissions'
+// own read visibility).
+export async function getUnresolvedExpenseCountForActiveTenant(poolId: string): Promise<number> {
+  await requireTenantContext();
+  const { data, error } = await getUnresolvedExpenseCount(poolId);
+  if (error) throw error;
+  return data ?? 0;
 }
 
 export async function createCashReconciliationDraftForActiveTenant(

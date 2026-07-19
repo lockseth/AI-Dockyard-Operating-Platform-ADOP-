@@ -61,6 +61,30 @@ describe("mapExpenseApprovalError", () => {
     );
   });
 
+  it("maps 'not authorized to cancel' distinctly", () => {
+    expect(mapExpenseApprovalError(pgError("P0001", "not authorized to cancel expense submission"))).toMatch(
+      /membatalkan submission biaya/i,
+    );
+  });
+
+  it("maps 'cannot be cancelled from its current status' distinctly", () => {
+    expect(
+      mapExpenseApprovalError(pgError("P0001", "expense submission cannot be cancelled from its current status")),
+    ).toMatch(/tidak dapat dibatalkan/i);
+  });
+
+  it("maps 'cancellation reason is required' distinctly", () => {
+    expect(mapExpenseApprovalError(pgError("P0001", "cancellation reason is required"))).toMatch(
+      /alasan pembatalan/i,
+    );
+  });
+
+  it("maps 'cash pool is not open for expense submission' distinctly", () => {
+    expect(
+      mapExpenseApprovalError(pgError("P0001", "cash pool is not open for expense submission")),
+    ).toMatch(/pending close atau sudah closed/i);
+  });
+
   it("maps 'cannot be revised in its current status' distinctly", () => {
     expect(
       mapExpenseApprovalError(pgError("P0001", "expense submission cannot be revised in its current status")),

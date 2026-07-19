@@ -35,6 +35,18 @@ export function mapExpenseApprovalError(error: PostgrestError | null | undefined
       if (error.message?.includes("not authorized to reverse")) {
         return "Anda tidak memiliki izin untuk melakukan reversal biaya.";
       }
+      if (error.message?.includes("not authorized to cancel")) {
+        return "Anda tidak memiliki izin untuk membatalkan submission biaya.";
+      }
+      if (error.message?.includes("cannot be cancelled from its current status")) {
+        return "Submission ini tidak dapat dibatalkan pada status saat ini.";
+      }
+      if (error.message?.includes("cancellation reason is required")) {
+        return "Alasan pembatalan wajib diisi.";
+      }
+      if (error.message?.includes("cash pool is not open for expense submission")) {
+        return "Cash pool ini sedang pending close atau sudah closed — submission biaya baru ditolak.";
+      }
       if (error.message?.includes("cannot be revised in its current status")) {
         return "Submission ini tidak dapat direvisi pada status saat ini.";
       }

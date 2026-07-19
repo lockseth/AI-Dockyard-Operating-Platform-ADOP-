@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   approveExpenseSubmissionInputSchema,
+  cancelExpenseSubmissionInputSchema,
   createExpenseDraftInputSchema,
   rejectExpenseSubmissionInputSchema,
   requestExpenseCorrectionInputSchema,
@@ -183,6 +184,18 @@ describe("rejectExpenseSubmissionInputSchema / requestExpenseCorrectionInputSche
     ).toBe(false);
     expect(
       requestExpenseCorrectionInputSchema.safeParse({ submissionId: VALID_ID, reason: "kategori salah" }).success,
+    ).toBe(true);
+  });
+});
+
+describe("cancelExpenseSubmissionInputSchema", () => {
+  it("requires submissionId and a non-empty reason", () => {
+    expect(cancelExpenseSubmissionInputSchema.safeParse({ submissionId: VALID_ID }).success).toBe(false);
+    expect(
+      cancelExpenseSubmissionInputSchema.safeParse({ submissionId: VALID_ID, reason: "" }).success,
+    ).toBe(false);
+    expect(
+      cancelExpenseSubmissionInputSchema.safeParse({ submissionId: VALID_ID, reason: "salah input" }).success,
     ).toBe(true);
   });
 });
