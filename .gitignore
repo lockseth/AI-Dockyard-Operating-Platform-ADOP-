@@ -1,0 +1,45 @@
+# Environment secrets — jangan pernah commit
+.env
+.env.local
+.env.*.local
+.env.demo.local
+.env.production.local
+
+# Dependencies
+node_modules
+/.pnp
+.pnp.*
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor artifacts
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Claude Code local/personal settings (machine-specific permission history)
+.claude/settings.local.json
+
+# Vercel
+.vercel
