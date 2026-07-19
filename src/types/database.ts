@@ -568,6 +568,150 @@ export type Database = {
           },
         ]
       }
+      vessel_project_lifecycle_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          from_status:
+            | Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+            | null
+          id: string
+          project_id: string
+          reason: string | null
+          tenant_id: string
+          to_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+            | null
+          id?: string
+          project_id: string
+          reason?: string | null
+          tenant_id: string
+          to_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+            | null
+          id?: string
+          project_id?: string
+          reason?: string | null
+          tenant_id?: string
+          to_status?: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vessel_project_lifecycle_events_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "vessel_project_lifecycle_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vessel_projects: {
+        Row: {
+          client_id: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          facility_location_id: string
+          id: string
+          lifecycle_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          project_code: string | null
+          ready_to_close_at: string | null
+          service_type_id: string
+          start_date: string
+          tenant_id: string
+          updated_at: string
+          vessel_id: string
+        }
+        Insert: {
+          client_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          facility_location_id: string
+          id?: string
+          lifecycle_status?: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          project_code?: string | null
+          ready_to_close_at?: string | null
+          service_type_id: string
+          start_date: string
+          tenant_id: string
+          updated_at?: string
+          vessel_id: string
+        }
+        Update: {
+          client_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          facility_location_id?: string
+          id?: string
+          lifecycle_status?: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          project_code?: string | null
+          ready_to_close_at?: string | null
+          service_type_id?: string
+          start_date?: string
+          tenant_id?: string
+          updated_at?: string
+          vessel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vessel_projects_client_id_tenant_id_fkey"
+            columns: ["client_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "vessel_projects_facility_location_id_tenant_id_fkey"
+            columns: ["facility_location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "vessel_projects_service_type_id_tenant_id_fkey"
+            columns: ["service_type_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "vessel_projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vessel_projects_vessel_id_tenant_id_fkey"
+            columns: ["vessel_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessels"
+            referencedColumns: ["id", "tenant_id"]
+          },
+        ]
+      }
       vessels: {
         Row: {
           client_id: string
@@ -641,6 +785,36 @@ export type Database = {
         }
         Returns: undefined
       }
+      transition_vessel_project_lifecycle: {
+        Args: {
+          p_project_id: string
+          p_reason?: string
+          p_to_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+        }
+        Returns: {
+          client_id: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          facility_location_id: string
+          id: string
+          lifecycle_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          project_code: string | null
+          ready_to_close_at: string | null
+          service_type_id: string
+          start_date: string
+          tenant_id: string
+          updated_at: string
+          vessel_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vessel_projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       legal_entity_status: "active" | "inactive"
@@ -648,6 +822,7 @@ export type Database = {
       record_status: "active" | "inactive"
       tenant_role: "owner" | "admin" | "reviewer" | "viewer"
       tenant_status: "active" | "suspended"
+      vessel_project_lifecycle_status: "active" | "ready_to_close" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -783,6 +958,7 @@ export const Constants = {
       record_status: ["active", "inactive"],
       tenant_role: ["owner", "admin", "reviewer", "viewer"],
       tenant_status: ["active", "suspended"],
+      vessel_project_lifecycle_status: ["active", "ready_to_close", "closed"],
     },
   },
 } as const
