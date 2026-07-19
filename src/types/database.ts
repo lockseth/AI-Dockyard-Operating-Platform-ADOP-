@@ -78,6 +78,106 @@ export type Database = {
           },
         ]
       }
+      cash_pool_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entry_kind: Database["public"]["Enums"]["cash_pool_entry_kind"]
+          entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
+          id: string
+          pool_id: string
+          reverses_entry_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entry_kind?: Database["public"]["Enums"]["cash_pool_entry_kind"]
+          entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
+          id?: string
+          pool_id: string
+          reverses_entry_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entry_kind?: Database["public"]["Enums"]["cash_pool_entry_kind"]
+          entry_type?: Database["public"]["Enums"]["cash_pool_entry_type"]
+          id?: string
+          pool_id?: string
+          reverses_entry_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_pool_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_pool_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_pool_entries_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_pool_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_pools: {
+        Row: {
+          business_date: string
+          created_at: string
+          created_by: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          business_date: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          business_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_pools_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_contacts: {
         Row: {
           client_id: string
@@ -771,9 +871,46 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      cash_pool_daily_summary: {
+        Row: {
+          business_date: string | null
+          cash_top_up: number | null
+          closing_cash: number | null
+          created_at: string | null
+          opening_cash: number | null
+          other_cash_in: number | null
+          pool_id: string | null
+          tenant_id: string | null
+          total_cash_out: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_pools_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      get_or_create_daily_cash_pool: {
+        Args: { p_business_date: string; p_tenant_id: string }
+        Returns: {
+          business_date: string
+          created_at: string
+          created_by: string | null
+          id: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_pools"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       log_master_data_audit_event: {
         Args: {
           p_action: string
@@ -784,6 +921,53 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: undefined
+      }
+      record_cash_pool_entry: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
+          p_pool_id: string
+        }
+        Returns: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entry_kind: Database["public"]["Enums"]["cash_pool_entry_kind"]
+          entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
+          id: string
+          pool_id: string
+          reverses_entry_id: string | null
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_pool_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reverse_cash_pool_entry: {
+        Args: { p_entry_id: string; p_reason: string }
+        Returns: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entry_kind: Database["public"]["Enums"]["cash_pool_entry_kind"]
+          entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
+          id: string
+          pool_id: string
+          reverses_entry_id: string | null
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_pool_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       transition_vessel_project_lifecycle: {
         Args: {
@@ -817,6 +1001,8 @@ export type Database = {
       }
     }
     Enums: {
+      cash_pool_entry_kind: "entry" | "reversal"
+      cash_pool_entry_type: "opening_cash" | "cash_top_up" | "other_cash_in"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
       record_status: "active" | "inactive"
@@ -953,6 +1139,8 @@ export const Constants = {
   },
   public: {
     Enums: {
+      cash_pool_entry_kind: ["entry", "reversal"],
+      cash_pool_entry_type: ["opening_cash", "cash_top_up", "other_cash_in"],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
       record_status: ["active", "inactive"],
