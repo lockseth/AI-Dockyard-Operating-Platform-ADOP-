@@ -638,43 +638,25 @@ select is(
 -- =============================================================================
 -- MASTER DATA AUDIT
 -- =============================================================================
+-- Gate 1A.1 (supabase/migrations/20260719090000_master_data_audit_atomicity.sql)
+-- replaced the manual two-step "mutate, then call the RPC" audit path with
+-- an automatic AFTER ROW trigger — see
+-- supabase/tests/database/master_data_audit_atomicity.test.sql for the full
+-- trigger-coverage, rollback, and anti-spoofing proof. This section only
+-- proves the manual RPC is now locked and the append-only/RLS posture on
+-- the audit table itself is unchanged.
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-aaaa-1111-0000-000000000001', 'role', 'authenticated')::text, true);
 select set_config('role', 'authenticated', true);
 
-select lives_ok(
+select throws_ok(
   $$ select public.log_master_data_audit_event(
        '33333333-3333-3333-3333-333333333333', 'client', '30000000-0000-0000-0000-0000000000c1',
        'create', null, '{"display_name": "Anchor Client A"}'::jsonb
      ) $$,
-  'owner A can log a master-data create audit event via the RPC'
-);
-select lives_ok(
-  $$ select public.log_master_data_audit_event(
-       '33333333-3333-3333-3333-333333333333', 'client', '30000000-0000-0000-0000-0000000000c1',
-       'update', '{"status": "active"}'::jsonb, '{"status": "inactive"}'::jsonb
-     ) $$,
-  'owner A can log a master-data update audit event via the RPC'
-);
-select lives_ok(
-  $$ select public.log_master_data_audit_event(
-       '33333333-3333-3333-3333-333333333333', 'client', '30000000-0000-0000-0000-0000000000c1',
-       'deactivate', '{"status": "active"}'::jsonb, '{"status": "inactive"}'::jsonb
-     ) $$,
-  'owner A can log a master-data deactivate audit event via the RPC'
-);
-select is(
-  (select count(*)::int from public.master_data_audit_events
-     where tenant_id = '33333333-3333-3333-3333-333333333333' and entity_id = '30000000-0000-0000-0000-0000000000c1'),
-  3,
-  'create/update/deactivate all produced an audit row'
-);
-select results_eq(
-  $$ select action from public.master_data_audit_events
-       where tenant_id = '33333333-3333-3333-3333-333333333333' and entity_id = '30000000-0000-0000-0000-0000000000c1'
-       order by created_at $$,
-  $$ values ('create'), ('update'), ('deactivate') $$,
-  'audit actions are recorded in order'
+  '42501',
+  null,
+  'owner A can no longer call the manual audit RPC directly — locked in Gate 1A.1'
 );
 
 select throws_ok(
@@ -682,13 +664,13 @@ select throws_ok(
      values ('33333333-3333-3333-3333-333333333333', 'client', '30000000-0000-0000-0000-0000000000c1', 'create') $$,
   '42501',
   null,
-  'authenticated cannot INSERT into master_data_audit_events directly — RPC only'
+  'authenticated cannot INSERT into master_data_audit_events directly — trigger only'
 );
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- reviewer/viewer cannot write audit events via the RPC (owner/admin only).
+-- reviewer/viewer are equally locked out of the (now dead) manual RPC.
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-aaaa-1111-0000-000000000004', 'role', 'authenticated')::text, true);
 select set_config('role', 'authenticated', true);
 
@@ -697,8 +679,9 @@ select throws_ok(
        '33333333-3333-3333-3333-333333333333', 'client', '30000000-0000-0000-0000-0000000000c1',
        'update', null, null
      ) $$,
-  'not authorized to write master data audit event',
-  'viewer A cannot write a master-data audit event'
+  '42501',
+  null,
+  'viewer A cannot call the manual audit RPC directly either'
 );
 
 reset role;
