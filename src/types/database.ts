@@ -146,11 +146,79 @@ export type Database = {
           },
         ]
       }
+      cash_pool_reopen_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          pool_id: string
+          previous_reconciliation_id: string
+          reason: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          pool_id: string
+          previous_reconciliation_id: string
+          reason: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          pool_id?: string
+          previous_reconciliation_id?: string
+          reason?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_pool_reopen_events_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_pool_reopen_events_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_pool_reopen_events_previous_reconciliation_id_tenant__fkey"
+            columns: ["previous_reconciliation_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_reconciliation_current"
+            referencedColumns: ["reconciliation_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_pool_reopen_events_previous_reconciliation_id_tenant__fkey"
+            columns: ["previous_reconciliation_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_reconciliations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_pool_reopen_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_pools: {
         Row: {
           business_date: string
           created_at: string
           created_by: string | null
+          daily_close_status: Database["public"]["Enums"]["cash_pool_daily_close_status"]
+          financial_version: number
           id: string
           tenant_id: string
         }
@@ -158,6 +226,8 @@ export type Database = {
           business_date: string
           created_at?: string
           created_by?: string | null
+          daily_close_status?: Database["public"]["Enums"]["cash_pool_daily_close_status"]
+          financial_version?: number
           id?: string
           tenant_id: string
         }
@@ -165,12 +235,261 @@ export type Database = {
           business_date?: string
           created_at?: string
           created_by?: string | null
+          daily_close_status?: Database["public"]["Enums"]["cash_pool_daily_close_status"]
+          financial_version?: number
           id?: string
           tenant_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "cash_pools_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_reconciliation_revisions: {
+        Row: {
+          actual_counted_cash: number
+          created_at: string
+          created_by: string | null
+          explanation: string | null
+          id: string
+          reconciliation_id: string
+          revision_number: number
+          tenant_id: string
+        }
+        Insert: {
+          actual_counted_cash: number
+          created_at?: string
+          created_by?: string | null
+          explanation?: string | null
+          id?: string
+          reconciliation_id: string
+          revision_number: number
+          tenant_id: string
+        }
+        Update: {
+          actual_counted_cash?: number
+          created_at?: string
+          created_by?: string | null
+          explanation?: string | null
+          id?: string
+          reconciliation_id?: string
+          revision_number?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_reconciliation_revisions_reconciliation_id_tenant_id_fkey"
+            columns: ["reconciliation_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_reconciliation_current"
+            referencedColumns: ["reconciliation_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliation_revisions_reconciliation_id_tenant_id_fkey"
+            columns: ["reconciliation_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_reconciliations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliation_revisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_reconciliation_status_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          from_status:
+            | Database["public"]["Enums"]["cash_reconciliation_status"]
+            | null
+          id: string
+          reason: string | null
+          reconciliation_id: string
+          revision_id: string | null
+          tenant_id: string
+          to_status: Database["public"]["Enums"]["cash_reconciliation_status"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["cash_reconciliation_status"]
+            | null
+          id?: string
+          reason?: string | null
+          reconciliation_id: string
+          revision_id?: string | null
+          tenant_id: string
+          to_status: Database["public"]["Enums"]["cash_reconciliation_status"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["cash_reconciliation_status"]
+            | null
+          id?: string
+          reason?: string | null
+          reconciliation_id?: string
+          revision_id?: string | null
+          tenant_id?: string
+          to_status?: Database["public"]["Enums"]["cash_reconciliation_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_reconciliation_status_eve_reconciliation_id_tenant_id_fkey"
+            columns: ["reconciliation_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_reconciliation_current"
+            referencedColumns: ["reconciliation_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliation_status_eve_reconciliation_id_tenant_id_fkey"
+            columns: ["reconciliation_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_reconciliations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliation_status_events_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "cash_reconciliation_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliation_status_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_reconciliations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          needs_correction_revision_id: string | null
+          pool_id: string
+          status: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_cash_top_up: number | null
+          submitted_expected_closing_cash: number | null
+          submitted_financial_version: number | null
+          submitted_opening_cash: number | null
+          submitted_other_cash_in: number | null
+          submitted_total_cash_out: number | null
+          submitted_variance: number | null
+          superseded_at: string | null
+          superseded_by_reopen_event_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_revision_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          id?: string
+          needs_correction_revision_id?: string | null
+          pool_id: string
+          status?: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitted_cash_top_up?: number | null
+          submitted_expected_closing_cash?: number | null
+          submitted_financial_version?: number | null
+          submitted_opening_cash?: number | null
+          submitted_other_cash_in?: number | null
+          submitted_total_cash_out?: number | null
+          submitted_variance?: number | null
+          superseded_at?: string | null
+          superseded_by_reopen_event_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_revision_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          id?: string
+          needs_correction_revision_id?: string | null
+          pool_id?: string
+          status?: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitted_cash_top_up?: number | null
+          submitted_expected_closing_cash?: number | null
+          submitted_financial_version?: number | null
+          submitted_opening_cash?: number | null
+          submitted_other_cash_in?: number | null
+          submitted_total_cash_out?: number | null
+          submitted_variance?: number | null
+          superseded_at?: string | null
+          superseded_by_reopen_event_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_reconciliations_current_revision_id_fkey"
+            columns: ["current_revision_id"]
+            isOneToOne: false
+            referencedRelation: "cash_reconciliation_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_needs_correction_revision_id_fkey"
+            columns: ["needs_correction_revision_id"]
+            isOneToOne: false
+            referencedRelation: "cash_reconciliation_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_superseded_by_reopen_event_id_fkey"
+            columns: ["superseded_by_reopen_event_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_reopen_events"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1439,6 +1758,80 @@ export type Database = {
           },
         ]
       }
+      cash_pool_reconciliation_current: {
+        Row: {
+          actual_counted_cash: number | null
+          business_date: string | null
+          created_at: string | null
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          explanation: string | null
+          is_stale: boolean | null
+          pool_daily_close_status:
+            | Database["public"]["Enums"]["cash_pool_daily_close_status"]
+            | null
+          pool_financial_version: number | null
+          pool_id: string | null
+          reconciliation_id: string | null
+          revision_number: number | null
+          status:
+            | Database["public"]["Enums"]["cash_reconciliation_status"]
+            | null
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_cash_top_up: number | null
+          submitted_expected_closing_cash: number | null
+          submitted_financial_version: number | null
+          submitted_opening_cash: number | null
+          submitted_other_cash_in: number | null
+          submitted_total_cash_out: number | null
+          submitted_variance: number | null
+          superseded_at: string | null
+          superseded_by_reopen_event_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_reconciliations_current_revision_id_fkey"
+            columns: ["current_revision_id"]
+            isOneToOne: false
+            referencedRelation: "cash_reconciliation_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_superseded_by_reopen_event_id_fkey"
+            columns: ["superseded_by_reopen_event_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_reopen_events"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_reconciliations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_duplicate_candidate_current: {
         Row: {
           amount_1: number | null
@@ -1575,6 +1968,40 @@ export type Database = {
       }
     }
     Functions: {
+      approve_cash_reconciliation: {
+        Args: { p_reconciliation_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          needs_correction_revision_id: string | null
+          pool_id: string
+          status: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_cash_top_up: number | null
+          submitted_expected_closing_cash: number | null
+          submitted_financial_version: number | null
+          submitted_opening_cash: number | null
+          submitted_other_cash_in: number | null
+          submitted_total_cash_out: number | null
+          submitted_variance: number | null
+          superseded_at: string | null
+          superseded_by_reopen_event_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_reconciliations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_expense_submission: {
         Args: { p_submission_id: string }
         Returns: {
@@ -1593,6 +2020,44 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_cash_reconciliation_draft: {
+        Args: {
+          p_actual_counted_cash: number
+          p_explanation?: string
+          p_pool_id: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          needs_correction_revision_id: string | null
+          pool_id: string
+          status: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_cash_top_up: number | null
+          submitted_expected_closing_cash: number | null
+          submitted_financial_version: number | null
+          submitted_opening_cash: number | null
+          submitted_other_cash_in: number | null
+          submitted_total_cash_out: number | null
+          submitted_variance: number | null
+          superseded_at: string | null
+          superseded_by_reopen_event_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_reconciliations"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1634,6 +2099,8 @@ export type Database = {
           business_date: string
           created_at: string
           created_by: string | null
+          daily_close_status: Database["public"]["Enums"]["cash_pool_daily_close_status"]
+          financial_version: number
           id: string
           tenant_id: string
         }
@@ -1713,6 +2180,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reject_cash_reconciliation: {
+        Args: { p_reason: string; p_reconciliation_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          needs_correction_revision_id: string | null
+          pool_id: string
+          status: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_cash_top_up: number | null
+          submitted_expected_closing_cash: number | null
+          submitted_financial_version: number | null
+          submitted_opening_cash: number | null
+          submitted_other_cash_in: number | null
+          submitted_total_cash_out: number | null
+          submitted_variance: number | null
+          superseded_at: string | null
+          superseded_by_reopen_event_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_reconciliations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       reject_expense_submission: {
         Args: { p_reason: string; p_submission_id: string }
         Returns: {
@@ -1731,6 +2232,58 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reopen_cash_pool: {
+        Args: { p_pool_id: string; p_reason: string }
+        Returns: {
+          business_date: string
+          created_at: string
+          created_by: string | null
+          daily_close_status: Database["public"]["Enums"]["cash_pool_daily_close_status"]
+          financial_version: number
+          id: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_pools"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      request_cash_reconciliation_correction: {
+        Args: { p_reason: string; p_reconciliation_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          needs_correction_revision_id: string | null
+          pool_id: string
+          status: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_cash_top_up: number | null
+          submitted_expected_closing_cash: number | null
+          submitted_financial_version: number | null
+          submitted_opening_cash: number | null
+          submitted_other_cash_in: number | null
+          submitted_total_cash_out: number | null
+          submitted_variance: number | null
+          superseded_at: string | null
+          superseded_by_reopen_event_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_reconciliations"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1830,6 +2383,44 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revise_cash_reconciliation_draft: {
+        Args: {
+          p_actual_counted_cash: number
+          p_explanation?: string
+          p_reconciliation_id: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          needs_correction_revision_id: string | null
+          pool_id: string
+          status: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_cash_top_up: number | null
+          submitted_expected_closing_cash: number | null
+          submitted_financial_version: number | null
+          submitted_opening_cash: number | null
+          submitted_other_cash_in: number | null
+          submitted_total_cash_out: number | null
+          submitted_variance: number | null
+          superseded_at: string | null
+          superseded_by_reopen_event_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_reconciliations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       revise_expense_draft: {
         Args: {
           p_amount: number
@@ -1857,6 +2448,40 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_cash_reconciliation: {
+        Args: { p_reconciliation_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          current_revision_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          needs_correction_revision_id: string | null
+          pool_id: string
+          status: Database["public"]["Enums"]["cash_reconciliation_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_cash_top_up: number | null
+          submitted_expected_closing_cash: number | null
+          submitted_financial_version: number | null
+          submitted_opening_cash: number | null
+          submitted_other_cash_in: number | null
+          submitted_total_cash_out: number | null
+          submitted_variance: number | null
+          superseded_at: string | null
+          superseded_by_reopen_event_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_reconciliations"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1915,8 +2540,15 @@ export type Database = {
       }
     }
     Enums: {
+      cash_pool_daily_close_status: "open" | "pending_close" | "closed"
       cash_pool_entry_kind: "entry" | "reversal"
       cash_pool_entry_type: "opening_cash" | "cash_top_up" | "other_cash_in"
+      cash_reconciliation_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "needs_correction"
+        | "rejected"
       expense_duplicate_candidate_status:
         | "pending"
         | "not_duplicate"
@@ -2069,8 +2701,16 @@ export const Constants = {
   },
   public: {
     Enums: {
+      cash_pool_daily_close_status: ["open", "pending_close", "closed"],
       cash_pool_entry_kind: ["entry", "reversal"],
       cash_pool_entry_type: ["opening_cash", "cash_top_up", "other_cash_in"],
+      cash_reconciliation_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "needs_correction",
+        "rejected",
+      ],
       expense_duplicate_candidate_status: [
         "pending",
         "not_duplicate",
