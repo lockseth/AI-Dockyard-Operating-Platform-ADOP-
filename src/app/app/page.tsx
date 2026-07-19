@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { logoutAction } from "@/lib/auth/actions";
 import { requireTenantContext } from "@/lib/auth/tenant";
 
@@ -38,6 +39,19 @@ export default async function AppPage() {
             <dd className="font-medium">{context.roles.join(", ") || "-"}</dd>
           </div>
         </dl>
+      </section>
+
+      <section className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
+        <h2 className="text-sm font-medium text-neutral-500">Master Data</h2>
+        <p className="mt-2 text-sm text-neutral-500">
+          Kelola client, kapal, vendor, service type, lokasi fasilitas, dan kategori biaya.
+        </p>
+        <Link
+          href="/app/master-data/clients"
+          className="mt-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+        >
+          Buka Master Data
+        </Link>
       </section>
 
       <section className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">

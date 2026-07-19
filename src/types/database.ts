@@ -78,6 +78,208 @@ export type Database = {
           },
         ]
       }
+      client_contacts: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_primary: boolean
+          position_department: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          is_primary?: boolean
+          position_department?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_primary?: boolean
+          position_department?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id?: string
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contacts_client_id_tenant_id_fkey"
+            columns: ["client_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "client_contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          address: string | null
+          client_code: string | null
+          created_at: string
+          created_by: string | null
+          display_name: string
+          id: string
+          legal_name: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          tax_identifier: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          client_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          id?: string
+          legal_name?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tax_identifier?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          client_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          id?: string
+          legal_name?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tax_identifier?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_categories: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_parent_id_tenant_id_fkey"
+            columns: ["parent_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facility_locations: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facility_locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_entities: {
         Row: {
           created_at: string
@@ -109,6 +311,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "legal_entities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_data_audit_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_data_audit_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -162,6 +408,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      service_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          status: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_memberships: {
         Row: {
@@ -225,16 +515,137 @@ export type Database = {
         }
         Relationships: []
       }
+      vendors: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          created_by: string | null
+          display_name: string
+          email: string | null
+          id: string
+          phone: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at: string
+          vendor_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          email?: string | null
+          id?: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at?: string
+          vendor_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          email?: string | null
+          id?: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id?: string
+          updated_at?: string
+          vendor_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vessels: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          registration_number: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at: string
+          vessel_code: string | null
+          vessel_name: string
+          vessel_type: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          registration_number?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at?: string
+          vessel_code?: string | null
+          vessel_name: string
+          vessel_type?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          registration_number?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id?: string
+          updated_at?: string
+          vessel_code?: string | null
+          vessel_name?: string
+          vessel_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vessels_client_id_tenant_id_fkey"
+            columns: ["client_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "vessels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      log_master_data_audit_event: {
+        Args: {
+          p_action: string
+          p_after_data: Json
+          p_before_data: Json
+          p_entity_id: string
+          p_entity_type: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
+      record_status: "active" | "inactive"
       tenant_role: "owner" | "admin" | "reviewer" | "viewer"
       tenant_status: "active" | "suspended"
     }
@@ -369,6 +780,7 @@ export const Constants = {
     Enums: {
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
+      record_status: ["active", "inactive"],
       tenant_role: ["owner", "admin", "reviewer", "viewer"],
       tenant_status: ["active", "suspended"],
     },

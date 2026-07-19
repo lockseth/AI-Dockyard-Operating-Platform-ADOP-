@@ -175,6 +175,8 @@ Setiap master data memiliki status aktif/nonaktif dan histori perubahan.
 
 Import wajib mampu memisahkan label gabungan file lama, misalnya nama kapal + bulan atau nama kapal + lokasi. Sistem boleh menyarankan parsing, tetapi user harus mengonfirmasi hasil mapping/normalisasi sebelum persistence canonical.
 
+**Status Phase 1 Gate 1A (terimplementasi):** `clients`, `client_contacts` (PIC), `vessels`, `vendors`, `service_types` (seed awal Emergency/Standard/Docking/PLTU per tenant, tenant boleh menambah), `facility_locations` (open discovery, belum ada daftar Gate/Dock/Pelabuhan/PLTU baku), dan `expense_categories` (self-referencing parent, tenant-safe) tersedia sebagai direct UI entry di `/app/master-data/*`. Semua tabel `tenant_id`-scoped dengan composite tenant-safe FK untuk relasi anak-induk (client_contacts/vessels → clients, expense_categories → parent), RLS owner/admin CRUD dan reviewer/viewer read-only, tanpa hard delete (hanya `status=inactive`), dan append-only `master_data_audit_events` (create/update/activate/deactivate, tidak bisa ditulis langsung dari browser — hanya lewat RPC `log_master_data_audit_event` yang re-cek role owner/admin). **Belum diimplementasikan:** Project Kapal, cost ledger, dan Universal Import — itu target gate berikutnya di atas fondasi master data ini.
+
 ### 7.3 Universal Data Onboarding & Import
 
 ADOP wajib memiliki satu **Universal Import Core** canonical agar data lama tidak perlu diinput ulang satu per satu, dipakai baik untuk onboarding data lama maupun input data operasional secara massal.

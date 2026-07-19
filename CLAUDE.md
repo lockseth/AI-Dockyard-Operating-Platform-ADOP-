@@ -152,6 +152,8 @@ Data minimum Phase 1:
 
 Semua record bisnis tenant-scoped dan menggunakan timestamp/timezone eksplisit.
 
+**Status Gate 1A (terimplementasi):** trusted master data — `clients`, `client_contacts`, `vessels`, `vendors`, `service_types`, `facility_locations`, `expense_categories`, dan append-only `master_data_audit_events` — sudah ada di `supabase/migrations/20260719080000_master_data.sql` dengan RLS/role matrix, composite tenant-safe FK, dan direct UI di `/app/master-data/*`. Project lifecycle, cost transaction/ledger, evidence, review/approval, import, dan WhatsApp session **belum** dibuat — lihat `PRD.md` §7.2 untuk detail status per domain.
+
 ### Evidence dari File Kas
 
 `LAPORAN HARIAN KAS.xlsx` memiliki kolom `TANGGAL`, `KETERANGAN`, `NAMA KAPAL`, `DEBET`, `KREDIT`, `SALDO`. Temuan desain:

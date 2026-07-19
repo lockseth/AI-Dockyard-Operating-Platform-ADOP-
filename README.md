@@ -247,6 +247,33 @@ Jalankan `pnpm supabase:start` untuk menyalakan stack, `pnpm supabase:stop` untu
 4. Tenant aktif disimpan sebagai cookie httpOnly `adop_active_tenant_id` (pointer saja); server selalu memvalidasi ulang ke `tenant_memberships` sebelum mempercayainya.
 5. Logout membersihkan session Supabase dan cookie tenant aktif, lalu kembali ke `/login`.
 
+### Trusted Master Data (Phase 1 Gate 1A)
+
+Target direct UI entry dan Universal Import pada gate berikutnya. Domain: `clients`, `client_contacts` (PIC), `vessels`, `vendors`, `service_types`, `facility_locations`, `expense_categories`, plus append-only `master_data_audit_events`. **Belum** ada Project Kapal, importer, atau cost ledger — itu gate selanjutnya.
+
+Relasi:
+
+- `clients` 1—N `client_contacts` (PIC/contact per client);
+- `clients` 1—N `vessels` (kapal milik client, sebagai owner/customer);
+- `expense_categories` self-referencing (`parent_id`) untuk kategori bertingkat;
+- semua tabel `tenant_id`-scoped; relasi anak-induk memakai composite FK tenant-safe (`(child_id, tenant_id)` → `(parent_id, tenant_id)`) sehingga cross-tenant reference mustahil bahkan lewat bug service-role.
+
+Permission matrix (RLS + column-level grant, final enforcement di database):
+
+| Role | Read | Create/Update/Activate/Deactivate | Hard Delete | Baca Audit Detail |
+|---|---|---|---|---|
+| owner | ✅ tenant sendiri | ✅ | ❌ (tidak ada grant) | ✅ |
+| admin | ✅ tenant sendiri | ✅ | ❌ | ✅ |
+| reviewer | ✅ tenant sendiri | ❌ | ❌ | ✅ |
+| viewer | ✅ tenant sendiri | ❌ | ❌ | ❌ |
+| anon | ❌ | ❌ | ❌ | ❌ |
+
+`tenant_id`, `created_by`, `created_at`, dan `id` tidak pernah ada di grant UPDATE — authenticated tidak bisa mengubahnya walau lolos RLS. Deactivate (`status=inactive`) adalah satu-satunya jalur "hapus" dari aplikasi; record tetap ada untuk histori.
+
+Direct UI workflow (terbukti via Browser UAT): login → tenant aktif terlihat di setiap halaman master data → tambah client → tambah PIC → tambah kapal milik client (relasi client → PIC → kapal tampil di halaman detail client) → tambah vendor → verifikasi 4 service type awal (Emergency/Standard/Docking/PLTU, seed per tenant, tenant boleh menambah lainnya) → tambah facility location (open discovery, bukan daftar baku) → tambah expense category → edit → deactivate (histori tetap ada) → reviewer/viewer hanya baca, tanpa tombol mutation.
+
+Routes: `/app/master-data/{clients, clients/[id], vessels, vendors, service-types, facility-locations, expense-categories}`.
+
 ## Memulai di Akun Claude Code Baru
 
 1. Salin repository beserta `README.md`, `PRD.md`, `CLAUDE.md`, dan `.gitignore`.

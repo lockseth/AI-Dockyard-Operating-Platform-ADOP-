@@ -34,7 +34,7 @@ Keputusan berikut berlaku untuk seluruh roadmap:
 1. **Trust Before Intelligence** — AI hanya bekerja di atas data yang dapat dipercaya.
 2. ADOP adalah platform modular, multi-tenant, Excel-friendly, dan API-friendly; **bukan ERP monolitik**.
 3. Objek operasional utama adalah **Project Kapal**.
-4. Urutan fondasi: authentication → tenant isolation → role permission → trusted master data → immutable ledger → evidence storage → review/approval → audit trail → notification → AI.
+4. Urutan fondasi: authentication → tenant isolation → role permission → trusted master data → immutable ledger → evidence storage → review/approval → audit trail → notification → AI. *(Status: authentication, tenant isolation, role permission, dan trusted master data — Gate 1A: clients/PIC/vessels/vendors/service types/facility locations/expense categories — sudah terimplementasi dengan RLS, immutability guard, dan append-only audit; Project Kapal, immutable cost ledger, dan tahap fondasi berikutnya belum dikerjakan.)*
 5. Setiap transaksi finansial penting harus tenant-scoped, dapat diaudit, dan tidak boleh diam-diam ditimpa.
 6. Setelah onboarding, workflow operasional utama adalah **admin input langsung di UI ADOP**; Excel bukan aplikasi operasional harian utama.
 7. ADOP menyediakan **Universal Data Onboarding & Import** untuk memindahkan data lama agar admin tidak menginput ulang satu per satu.
