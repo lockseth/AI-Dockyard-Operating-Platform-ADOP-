@@ -1,7 +1,5 @@
 import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { logMasterDataAuditEvent } from "../shared/audit";
 import { mapMasterDataError } from "../shared/errors";
 import type { RecordStatus } from "../shared/types";
 import { getClientById, insertClient, listClients, updateClientRow, type ClientRow } from "./repository";
@@ -30,7 +28,6 @@ export async function createClient(input: ClientInput): Promise<CreateClientResu
   const context = await requireTenantContext();
   requireTenantRole(context, ["owner", "admin"]);
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await insertClient({
     tenant_id: context.tenantId,
     created_by: context.userId,
@@ -45,14 +42,6 @@ export async function createClient(input: ClientInput): Promise<CreateClientResu
     return { error: mapMasterDataError(error) };
   }
 
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "client",
-    entityId: data.id,
-    action: "create",
-    afterData: data,
-  });
-
   return { id: data.id };
 }
 
@@ -65,7 +54,6 @@ export async function updateClient(id: string, input: ClientInput): Promise<Mast
     return { error: "Client tidak ditemukan." };
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await updateClientRow(context.tenantId, id, {
     client_code: input.clientCode ?? null,
     display_name: input.displayName,
@@ -77,15 +65,6 @@ export async function updateClient(id: string, input: ClientInput): Promise<Mast
   if (error || !data) {
     return { error: mapMasterDataError(error) };
   }
-
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "client",
-    entityId: id,
-    action: "update",
-    beforeData: before,
-    afterData: data,
-  });
 
   return {};
 }
@@ -102,21 +81,11 @@ export async function setClientStatus(id: string, status: RecordStatus): Promise
     return {};
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await updateClientRow(context.tenantId, id, { status });
 
   if (error || !data) {
     return { error: mapMasterDataError(error) };
   }
-
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "client",
-    entityId: id,
-    action: status === "active" ? "activate" : "deactivate",
-    beforeData: before,
-    afterData: data,
-  });
 
   return {};
 }

@@ -200,32 +200,94 @@ describe("master data — real local Supabase", () => {
     expect(forgedActorError).not.toBeNull();
   });
 
-  it("a master-data audit event is written on create via the log RPC, and is tenant-scoped/read-restricted", async () => {
+  it("create/update/activate/deactivate each produce exactly one automatic audit event (Gate 1A.2)", async () => {
     const ownerAClient = await signInAsMember(ownerA.email);
 
-    const { data: created } = await ownerAClient
+    // create — mirrors createVendor's insertVendor() call. No manual audit
+    // RPC is invoked anywhere in this test: the AFTER ROW trigger from Gate
+    // 1A.1 is the only path that writes to master_data_audit_events.
+    const { data: created, error: insertError } = await ownerAClient
       .from("vendors")
       .insert({ tenant_id: TENANT_A_ID, created_by: ownerA.id, display_name: "Audited Vendor" })
       .select("*")
       .single();
+    expect(insertError).toBeNull();
     expect(created).not.toBeNull();
 
-    const { error: rpcError } = await ownerAClient.rpc("log_master_data_audit_event", {
-      p_tenant_id: TENANT_A_ID,
-      p_entity_type: "vendor",
-      p_entity_id: created!.id,
-      p_action: "create",
-      p_before_data: null,
-      p_after_data: created,
-    });
-    expect(rpcError).toBeNull();
+    const auditForEntity = async () => {
+      const { data } = await ownerAClient
+        .from("master_data_audit_events")
+        .select("*")
+        .eq("entity_id", created!.id)
+        .order("created_at", { ascending: true });
+      return data ?? [];
+    };
 
-    const { data: auditRows } = await ownerAClient
-      .from("master_data_audit_events")
+    let events = await auditForEntity();
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe("create");
+    expect(events[0].tenant_id).toBe(TENANT_A_ID);
+    expect(events[0].actor_user_id).toBe(ownerA.id);
+    expect(events[0].before_data).toBeNull();
+    expect((events[0].after_data as { display_name?: string })?.display_name).toBe("Audited Vendor");
+
+    // update — mirrors updateVendor's updateVendorRow() call.
+    const { data: updated, error: updateError } = await ownerAClient
+      .from("vendors")
+      .update({ display_name: "Audited Vendor Renamed" })
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("id", created!.id)
       .select("*")
-      .eq("entity_id", created!.id);
-    expect(auditRows).toHaveLength(1);
-    expect(auditRows?.[0]?.action).toBe("create");
+      .single();
+    expect(updateError).toBeNull();
+    expect(updated?.display_name).toBe("Audited Vendor Renamed");
+
+    events = await auditForEntity();
+    expect(events).toHaveLength(2);
+    expect(events[1].action).toBe("update");
+    expect((events[1].before_data as { display_name?: string })?.display_name).toBe("Audited Vendor");
+    expect((events[1].after_data as { display_name?: string })?.display_name).toBe("Audited Vendor Renamed");
+
+    // deactivate — mirrors setVendorStatus(id, "inactive").
+    const { error: deactivateError } = await ownerAClient
+      .from("vendors")
+      .update({ status: "inactive" })
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("id", created!.id)
+      .select("*")
+      .single();
+    expect(deactivateError).toBeNull();
+
+    events = await auditForEntity();
+    expect(events).toHaveLength(3);
+    expect(events[2].action).toBe("deactivate");
+
+    // activate — mirrors setVendorStatus(id, "active").
+    const { error: activateError } = await ownerAClient
+      .from("vendors")
+      .update({ status: "active" })
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("id", created!.id)
+      .select("*")
+      .single();
+    expect(activateError).toBeNull();
+
+    events = await auditForEntity();
+    expect(events).toHaveLength(4);
+    expect(events[3].action).toBe("activate");
+
+    // A mutation that touches zero rows (forged/nonexistent id) triggers no
+    // AFTER ROW event at all — no partial audit trail on a no-op failure.
+    const { data: noopUpdate, error: noopError } = await ownerAClient
+      .from("vendors")
+      .update({ display_name: "Should Not Apply" })
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("id", "00000000-0000-0000-0000-000000000000")
+      .select("*");
+    expect(noopError).toBeNull();
+    expect(noopUpdate).toHaveLength(0);
+    events = await auditForEntity();
+    expect(events).toHaveLength(4);
 
     // viewer cannot read master-data audit detail at all.
     const viewerClient = await signInAsMember(viewerA.email);
@@ -235,8 +297,28 @@ describe("master data — real local Supabase", () => {
       .eq("entity_id", created!.id);
     expect(viewerAudit).toHaveLength(0);
 
-    // reviewer cannot write an audit event directly via the RPC.
+    // reviewer CAN read audit events (owner/admin/reviewer per Gate 1A RLS)...
     const reviewerClient = await signInAsMember(reviewerA.email);
+    const { data: reviewerAudit } = await reviewerClient
+      .from("master_data_audit_events")
+      .select("id")
+      .eq("entity_id", created!.id);
+    expect(reviewerAudit).toHaveLength(4);
+
+    // ...but the manual audit RPC is locked for every authenticated role,
+    // owner included — Gate 1A.1 revoked EXECUTE from `authenticated`
+    // entirely, so there is no manual-audit path left to call.
+    const { error: ownerRpcError } = await ownerAClient.rpc("log_master_data_audit_event", {
+      p_tenant_id: TENANT_A_ID,
+      p_entity_type: "vendor",
+      p_entity_id: created!.id,
+      p_action: "update",
+      p_before_data: null,
+      p_after_data: null,
+    });
+    expect(ownerRpcError).not.toBeNull();
+    expect(ownerRpcError?.code).toBe("42501");
+
     const { error: reviewerRpcError } = await reviewerClient.rpc("log_master_data_audit_event", {
       p_tenant_id: TENANT_A_ID,
       p_entity_type: "vendor",
@@ -246,6 +328,30 @@ describe("master data — real local Supabase", () => {
       p_after_data: null,
     });
     expect(reviewerRpcError).not.toBeNull();
+    expect(reviewerRpcError?.code).toBe("42501");
+
+    // cross-tenant: tenant B cannot see tenant A's audit trail for this entity.
+    const ownerBClient = await signInAsMember(ownerB.email);
+    const { data: crossTenantAudit } = await ownerBClient
+      .from("master_data_audit_events")
+      .select("id")
+      .eq("entity_id", created!.id);
+    expect(crossTenantAudit).toHaveLength(0);
+
+    // database errors on the mutation itself still propagate normally and
+    // produce no audit event — a duplicate vendor_code violates no unique
+    // constraint on vendors, so exercise a real constraint instead: an
+    // out-of-range status value is rejected by the enum type, not silently
+    // coerced, and the row (and its audit trail) is untouched.
+    const { error: invalidStatusError } = await ownerAClient
+      .from("vendors")
+      .update({ status: "not-a-real-status" })
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("id", created!.id)
+      .select("*");
+    expect(invalidStatusError).not.toBeNull();
+    events = await auditForEntity();
+    expect(events).toHaveLength(4);
   });
 
   it("anonymous requests get zero access to any master-data table", async () => {

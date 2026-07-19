@@ -1,7 +1,5 @@
 import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { logMasterDataAuditEvent } from "../shared/audit";
 import { mapMasterDataError } from "../shared/errors";
 import type { RecordStatus } from "../shared/types";
 import type { MasterDataActionResult } from "../clients/service";
@@ -21,7 +19,6 @@ export async function createVendor(input: VendorInput): Promise<CreateVendorResu
   const context = await requireTenantContext();
   requireTenantRole(context, ["owner", "admin"]);
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await insertVendor({
     tenant_id: context.tenantId,
     created_by: context.userId,
@@ -37,14 +34,6 @@ export async function createVendor(input: VendorInput): Promise<CreateVendorResu
     return { error: mapMasterDataError(error) };
   }
 
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "vendor",
-    entityId: data.id,
-    action: "create",
-    afterData: data,
-  });
-
   return { id: data.id };
 }
 
@@ -57,7 +46,6 @@ export async function updateVendor(id: string, input: VendorInput): Promise<Mast
     return { error: "Vendor tidak ditemukan." };
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await updateVendorRow(context.tenantId, id, {
     vendor_code: input.vendorCode ?? null,
     display_name: input.displayName,
@@ -70,15 +58,6 @@ export async function updateVendor(id: string, input: VendorInput): Promise<Mast
   if (error || !data) {
     return { error: mapMasterDataError(error) };
   }
-
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "vendor",
-    entityId: id,
-    action: "update",
-    beforeData: before,
-    afterData: data,
-  });
 
   return {};
 }
@@ -95,21 +74,11 @@ export async function setVendorStatus(id: string, status: RecordStatus): Promise
     return {};
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await updateVendorRow(context.tenantId, id, { status });
 
   if (error || !data) {
     return { error: mapMasterDataError(error) };
   }
-
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "vendor",
-    entityId: id,
-    action: status === "active" ? "activate" : "deactivate",
-    beforeData: before,
-    afterData: data,
-  });
 
   return {};
 }

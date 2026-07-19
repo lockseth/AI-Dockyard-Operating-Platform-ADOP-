@@ -1,7 +1,5 @@
 import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { logMasterDataAuditEvent } from "../shared/audit";
 import { mapMasterDataError } from "../shared/errors";
 import type { RecordStatus } from "../shared/types";
 import { getClientById } from "../clients/repository";
@@ -44,7 +42,6 @@ export async function createVessel(input: CreateVesselInput): Promise<CreateVess
     return { error: "Client tidak ditemukan." };
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await insertVessel({
     tenant_id: context.tenantId,
     client_id: input.clientId,
@@ -59,14 +56,6 @@ export async function createVessel(input: CreateVesselInput): Promise<CreateVess
     return { error: mapMasterDataError(error) };
   }
 
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "vessel",
-    entityId: data.id,
-    action: "create",
-    afterData: data,
-  });
-
   return { id: data.id };
 }
 
@@ -79,7 +68,6 @@ export async function updateVessel(id: string, input: UpdateVesselInput): Promis
     return { error: "Kapal tidak ditemukan." };
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await updateVesselRow(context.tenantId, id, {
     vessel_code: input.vesselCode ?? null,
     vessel_name: input.vesselName,
@@ -90,15 +78,6 @@ export async function updateVessel(id: string, input: UpdateVesselInput): Promis
   if (error || !data) {
     return { error: mapMasterDataError(error) };
   }
-
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "vessel",
-    entityId: id,
-    action: "update",
-    beforeData: before,
-    afterData: data,
-  });
 
   return {};
 }
@@ -115,21 +94,11 @@ export async function setVesselStatus(id: string, status: RecordStatus): Promise
     return {};
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await updateVesselRow(context.tenantId, id, { status });
 
   if (error || !data) {
     return { error: mapMasterDataError(error) };
   }
-
-  await logMasterDataAuditEvent(supabase, {
-    tenantId: context.tenantId,
-    entityType: "vessel",
-    entityId: id,
-    action: status === "active" ? "activate" : "deactivate",
-    beforeData: before,
-    afterData: data,
-  });
 
   return {};
 }
