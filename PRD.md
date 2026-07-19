@@ -156,6 +156,8 @@ AI tidak boleh menyatakan fraud sebagai fakta. Gunakan istilah **indikasi risiko
 - Owner control untuk user aktif/nonaktif.
 - Semua akses sensitif dicatat.
 
+**Status Foundation Gate 0B (terimplementasi):** login email/password lokal (Supabase Auth, tanpa signup publik/social login/magic link pada gate ini), session di-refresh melalui `proxy.ts` (Next.js 16) yang hanya melakukan redirect optimistis — bukan authorization gate. Authorization final selalu divalidasi ulang di server/data-access layer (`requireAuthenticatedUser`, `requireTenantContext`, `requireTenantRole`) menggunakan `getClaims()`/`getUser()`, tidak pernah dari `getSession()` atau `user_metadata`, dan tetap ditegakkan oleh RLS database. Tenant aktif disimpan sebagai cookie server-managed httpOnly (`adop_active_tenant_id`) yang hanya berfungsi sebagai pointer — setiap pembacaan divalidasi ulang terhadap `tenant_memberships` milik user; tenant palsu/asing pada cookie otomatis diabaikan dan tenant yang benar dipilih ulang. User dengan lebih dari satu active membership diarahkan ke pemilih tenant (`/select-tenant`); user tanpa active membership atau suspended diarahkan ke `/no-access` tanpa membocorkan daftar tenant yang ada.
+
 ### 7.2 Master Data
 
 - Vessel/Kapal sebagai aset atau identitas kapal.

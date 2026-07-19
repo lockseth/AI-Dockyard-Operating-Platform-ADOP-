@@ -224,6 +224,8 @@ Guardrails:
 ## 9. Integrity dan Security
 
 - Tenant isolation dan least privilege; RLS atau kontrol setara.
+- Authorization pakai `getClaims()`/`getUser()`, bukan `getSession()` atau `user_metadata`; proxy/middleware hanya optimistic redirect, bukan satu-satunya gate — data-access layer + RLS tetap final enforcement.
+- Tenant aktif adalah pointer (mis. cookie httpOnly), bukan bukti akses; selalu divalidasi ulang ke membership sebelum dipercaya.
 - Secret, token, nomor produksi, credential, dan service-account file tidak masuk source control.
 - Jangan membaca/menampilkan isi `.env` pada laporan.
 - Financial amount memakai integer minor unit atau safe decimal, bukan float.

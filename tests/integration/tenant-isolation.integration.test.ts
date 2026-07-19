@@ -1,5 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  createAdminClient,
+  createEphemeralMember as createEphemeralMemberBase,
+  signInAsMember as signInAsMemberBase,
+  type EphemeralMember,
+} from "./support/members";
 
 // Real local Supabase only — never point this at demo/production.
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,66 +24,21 @@ if (!SUPABASE_URL || !ANON_KEY || !SERVICE_ROLE_KEY) {
 const TENANT_A_ID = "a1111111-1111-1111-1111-111111111111";
 const TENANT_B_ID = "b2222222-2222-2222-2222-222222222222";
 
-// Local-only ephemeral test credential — never a real password, never reused
-// outside this Docker-local Supabase instance.
-const EPHEMERAL_PASSWORD = "adop-integration-test-P4ssword!";
-
-const admin: SupabaseClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-interface EphemeralMember {
-  id: string;
-  email: string;
-}
+const admin: SupabaseClient = createAdminClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 async function createEphemeralMember(params: {
   emailPrefix: string;
   tenantId: string;
   role: "owner" | "admin" | "reviewer" | "viewer";
 }): Promise<EphemeralMember> {
-  const email = `${params.emailPrefix}-${crypto.randomUUID()}@adop-integration.local`;
-
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email,
-    password: EPHEMERAL_PASSWORD,
-    email_confirm: true,
+  return createEphemeralMemberBase(admin, {
+    emailPrefix: params.emailPrefix,
+    memberships: [{ tenantId: params.tenantId, role: params.role }],
   });
-  if (createError || !created.user) {
-    throw new Error(`createUser failed: ${createError?.message}`);
-  }
-
-  const { data: membership, error: membershipError } = await admin
-    .from("tenant_memberships")
-    .insert({ tenant_id: params.tenantId, user_id: created.user.id, status: "active" })
-    .select("id")
-    .single();
-  if (membershipError || !membership) {
-    throw new Error(`membership insert failed: ${membershipError?.message}`);
-  }
-
-  const { error: roleError } = await admin
-    .from("membership_roles")
-    .insert({ membership_id: membership.id, role: params.role });
-  if (roleError) {
-    throw new Error(`role insert failed: ${roleError.message}`);
-  }
-
-  return { id: created.user.id, email };
 }
 
 async function signInAsMember(email: string): Promise<SupabaseClient> {
-  const client = createClient(SUPABASE_URL!, ANON_KEY!, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data, error } = await client.auth.signInWithPassword({
-    email,
-    password: EPHEMERAL_PASSWORD,
-  });
-  if (error || !data.session) {
-    throw new Error(`sign-in failed for ${email}: ${error?.message}`);
-  }
-  return client;
+  return signInAsMemberBase(SUPABASE_URL!, ANON_KEY!, email);
 }
 
 describe("tenant isolation — real local Supabase", () => {

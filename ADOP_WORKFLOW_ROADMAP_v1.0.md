@@ -165,6 +165,11 @@ PASS jika:
 - backup/restore minimum dan environment safety terdokumentasi;
 - seluruh test fondasi lulus dan demo lokal berhasil.
 
+**Status sub-gate:**
+
+- Gate 0A (tenant isolation & role model) — **PASS**.
+- Gate 0B (tenant-aware local login, active-tenant context, RLS-backed authorization) — **PASS**. Limitation: belum ada UI signup/invitation/role management; hanya login email/password lokal dan pemilihan tenant.
+
 ---
 
 ### Phase 1 — AI Cost Control / Founding Design Partner Pilot

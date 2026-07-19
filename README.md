@@ -219,6 +219,34 @@ Belum LOCK dan tidak boleh diasumsikan:
 - dataset tambahan, kualitas data, serta mapping final;
 - detail billing delivery tracking dan bank matching.
 
+## Environment Development Lokal
+
+### Port Lokal ADOP
+
+Supabase CLI lokal ADOP menggunakan rentang port khusus `553xx` (bukan default `543xx`) agar dapat berjalan berdampingan dengan project Supabase lokal lain di mesin yang sama tanpa bentrok port:
+
+| Layanan | Port ADOP |
+|---|---|
+| API (`api_url`) | 55321 |
+| Database (`db`) | 55322 |
+| Shadow database (`db diff`) | 55320 |
+| Studio | 55323 |
+| Inbucket (email testing) | 55324 |
+| Analytics | 55327 |
+
+Jalankan `pnpm supabase:start` untuk menyalakan stack, `pnpm supabase:stop` untuk mematikannya. Nilai anon/service-role key lokal tidak didokumentasikan di sini — ambil dari `supabase status` atau output `supabase start`, dan isi ke `.env.local` (tidak pernah commit).
+
+### Alur Login Lokal
+
+1. Buka `/login` — form email/password (autentikasi Supabase lokal, tanpa signup publik).
+2. Setelah login, sistem menentukan tenant aktif secara server-side:
+   - satu active membership → otomatis masuk ke `/app`;
+   - lebih dari satu active membership → diarahkan ke `/select-tenant`;
+   - nol active membership atau suspended → diarahkan ke `/no-access` (tanpa membocorkan daftar tenant).
+3. `/app` menampilkan **Foundation Workspace**: user, tenant aktif, role, dan legal entity yang dapat dibaca — belum ada dashboard/fitur bisnis Project Kapal.
+4. Tenant aktif disimpan sebagai cookie httpOnly `adop_active_tenant_id` (pointer saja); server selalu memvalidasi ulang ke `tenant_memberships` sebelum mempercayainya.
+5. Logout membersihkan session Supabase dan cookie tenant aktif, lalu kembali ke `/login`.
+
 ## Memulai di Akun Claude Code Baru
 
 1. Salin repository beserta `README.md`, `PRD.md`, `CLAUDE.md`, dan `.gitignore`.
