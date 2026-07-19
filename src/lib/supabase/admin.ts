@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { publicEnv } from "@/lib/env/public";
 import { getServerEnv } from "@/lib/env/server";
+import type { Database } from "@/types/database";
 
 // Service-role boundary. Deliberately NOT used by any page or the health
 // endpoint — bypasses RLS, so only call this from trusted server-only
@@ -23,7 +24,7 @@ export function createSupabaseAdminClient() {
     );
   }
 
-  return createClient(
+  return createClient<Database>(
     publicEnv.NEXT_PUBLIC_SUPABASE_URL,
     server.SUPABASE_SERVICE_ROLE_KEY,
     {

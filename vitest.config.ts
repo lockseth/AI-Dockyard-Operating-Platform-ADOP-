@@ -4,6 +4,10 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    // Integration tests need a running local Supabase stack — they run
+    // separately via `pnpm test:integration`, not the default fast/offline
+    // unit suite.
+    exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
   },
   resolve: {
     alias: {
