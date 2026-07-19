@@ -509,6 +509,111 @@ export type Database = {
         }
         Relationships: []
       }
+      project_cost_ledger_entries: {
+        Row: {
+          actor_user_id: string | null
+          amount: number
+          category_id: string
+          created_at: string
+          description: string
+          entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          id: string
+          pool_id: string
+          project_id: string
+          reference_number: string | null
+          reverses_entry_id: string | null
+          tenant_id: string
+          vendor_id: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          amount: number
+          category_id: string
+          created_at?: string
+          description: string
+          entry_kind?: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          id?: string
+          pool_id: string
+          project_id: string
+          reference_number?: string | null
+          reverses_entry_id?: string | null
+          tenant_id: string
+          vendor_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          amount?: number
+          category_id?: string
+          created_at?: string
+          description?: string
+          entry_kind?: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          id?: string
+          pool_id?: string
+          project_id?: string
+          reference_number?: string | null
+          reverses_entry_id?: string | null
+          tenant_id?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_cost_ledger_entries_category_id_tenant_id_fkey"
+            columns: ["category_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_vendor_id_tenant_id_fkey"
+            columns: ["vendor_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id", "tenant_id"]
+          },
+        ]
+      }
       service_types: {
         Row: {
           code: string
@@ -710,6 +815,13 @@ export type Database = {
             foreignKeyName: "vessel_project_lifecycle_events_project_id_tenant_id_fkey"
             columns: ["project_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "vessel_project_lifecycle_events_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "vessel_projects"
             referencedColumns: ["id", "tenant_id"]
           },
@@ -893,6 +1005,22 @@ export type Database = {
           },
         ]
       }
+      vessel_project_cost_summary: {
+        Row: {
+          project_id: string | null
+          tenant_id: string | null
+          total_cost: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vessel_projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_or_create_daily_cash_pool: {
@@ -948,6 +1076,38 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_project_expense: {
+        Args: {
+          p_amount: number
+          p_category_id: string
+          p_description: string
+          p_pool_id: string
+          p_project_id: string
+          p_reference_number?: string
+          p_vendor_id?: string
+        }
+        Returns: {
+          actor_user_id: string | null
+          amount: number
+          category_id: string
+          created_at: string
+          description: string
+          entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          id: string
+          pool_id: string
+          project_id: string
+          reference_number: string | null
+          reverses_entry_id: string | null
+          tenant_id: string
+          vendor_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "project_cost_ledger_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       reverse_cash_pool_entry: {
         Args: { p_entry_id: string; p_reason: string }
         Returns: {
@@ -965,6 +1125,30 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "cash_pool_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reverse_project_expense: {
+        Args: { p_entry_id: string; p_reason: string }
+        Returns: {
+          actor_user_id: string | null
+          amount: number
+          category_id: string
+          created_at: string
+          description: string
+          entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          id: string
+          pool_id: string
+          project_id: string
+          reference_number: string | null
+          reverses_entry_id: string | null
+          tenant_id: string
+          vendor_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "project_cost_ledger_entries"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1005,6 +1189,7 @@ export type Database = {
       cash_pool_entry_type: "opening_cash" | "cash_top_up" | "other_cash_in"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
+      project_cost_ledger_entry_kind: "expense" | "reversal"
       record_status: "active" | "inactive"
       tenant_role: "owner" | "admin" | "reviewer" | "viewer"
       tenant_status: "active" | "suspended"
@@ -1143,6 +1328,7 @@ export const Constants = {
       cash_pool_entry_type: ["opening_cash", "cash_top_up", "other_cash_in"],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
+      project_cost_ledger_entry_kind: ["expense", "reversal"],
       record_status: ["active", "inactive"],
       tenant_role: ["owner", "admin", "reviewer", "viewer"],
       tenant_status: ["active", "suspended"],
