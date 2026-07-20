@@ -283,8 +283,8 @@ select set_config('request.jwt.claims', json_build_object('sub', (select id from
 select set_config('role', 'authenticated', true);
 select throws_ok(
   $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_a), (select cost_id from pgtap_pair_a), 'admin attempt') $$,
-  'not authorized to reverse paired project refund',
-  'admin P is denied — reverse_paired_project_refund is owner-only (the strictest of the two reversal RPCs it replaces the capability of)'
+  'NOT_FOUND',
+  'admin P is denied — reverse_paired_project_refund is owner-only (the strictest of the two reversal RPCs it replaces the capability of); Gate 1K.1A collapses "wrong role" into the same NOT_FOUND as "does not exist"'
 );
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -293,8 +293,8 @@ select set_config('request.jwt.claims', json_build_object('sub', (select id from
 select set_config('role', 'authenticated', true);
 select throws_ok(
   $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_a), (select cost_id from pgtap_pair_a), 'viewer attempt') $$,
-  'not authorized to reverse paired project refund',
-  'viewer P is denied'
+  'NOT_FOUND',
+  'viewer P is denied — same indistinguishable NOT_FOUND'
 );
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -303,8 +303,8 @@ select set_config('request.jwt.claims', json_build_object('sub', (select id from
 select set_config('role', 'authenticated', true);
 select throws_ok(
   $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_a), (select cost_id from pgtap_pair_a), 'reviewer attempt') $$,
-  'not authorized to reverse paired project refund',
-  'reviewer P is denied'
+  'NOT_FOUND',
+  'reviewer P is denied — same indistinguishable NOT_FOUND'
 );
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -327,16 +327,115 @@ select set_config('request.jwt.claims', json_build_object('sub', (select id from
 select set_config('role', 'authenticated', true);
 select throws_ok(
   $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_q), (select cost_id from pgtap_pair_q), 'owner P on tenant Q pair') $$,
-  'not authorized to reverse paired project refund',
-  'owner P cannot reverse tenant Q''s own self-consistent pair — not authorized on that tenant'
+  'NOT_FOUND',
+  'owner P cannot reverse tenant Q''s own self-consistent pair — Gate 1K.1A: cross-tenant is NOT_FOUND, never "not authorized"'
 );
 select throws_ok(
   $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_a), (select cost_id from pgtap_pair_q), 'mismatched tenant pair') $$,
-  'INVALID_PAIRED_REFUND',
-  'a cash entry from tenant P paired with a cost entry from tenant Q is rejected — tenant mismatch, never a leak of cross-tenant data'
+  'NOT_FOUND',
+  'a cash entry from tenant P paired with a cost entry from tenant Q is rejected as NOT_FOUND — the cost lookup is tenant-scoped to the cash entry''s own tenant, so a foreign cost id is indistinguishable from a nonexistent one'
 );
 reset role;
 select set_config('request.jwt.claims', '', true);
+
+-- =============================================================================
+-- Gate 1K.1A — Cross-Tenant Confidentiality Hardening: the six required
+-- indistinguishability scenarios all raise the exact same P0001/'NOT_FOUND'
+-- exception, proving a caller can never learn (a) whether an id exists at
+-- all, or (b) which tenant it belongs to, from the RPC's response.
+-- =============================================================================
+
+select set_config('request.jwt.claims', json_build_object('sub', (select id from pgtap_owner_p)::text, 'role', 'authenticated')::text, true);
+select set_config('role', 'authenticated', true);
+
+-- (a) cash id does not exist at all (cost id valid, own tenant)
+select throws_ok(
+  $$ select * from public.reverse_paired_project_refund('00000000-0000-4000-8000-000000000000', (select cost_id from pgtap_pair_a), 'a: cash id absent') $$,
+  'NOT_FOUND',
+  '(a) a nonexistent cash id raises NOT_FOUND'
+);
+-- (b) cash id belongs to another tenant (cost id valid, own tenant)
+select throws_ok(
+  $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_q), (select cost_id from pgtap_pair_a), 'b: cash id cross-tenant') $$,
+  'NOT_FOUND',
+  '(b) a cash id belonging to another tenant raises the SAME NOT_FOUND as (a)'
+);
+-- (c) cost id does not exist at all (cash id valid, own tenant)
+select throws_ok(
+  $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_a), '00000000-0000-4000-8000-000000000000', 'c: cost id absent') $$,
+  'NOT_FOUND',
+  '(c) a nonexistent cost id raises the SAME NOT_FOUND'
+);
+-- (d) cost id belongs to another tenant (cash id valid, own tenant)
+select throws_ok(
+  $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_a), (select cost_id from pgtap_pair_q), 'd: cost id cross-tenant') $$,
+  'NOT_FOUND',
+  '(d) a cost id belonging to another tenant raises the SAME NOT_FOUND'
+);
+-- (e) both ids belong to another tenant (a genuine, self-consistent
+-- foreign pair)
+select throws_ok(
+  $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_q), (select cost_id from pgtap_pair_q), 'e: both ids cross-tenant') $$,
+  'NOT_FOUND',
+  '(e) both ids from another tenant raises the SAME NOT_FOUND'
+);
+-- (f) one id own tenant, one id another tenant (mixed pair, cash-own
+-- direction already proven above as the "mismatched tenant pair" case;
+-- here proven in the OTHER direction — cash foreign, cost own — for
+-- completeness in both directions)
+select throws_ok(
+  $$ select * from public.reverse_paired_project_refund((select cash_id from pgtap_pair_q), (select cost_id from pgtap_pair_a), 'f: cash cross-tenant, cost own') $$,
+  'NOT_FOUND',
+  '(f) a foreign cash id paired with the caller''s own cost id raises the SAME NOT_FOUND — mixed pairs leak nothing in either direction'
+);
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- Explicit SQLSTATE-level proof (not just message text): capture the
+-- returned_sqlstate for two of the six scenarios above and assert they are
+-- byte-identical, satisfying "error code/SQLSTATE yang sama" literally.
+select set_config('request.jwt.claims', json_build_object('sub', (select id from pgtap_owner_p)::text, 'role', 'authenticated')::text, true);
+select set_config('role', 'authenticated', true);
+create temporary table pgtap_sqlstate_probe (scenario text, sqlstate_code text);
+do $do$
+declare
+  v_state text;
+begin
+  begin
+    perform public.reverse_paired_project_refund('00000000-0000-4000-8000-000000000000', (select cost_id from pgtap_pair_a), 'probe a');
+  exception when others then
+    get stacked diagnostics v_state = returned_sqlstate;
+    insert into pgtap_sqlstate_probe values ('cash_id_absent', v_state);
+  end;
+
+  begin
+    perform public.reverse_paired_project_refund((select cash_id from pgtap_pair_q), (select cost_id from pgtap_pair_a), 'probe b');
+  exception when others then
+    get stacked diagnostics v_state = returned_sqlstate;
+    insert into pgtap_sqlstate_probe values ('cash_id_cross_tenant', v_state);
+  end;
+
+  begin
+    perform public.reverse_paired_project_refund((select cash_id from pgtap_pair_q), (select cost_id from pgtap_pair_q), 'probe e');
+  exception when others then
+    get stacked diagnostics v_state = returned_sqlstate;
+    insert into pgtap_sqlstate_probe values ('both_cross_tenant', v_state);
+  end;
+end;
+$do$;
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select count(distinct sqlstate_code)::int from pgtap_sqlstate_probe),
+  1,
+  'all probed scenarios (absent id, cross-tenant cash, cross-tenant pair) share exactly one SQLSTATE — no per-scenario distinguishability'
+);
+select is(
+  (select sqlstate_code from pgtap_sqlstate_probe where scenario = 'cash_id_absent'),
+  'P0001',
+  'the shared SQLSTATE is P0001 (plain raise exception), not a distinguishing custom code'
+);
 
 -- =============================================================================
 -- #7 — mismatched import_row_id (two genuine, independent paired refunds)

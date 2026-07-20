@@ -23,12 +23,6 @@ describe("mapPairedRefundReversalError", () => {
     expect(mapPairedRefundReversalError(pgError("42501"))).toMatch(/tidak memiliki izin/i);
   });
 
-  it("maps a P0001 'not authorized' exception to an owner-only message", () => {
-    expect(mapPairedRefundReversalError(pgError("P0001", "not authorized to reverse paired project refund"))).toMatch(
-      /hanya owner/i,
-    );
-  });
-
   it("maps PAIRED_REFUND_PARTIALLY_REVERSED to the integrity-exception explanation", () => {
     expect(mapPairedRefundReversalError(pgError("P0001", "PAIRED_REFUND_PARTIALLY_REVERSED"))).toMatch(
       /satu sisi transaksi refund/i,
@@ -43,11 +37,15 @@ describe("mapPairedRefundReversalError", () => {
     expect(mapPairedRefundReversalError(pgError("P0001", "reversal reason is required"))).toMatch(/alasan reversal/i);
   });
 
-  it("maps a P0001 not-found exception to a not-found message", () => {
-    expect(mapPairedRefundReversalError(pgError("P0001", "cash pool entry not found"))).toMatch(/tidak ditemukan/i);
-    expect(mapPairedRefundReversalError(pgError("P0001", "project cost ledger entry not found"))).toMatch(
-      /tidak ditemukan/i,
-    );
+  it("maps the Gate 1K.1A NOT_FOUND exception to a not-found message", () => {
+    expect(mapPairedRefundReversalError(pgError("P0001", "NOT_FOUND"))).toMatch(/tidak ditemukan/i);
+  });
+
+  it("maps NOT_FOUND identically regardless of the underlying reason (missing id vs cross-tenant vs wrong role) — the UI layer must not reintroduce a distinction the database already collapsed", () => {
+    const missing = mapPairedRefundReversalError(pgError("P0001", "NOT_FOUND"));
+    const crossTenant = mapPairedRefundReversalError(pgError("P0001", "NOT_FOUND"));
+    expect(missing).toBe(crossTenant);
+    expect(missing).toMatch(/tidak ditemukan/i);
   });
 
   it("falls back to the generic message for an unrecognized P0001 message", () => {
