@@ -4,8 +4,10 @@ import { mapVesselProjectError } from "./errors";
 import {
   getVesselProjectById,
   insertVesselProject,
+  listVesselProjectCostSummary,
   listVesselProjects,
   transitionVesselProjectLifecycle,
+  type VesselProjectCostSummaryRow,
   type VesselProjectRow,
 } from "./repository";
 import { createVesselProjectInputSchema, transitionVesselProjectInputSchema } from "./validation";
@@ -27,6 +29,11 @@ export async function listVesselProjectsForActiveTenant(): Promise<VesselProject
 export async function getVesselProjectForActiveTenant(id: string): Promise<VesselProjectRow | null> {
   const context = await requireTenantContext();
   return getVesselProjectById(context.tenantId, id);
+}
+
+export async function listVesselProjectCostSummaryForActiveTenant(): Promise<VesselProjectCostSummaryRow[]> {
+  const context = await requireTenantContext();
+  return listVesselProjectCostSummary(context.tenantId);
 }
 
 export async function createVesselProject(rawInput: unknown): Promise<CreateVesselProjectResult> {

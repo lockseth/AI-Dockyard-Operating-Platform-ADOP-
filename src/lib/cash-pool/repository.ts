@@ -48,6 +48,21 @@ export async function getDailyCashPoolSummary(
   return data;
 }
 
+// Tenant-wide, all business dates — used by Owner Control to resolve each
+// pool's business_date for review queues that are not limited to today's
+// pool (expense review, duplicate review, EOD reconciliation review).
+export async function listCashPools(tenantId: string): Promise<CashPoolRow[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("cash_pools")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("business_date", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function listCashPoolEntries(tenantId: string, poolId: string): Promise<CashPoolEntryRow[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

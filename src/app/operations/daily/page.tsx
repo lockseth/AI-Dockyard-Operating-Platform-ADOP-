@@ -111,6 +111,14 @@ export default async function DailyOperationsPage() {
             <div className="font-medium">{context.tenantDisplayName}</div>
             <div className="text-xs text-neutral-500">{context.roles.join(", ") || "-"}</div>
           </div>
+          {context.roles.includes("owner") ? (
+            <Link
+              href="/owner/control"
+              className="text-neutral-500 underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"
+            >
+              Owner Control
+            </Link>
+          ) : null}
           <Link
             href="/app"
             className="text-neutral-500 underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"

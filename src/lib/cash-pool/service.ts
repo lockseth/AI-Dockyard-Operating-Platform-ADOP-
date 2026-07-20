@@ -6,6 +6,7 @@ import {
   getDailyCashPoolSummary,
   getOrCreateDailyCashPool,
   listCashPoolEntries,
+  listCashPools,
   recordCashPoolEntry,
   reverseCashPoolEntry,
   type CashPoolDailySummaryRow,
@@ -65,6 +66,11 @@ export async function getDailyCashPoolSummaryForActiveTenant(
 ): Promise<CashPoolDailySummaryRow | null> {
   const context = await requireTenantContext();
   return getDailyCashPoolSummary(context.tenantId, businessDate);
+}
+
+export async function listCashPoolsForActiveTenant(): Promise<CashPoolRow[]> {
+  const context = await requireTenantContext();
+  return listCashPools(context.tenantId);
 }
 
 export async function listCashPoolEntriesForActiveTenant(poolId: string): Promise<CashPoolEntryRow[]> {

@@ -4,6 +4,20 @@ import type { Tables, TablesInsert } from "@/types/database";
 import type { VesselProjectLifecycleStatus } from "./types";
 
 export type VesselProjectRow = Tables<"vessel_projects">;
+export type VesselProjectCostSummaryRow = Tables<"vessel_project_cost_summary">;
+
+// Server-computed total cost per project (net of reversals) — see
+// vessel_project_cost_summary in 20260719120000_project_cost_ledger.sql.
+export async function listVesselProjectCostSummary(tenantId: string): Promise<VesselProjectCostSummaryRow[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vessel_project_cost_summary")
+    .select("*")
+    .eq("tenant_id", tenantId);
+
+  if (error) throw error;
+  return data ?? [];
+}
 
 export async function listVesselProjects(tenantId: string): Promise<VesselProjectRow[]> {
   const supabase = await createSupabaseServerClient();

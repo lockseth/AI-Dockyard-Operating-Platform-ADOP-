@@ -4,6 +4,8 @@ import { requireTenantContext } from "@/lib/auth/tenant";
 
 export default async function AppPage() {
   const context = await requireTenantContext();
+  const canAccessDailyOperations = context.roles.some((role) => role === "owner" || role === "admin");
+  const canAccessOwnerControl = context.roles.includes("owner");
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-12">
@@ -53,6 +55,36 @@ export default async function AppPage() {
           Buka Master Data
         </Link>
       </section>
+
+      {canAccessDailyOperations ? (
+        <section className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
+          <h2 className="text-sm font-medium text-neutral-500">Operasional Harian</h2>
+          <p className="mt-2 text-sm text-neutral-500">
+            Buka kas, catat pengeluaran, dan kirim rekonsiliasi akhir hari.
+          </p>
+          <Link
+            href="/operations/daily"
+            className="mt-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+          >
+            Buka Operasional Harian
+          </Link>
+        </section>
+      ) : null}
+
+      {canAccessOwnerControl ? (
+        <section className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
+          <h2 className="text-sm font-medium text-neutral-500">Owner Control</h2>
+          <p className="mt-2 text-sm text-neutral-500">
+            Review pengajuan biaya, kandidat duplikasi, dan persetujuan rekonsiliasi akhir hari.
+          </p>
+          <Link
+            href="/owner/control"
+            className="mt-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+          >
+            Buka Owner Control
+          </Link>
+        </section>
+      ) : null}
 
       <section className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
         <h2 className="text-sm font-medium text-neutral-500">
