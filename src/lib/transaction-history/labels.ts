@@ -34,7 +34,16 @@ export const TRANSACTION_STATUS_LABEL: Record<string, string> = {
   active: "Aktif",
   reversed: "Sudah Dibatalkan",
   reversal: "Transaksi Pembatal",
+  partially_reversed: "Reversal Tidak Lengkap",
 };
+
+// Gate 1K.1: shown only for the 'partially_reversed' integrity exception —
+// only one leg of a paired project refund has been reversed. This is never
+// produced by any mutation path after Gate 1K.1 (the database rejects it
+// structurally); it can only surface a pre-existing inconsistency, and is
+// never auto-repaired.
+export const PARTIALLY_REVERSED_EXPLANATION =
+  "Hanya satu sisi transaksi refund yang telah direversal. Transaksi memerlukan pemeriksaan Owner.";
 
 export function labelOrRaw(map: Record<string, string>, value: string | null): string {
   if (!value) return "-";

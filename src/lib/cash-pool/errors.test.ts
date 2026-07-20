@@ -41,6 +41,10 @@ describe("mapCashPoolError", () => {
     expect(mapCashPoolError(pgError("P0001", "cash pool entry already reversed"))).toMatch(/sudah pernah dikoreksi/i);
   });
 
+  it("maps a P0001 PAIRED_REFUND_REQUIRES_ATOMIC_REVERSAL exception to a paired-refund guidance message (Gate 1K.1)", () => {
+    expect(mapCashPoolError(pgError("P0001", "PAIRED_REFUND_REQUIRES_ATOMIC_REVERSAL"))).toMatch(/reversal atomik/i);
+  });
+
   it("maps a P0001 'only an original entry' exception to an invalid-target message", () => {
     expect(mapCashPoolError(pgError("P0001", "only an original entry can be reversed"))).toMatch(
       /entri asli/i,

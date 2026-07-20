@@ -45,6 +45,11 @@ describe("listTrustedTransactionsInputSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts the Gate 1K.1 'partially_reversed' status value", () => {
+    const parsed = listTrustedTransactionsInputSchema.parse({ status: "partially_reversed" });
+    expect(parsed.status).toBe("partially_reversed");
+  });
+
   it("treats empty-string optional fields as absent", () => {
     const parsed = listTrustedTransactionsInputSchema.parse({ projectId: "", search: "", transactionType: "" });
     expect(parsed.projectId).toBeUndefined();

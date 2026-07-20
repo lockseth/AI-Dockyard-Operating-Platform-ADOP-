@@ -3149,6 +3149,18 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reverse_paired_project_refund: {
+        Args: {
+          p_cash_entry_id: string
+          p_cost_entry_id: string
+          p_reason: string
+        }
+        Returns: {
+          cash_reversal_id: string
+          cost_reversal_id: string
+          result_status: string
+        }[]
+      }
       reverse_project_expense: {
         Args: { p_entry_id: string; p_reason: string }
         Returns: {

@@ -20,6 +20,9 @@ export function mapCostLedgerError(error: PostgrestError | null | undefined): st
     case "42501":
       return "Anda tidak memiliki izin untuk melakukan aksi ini.";
     case "P0001":
+      if (error.message?.includes("PAIRED_REFUND_REQUIRES_ATOMIC_REVERSAL")) {
+        return "Entri ini adalah bagian dari refund project berpasangan — gunakan reversal atomik, bukan koreksi satu sisi.";
+      }
       if (error.message?.includes("not authorized")) {
         return "Anda tidak memiliki izin untuk melakukan aksi ini pada biaya project.";
       }

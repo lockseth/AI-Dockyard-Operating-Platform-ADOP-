@@ -45,6 +45,10 @@ describe("mapCostLedgerError", () => {
     expect(mapCostLedgerError(pgError("P0001", "project expense already reversed"))).toMatch(/sudah pernah dikoreksi/i);
   });
 
+  it("maps a P0001 PAIRED_REFUND_REQUIRES_ATOMIC_REVERSAL exception to a paired-refund guidance message (Gate 1K.1)", () => {
+    expect(mapCostLedgerError(pgError("P0001", "PAIRED_REFUND_REQUIRES_ATOMIC_REVERSAL"))).toMatch(/reversal atomik/i);
+  });
+
   it("maps a P0001 'only an original expense' exception to an invalid-target message", () => {
     expect(mapCostLedgerError(pgError("P0001", "only an original expense can be reversed"))).toMatch(
       /biaya asli/i,

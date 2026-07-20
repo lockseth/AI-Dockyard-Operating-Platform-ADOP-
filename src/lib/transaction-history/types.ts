@@ -27,7 +27,13 @@ export type TrustedTransactionDirection = (typeof TRANSACTION_DIRECTIONS)[number
 export const TRANSACTION_SOURCES = ["direct_manual", "import", "reversal"] as const;
 export type TrustedTransactionSource = (typeof TRANSACTION_SOURCES)[number];
 
-export const TRANSACTION_STATUSES = ["active", "reversed", "reversal"] as const;
+// 'partially_reversed' (Gate 1K.1) is a structural integrity exception, not
+// a normal lifecycle state: it means only one leg of a paired project
+// refund has been reversed. Gate 1K.1's deferred database constraint
+// prevents new occurrences going forward — this value only surfaces a
+// pre-existing inconsistency, it is never produced by any mutation path
+// added after Gate 1K.1.
+export const TRANSACTION_STATUSES = ["active", "reversed", "reversal", "partially_reversed"] as const;
 export type TrustedTransactionStatus = (typeof TRANSACTION_STATUSES)[number];
 
 export interface TrustedTransactionCursor {

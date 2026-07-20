@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatBusinessDateLabel, formatRupiah } from "@/lib/operations-daily/format";
 import {
   labelOrRaw,
+  PARTIALLY_REVERSED_EXPLANATION,
   TRANSACTION_DIRECTION_LABEL,
   TRANSACTION_SOURCE_LABEL,
   TRANSACTION_STATUS_LABEL,
@@ -76,6 +77,16 @@ export function DetailPanel({
         Transaksi ini berasal dari ledger ADOP yang tidak dapat diedit atau dihapus. Koreksi dicatat sebagai transaksi
         reversal terpisah.
       </section>
+
+      {transaction.status === "partially_reversed" ? (
+        <section
+          role="alert"
+          className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
+        >
+          <div className="font-semibold">Reversal Tidak Lengkap</div>
+          <p className="mt-1 text-xs">{PARTIALLY_REVERSED_EXPLANATION}</p>
+        </section>
+      ) : null}
 
       <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
         <div className="flex flex-wrap items-center justify-between gap-2">
