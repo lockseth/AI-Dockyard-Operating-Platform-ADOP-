@@ -78,6 +78,235 @@ export type Database = {
           },
         ]
       }
+      cash_import_batches: {
+        Row: {
+          business_date: string
+          calculated_closing_balance: number
+          created_at: string
+          created_by: string | null
+          error_count: number
+          id: string
+          opening_balance: number
+          source_filename: string
+          source_sha256: string
+          source_sheet_name: string
+          status: Database["public"]["Enums"]["cash_import_batch_status"]
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          transaction_count: number
+          updated_at: string
+          warning_count: number
+          workbook_closing_balance: number | null
+        }
+        Insert: {
+          business_date: string
+          calculated_closing_balance?: number
+          created_at?: string
+          created_by?: string | null
+          error_count?: number
+          id?: string
+          opening_balance: number
+          source_filename: string
+          source_sha256: string
+          source_sheet_name: string
+          status?: Database["public"]["Enums"]["cash_import_batch_status"]
+          tenant_id: string
+          total_credit?: number
+          total_debit?: number
+          transaction_count?: number
+          updated_at?: string
+          warning_count?: number
+          workbook_closing_balance?: number | null
+        }
+        Update: {
+          business_date?: string
+          calculated_closing_balance?: number
+          created_at?: string
+          created_by?: string | null
+          error_count?: number
+          id?: string
+          opening_balance?: number
+          source_filename?: string
+          source_sha256?: string
+          source_sheet_name?: string
+          status?: Database["public"]["Enums"]["cash_import_batch_status"]
+          tenant_id?: string
+          total_credit?: number
+          total_debit?: number
+          transaction_count?: number
+          updated_at?: string
+          warning_count?: number
+          workbook_closing_balance?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_import_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_import_events: {
+        Row: {
+          actor_user_id: string | null
+          batch_id: string
+          created_at: string
+          event_payload: Json
+          event_type: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          batch_id: string
+          created_at?: string
+          event_payload?: Json
+          event_type: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          batch_id?: string
+          created_at?: string
+          event_payload?: Json
+          event_type?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_import_events_batch_id_tenant_id_fkey"
+            columns: ["batch_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_batches"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_import_rows: {
+        Row: {
+          batch_id: string
+          calculated_balance: number | null
+          created_at: string
+          credit: number | null
+          debit: number | null
+          description: string | null
+          disposition:
+            | Database["public"]["Enums"]["cash_import_row_disposition"]
+            | null
+          disposition_reason: string | null
+          duplicate_group_key: string | null
+          id: string
+          mapped_vessel_project_id: string | null
+          mapping_kind:
+            | Database["public"]["Enums"]["cash_import_mapping_kind"]
+            | null
+          provisional_classification: Database["public"]["Enums"]["cash_import_provisional_classification"]
+          source_fingerprint: string
+          source_row_number: number
+          status: Database["public"]["Enums"]["cash_import_row_status"]
+          tenant_id: string
+          updated_at: string
+          validation_issues: Json
+          vessel_label: string | null
+          workbook_balance: number | null
+        }
+        Insert: {
+          batch_id: string
+          calculated_balance?: number | null
+          created_at?: string
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          disposition?:
+            | Database["public"]["Enums"]["cash_import_row_disposition"]
+            | null
+          disposition_reason?: string | null
+          duplicate_group_key?: string | null
+          id?: string
+          mapped_vessel_project_id?: string | null
+          mapping_kind?:
+            | Database["public"]["Enums"]["cash_import_mapping_kind"]
+            | null
+          provisional_classification: Database["public"]["Enums"]["cash_import_provisional_classification"]
+          source_fingerprint: string
+          source_row_number: number
+          status: Database["public"]["Enums"]["cash_import_row_status"]
+          tenant_id: string
+          updated_at?: string
+          validation_issues?: Json
+          vessel_label?: string | null
+          workbook_balance?: number | null
+        }
+        Update: {
+          batch_id?: string
+          calculated_balance?: number | null
+          created_at?: string
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          disposition?:
+            | Database["public"]["Enums"]["cash_import_row_disposition"]
+            | null
+          disposition_reason?: string | null
+          duplicate_group_key?: string | null
+          id?: string
+          mapped_vessel_project_id?: string | null
+          mapping_kind?:
+            | Database["public"]["Enums"]["cash_import_mapping_kind"]
+            | null
+          provisional_classification?: Database["public"]["Enums"]["cash_import_provisional_classification"]
+          source_fingerprint?: string
+          source_row_number?: number
+          status?: Database["public"]["Enums"]["cash_import_row_status"]
+          tenant_id?: string
+          updated_at?: string
+          validation_issues?: Json
+          vessel_label?: string | null
+          workbook_balance?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_import_rows_batch_id_tenant_id_fkey"
+            columns: ["batch_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_batches"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_rows_mapped_vessel_project_id_tenant_id_fkey"
+            columns: ["mapped_vessel_project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_rows_mapped_vessel_project_id_tenant_id_fkey"
+            columns: ["mapped_vessel_project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_rows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_pool_entries: {
         Row: {
           amount: number
@@ -2046,6 +2275,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_cash_import_batch: {
+        Args: {
+          p_business_date: string
+          p_opening_balance: number
+          p_rows: Json
+          p_source_filename: string
+          p_source_sha256: string
+          p_source_sheet_name: string
+          p_tenant_id: string
+          p_workbook_closing_balance: number
+        }
+        Returns: Database["public"]["CompositeTypes"]["cash_import_batch_creation_result"]
+        SetofOptions: {
+          from: "*"
+          to: "cash_import_batch_creation_result"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_cash_reconciliation_draft: {
         Args: {
           p_actual_counted_cash: number
@@ -2147,6 +2395,35 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: undefined
+      }
+      mark_cash_import_batch_ready_for_review: {
+        Args: { p_batch_id: string }
+        Returns: {
+          business_date: string
+          calculated_closing_balance: number
+          created_at: string
+          created_by: string | null
+          error_count: number
+          id: string
+          opening_balance: number
+          source_filename: string
+          source_sha256: string
+          source_sheet_name: string
+          status: Database["public"]["Enums"]["cash_import_batch_status"]
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          transaction_count: number
+          updated_at: string
+          warning_count: number
+          workbook_closing_balance: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_import_batches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       record_cash_pool_entry: {
         Args: {
@@ -2478,6 +2755,55 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_cash_import_label_mapping: {
+        Args: {
+          p_batch_id: string
+          p_mapped_vessel_project_id?: string
+          p_mapping_kind: Database["public"]["Enums"]["cash_import_mapping_kind"]
+          p_vessel_label: string
+        }
+        Returns: number
+      }
+      set_cash_import_row_disposition: {
+        Args: {
+          p_disposition: Database["public"]["Enums"]["cash_import_row_disposition"]
+          p_disposition_reason?: string
+          p_row_id: string
+        }
+        Returns: {
+          batch_id: string
+          calculated_balance: number | null
+          created_at: string
+          credit: number | null
+          debit: number | null
+          description: string | null
+          disposition:
+            | Database["public"]["Enums"]["cash_import_row_disposition"]
+            | null
+          disposition_reason: string | null
+          duplicate_group_key: string | null
+          id: string
+          mapped_vessel_project_id: string | null
+          mapping_kind:
+            | Database["public"]["Enums"]["cash_import_mapping_kind"]
+            | null
+          provisional_classification: Database["public"]["Enums"]["cash_import_provisional_classification"]
+          source_fingerprint: string
+          source_row_number: number
+          status: Database["public"]["Enums"]["cash_import_row_status"]
+          tenant_id: string
+          updated_at: string
+          validation_issues: Json
+          vessel_label: string | null
+          workbook_balance: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_import_rows"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       submit_cash_reconciliation: {
         Args: { p_reconciliation_id: string }
         Returns: {
@@ -2566,6 +2892,26 @@ export type Database = {
       }
     }
     Enums: {
+      cash_import_batch_status:
+        | "draft"
+        | "mapping_required"
+        | "ready_for_review"
+        | "superseded"
+      cash_import_mapping_kind:
+        | "cash"
+        | "existing_vessel_project"
+        | "new_project_candidate"
+        | "shared_overhead"
+        | "unresolved"
+      cash_import_provisional_classification:
+        | "opening_cash"
+        | "cash_top_up_candidate"
+        | "project_cash_in_or_refund_review"
+        | "project_expense_candidate"
+        | "unallocated_expense_review"
+        | "manual_mapping_required"
+      cash_import_row_disposition: "include" | "skip" | "manual_review"
+      cash_import_row_status: "valid" | "warning" | "error"
       cash_pool_daily_close_status: "open" | "pending_close" | "closed"
       cash_pool_entry_kind: "entry" | "reversal"
       cash_pool_entry_type: "opening_cash" | "cash_top_up" | "other_cash_in"
@@ -2600,7 +2946,10 @@ export type Database = {
       vessel_project_lifecycle_status: "active" | "ready_to_close" | "closed"
     }
     CompositeTypes: {
-      [_ in never]: never
+      cash_import_batch_creation_result: {
+        batch: Database["public"]["Tables"]["cash_import_batches"]["Row"] | null
+        is_new: boolean | null
+      }
     }
   }
 }
@@ -2728,6 +3077,29 @@ export const Constants = {
   },
   public: {
     Enums: {
+      cash_import_batch_status: [
+        "draft",
+        "mapping_required",
+        "ready_for_review",
+        "superseded",
+      ],
+      cash_import_mapping_kind: [
+        "cash",
+        "existing_vessel_project",
+        "new_project_candidate",
+        "shared_overhead",
+        "unresolved",
+      ],
+      cash_import_provisional_classification: [
+        "opening_cash",
+        "cash_top_up_candidate",
+        "project_cash_in_or_refund_review",
+        "project_expense_candidate",
+        "unallocated_expense_review",
+        "manual_mapping_required",
+      ],
+      cash_import_row_disposition: ["include", "skip", "manual_review"],
+      cash_import_row_status: ["valid", "warning", "error"],
       cash_pool_daily_close_status: ["open", "pending_close", "closed"],
       cash_pool_entry_kind: ["entry", "reversal"],
       cash_pool_entry_type: ["opening_cash", "cash_top_up", "other_cash_in"],
