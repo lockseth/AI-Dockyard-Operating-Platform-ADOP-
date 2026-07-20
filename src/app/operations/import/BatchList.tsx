@@ -8,6 +8,7 @@ const STATUS_LABEL: Record<CashImportBatchRow["status"], string> = {
   ready_for_review: "Siap Direview",
   superseded: "Digantikan",
   committed: "Disetujui & Dimasukkan",
+  rolled_back: "Rolled Back",
 };
 
 const STATUS_BADGE_CLASS: Record<CashImportBatchRow["status"], string> = {
@@ -16,6 +17,7 @@ const STATUS_BADGE_CLASS: Record<CashImportBatchRow["status"], string> = {
   ready_for_review: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
   superseded: "bg-neutral-100 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500",
   committed: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  rolled_back: "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
 };
 
 export function BatchList({ batches }: { batches: CashImportBatchRow[] }) {

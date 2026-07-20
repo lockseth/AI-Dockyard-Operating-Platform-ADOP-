@@ -144,3 +144,12 @@ export async function rejectCashImportBatch(batchId: string, reason: string) {
   const supabase = await createSupabaseServerClient();
   return supabase.rpc("reject_cash_import_batch", { p_batch_id: batchId, p_reason: reason });
 }
+
+// Owner-only, single-transaction append-only rollback of a committed batch —
+// tenant/actor/pool are all re-derived server-side inside the RPC from the
+// batch row itself, never accepted here. Only which batch to roll back and
+// why are caller-supplied.
+export async function rollbackCashImportBatch(batchId: string, reason: string) {
+  const supabase = await createSupabaseServerClient();
+  return supabase.rpc("rollback_cash_import_batch", { p_batch_id: batchId, p_reason: reason });
+}

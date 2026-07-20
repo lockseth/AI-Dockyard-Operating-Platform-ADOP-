@@ -8,6 +8,7 @@ const EVENT_LABEL: Record<string, string> = {
   ready_for_review: "Ditandai siap untuk review",
   owner_approved_and_committed: "Disetujui Owner & dimasukkan ke kas/biaya operasional",
   owner_rejected: "Ditolak Owner, dikembalikan ke Admin",
+  owner_rolled_back_import: "Dibatalkan Owner (rollback) — transaksi pembalik dibuat",
 };
 
 export function AuditTimeline({ events }: { events: CashImportEventRow[] }) {

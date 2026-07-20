@@ -12,6 +12,7 @@ import {
   listCashImportRowsForBatch,
   markCashImportBatchReadyForReview,
   rejectCashImportBatch,
+  rollbackCashImportBatch,
   setCashImportLabelMapping,
   setCashImportRowDisposition,
   type CashImportBatchRow,
@@ -24,6 +25,7 @@ import {
   getCashImportBatchDetailInputSchema,
   markCashImportBatchReadyForReviewInputSchema,
   rejectCashImportBatchInputSchema,
+  rollbackCashImportBatchInputSchema,
   setCashImportLabelMappingInputSchema,
   setCashImportRowDispositionInputSchema,
 } from "./validation";
@@ -216,6 +218,31 @@ export async function rejectCashImportBatchForActiveTenant(
   requireTenantRole(context, ["owner"]);
 
   const { error } = await rejectCashImportBatch(parsed.data.batchId, parsed.data.reason);
+  if (error) {
+    return { error: mapCashImportStagingError(error) };
+  }
+
+  return {};
+}
+
+// Owner-only. The RPC performs the atomic append-only rollback in a single
+// transaction (opening balance, cash top-up, project expense, shared
+// overhead, paired project refund reversal) — nothing here computes or
+// forwards a reversed total; the rolled-back batch row (with its server-
+// computed rollback_* snapshot columns) is the only source of truth for
+// what actually reversed.
+export async function rollbackCashImportBatchForActiveTenant(
+  rawInput: unknown,
+): Promise<CashImportStagingActionResult> {
+  const parsed = rollbackCashImportBatchInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner"]);
+
+  const { error } = await rollbackCashImportBatch(parsed.data.batchId, parsed.data.reason);
   if (error) {
     return { error: mapCashImportStagingError(error) };
   }

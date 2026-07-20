@@ -7,6 +7,7 @@ import {
   approveAndCommitCashImportBatchForActiveTenant,
   markCashImportBatchReadyForReviewForActiveTenant,
   rejectCashImportBatchForActiveTenant,
+  rollbackCashImportBatchForActiveTenant,
   setCashImportLabelMappingForActiveTenant,
   setCashImportRowDispositionForActiveTenant,
   uploadCashReportForActiveTenant,
@@ -136,6 +137,29 @@ export async function rejectCashImportBatchAction(
   if (!result.error && !result.fieldErrors && typeof batchId === "string") {
     revalidatePath(`/operations/import/${batchId}`);
     revalidatePath("/owner/control");
+  }
+  return result;
+}
+
+export async function rollbackCashImportBatchAction(
+  _prevState: CashImportStagingActionResult,
+  formData: FormData,
+): Promise<CashImportStagingActionResult> {
+  const batchId = formData.get("batchId");
+  let result: CashImportStagingActionResult;
+  try {
+    result = await rollbackCashImportBatchForActiveTenant({
+      batchId,
+      reason: formData.get("reason"),
+    });
+  } catch (error) {
+    return mapThrown(error);
+  }
+
+  if (!result.error && !result.fieldErrors && typeof batchId === "string") {
+    revalidatePath(`/operations/import/${batchId}`);
+    revalidatePath("/owner/control");
+    revalidatePath("/operations/daily");
   }
   return result;
 }

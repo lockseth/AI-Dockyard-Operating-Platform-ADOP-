@@ -51,3 +51,9 @@ export const rejectCashImportBatchInputSchema = z.object({
   reason: z.string().trim().min(1, "Alasan penolakan wajib diisi.").max(1000),
 });
 export type RejectCashImportBatchInput = z.infer<typeof rejectCashImportBatchInputSchema>;
+
+export const rollbackCashImportBatchInputSchema = z.object({
+  batchId: idSchema,
+  reason: z.string().trim().min(1, "Alasan rollback wajib diisi.").max(1000),
+});
+export type RollbackCashImportBatchInput = z.infer<typeof rollbackCashImportBatchInputSchema>;

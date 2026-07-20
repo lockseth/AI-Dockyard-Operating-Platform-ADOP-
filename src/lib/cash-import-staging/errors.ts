@@ -39,6 +39,24 @@ export function mapCashImportStagingError(error: PostgrestError | null | undefin
       if (message.includes("BATCH_NOT_READY_FOR_REVIEW")) {
         return "Batch belum siap untuk disetujui atau ditolak pada status saat ini.";
       }
+      if (message.includes("not authorized to rollback")) {
+        return "Hanya Owner yang dapat membatalkan (rollback) batch import kas.";
+      }
+      if (message.includes("BATCH_ALREADY_ROLLED_BACK")) {
+        return "Batch ini sudah pernah dibatalkan (rollback) sebelumnya.";
+      }
+      if (message.includes("BATCH_NOT_COMMITTED")) {
+        return "Hanya batch yang sudah disetujui (committed) yang dapat dibatalkan (rollback).";
+      }
+      if (message.includes("CASH_POOL_NOT_OPEN_FOR_ROLLBACK")) {
+        return "Kas harian tanggal ini sudah ditutup atau rekonsiliasi EOD sudah disetujui — rollback tidak dapat dilakukan.";
+      }
+      if (message.includes("IMPORT_PROVENANCE_INCOMPLETE")) {
+        return "Data provenance import tidak lengkap atau tidak seimbang — rollback dibatalkan demi keamanan data.";
+      }
+      if (message.includes("rollback reason is required")) {
+        return "Alasan rollback wajib diisi.";
+      }
       if (message.includes("MANUAL_REVIEW_UNRESOLVED")) {
         return "Masih ada baris berstatus 'Perlu Tinjauan Manual' yang belum diputuskan sebagai include/skip.";
       }

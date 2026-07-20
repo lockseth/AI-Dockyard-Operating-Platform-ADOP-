@@ -7,6 +7,7 @@ const STATUS_LABEL: Record<CashImportBatchRow["status"], string> = {
   ready_for_review: "Siap Direview",
   superseded: "Digantikan",
   committed: "Disetujui & Dimasukkan",
+  rolled_back: "Rolled Back",
 };
 
 export function BatchSummaryPanel({ batch }: { batch: CashImportBatchRow }) {

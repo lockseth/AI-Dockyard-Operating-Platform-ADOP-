@@ -78,10 +78,7 @@ export function OwnerApprovalControl({ batchId, preview }: { batchId: string; pr
               onChange={(event) => setConfirmed(event.target.checked)}
               className="mt-0.5"
             />
-            <span>
-              Persetujuan akan memasukkan transaksi ke kas dan biaya operasional. Rollback belum tersedia pada gate
-              ini.
-            </span>
+            <span>Persetujuan akan memasukkan transaksi ke kas dan biaya operasional.</span>
           </label>
           <button
             type="submit"

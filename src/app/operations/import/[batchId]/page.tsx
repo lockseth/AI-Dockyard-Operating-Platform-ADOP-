@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { branding } from "@/lib/branding";
-import { canApproveCashImportStaging, canReadCashImportStaging, canWriteCashImportStaging } from "@/lib/cash-import-staging/access";
+import {
+  canApproveCashImportStaging,
+  canReadCashImportStaging,
+  canRollbackCashImportStaging,
+  canWriteCashImportStaging,
+} from "@/lib/cash-import-staging/access";
 import { getCashImportBatchDetailForActiveTenant } from "@/lib/cash-import-staging/service";
 import { summarizeCashImportLabels } from "@/lib/cash-import-staging/label-summary";
 import { buildCanonicalCommitPreview } from "@/lib/cash-import-staging/canonical-preview";
@@ -16,6 +21,8 @@ import { CommittedSummaryPanel } from "./CommittedSummaryPanel";
 import { LabelMappingControl } from "./LabelMappingControl";
 import { OwnerApprovalControl } from "./OwnerApprovalControl";
 import { ReadyForReviewControl } from "./ReadyForReviewControl";
+import { RollbackControl } from "./RollbackControl";
+import { RolledBackSummaryPanel } from "./RolledBackSummaryPanel";
 import { RowTable } from "./RowTable";
 
 export default async function CashImportBatchDetailPage({
@@ -28,6 +35,7 @@ export default async function CashImportBatchDetailPage({
   const context = await requireTenantContext();
   const canRead = canReadCashImportStaging(context.roles);
   const canApprove = canApproveCashImportStaging(context.roles);
+  const canRollback = canRollbackCashImportStaging(context.roles);
   const canWrite = canWriteCashImportStaging(context.roles);
 
   if (!canRead) {
@@ -43,7 +51,11 @@ export default async function CashImportBatchDetailPage({
   }
 
   const isCommitted = detail.batch.status === "committed";
-  const canEditStaging = canWrite && !isCommitted;
+  const isRolledBack = detail.batch.status === "rolled_back";
+  // Staging (mapping/disposition) is frozen forever once a batch reaches
+  // either terminal state — a rollback un-does the canonical postings, it
+  // never reopens staging for a second, different commit attempt.
+  const canEditStaging = canWrite && !isCommitted && !isRolledBack;
 
   const vesselProjects = canEditStaging ? await listVesselProjectsForActiveTenant() : [];
   const labelSummaries = summarizeCashImportLabels(detail.rows);
@@ -100,7 +112,7 @@ export default async function CashImportBatchDetailPage({
             Tampilan baca-saja — hanya Admin yang dapat mengubah mapping, disposisi, dan menyiapkan batch untuk review.
           </p>
         ) : null}
-        {isCommitted ? (
+        {isCommitted || isRolledBack ? (
           <p className="text-xs text-neutral-500">
             Batch ini sudah disetujui dan dimasukkan ke data operasional — staging bersifat baca-saja.
           </p>
@@ -109,10 +121,13 @@ export default async function CashImportBatchDetailPage({
         <BatchSummaryPanel batch={detail.batch} />
 
         {isCommitted ? <CommittedSummaryPanel batch={detail.batch} /> : null}
+        {isRolledBack ? <RolledBackSummaryPanel batch={detail.batch} /> : null}
 
         {canApprove && canonicalPreview ? (
           <OwnerApprovalControl batchId={detail.batch.id} preview={canonicalPreview} />
         ) : null}
+
+        {canRollback && isCommitted ? <RollbackControl batchId={detail.batch.id} batch={detail.batch} /> : null}
 
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-neutral-500">

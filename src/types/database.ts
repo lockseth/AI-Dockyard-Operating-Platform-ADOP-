@@ -95,6 +95,14 @@ export type Database = {
           error_count: number
           id: string
           opening_balance: number
+          rollback_reason: string | null
+          rollback_reversal_count: number | null
+          rollback_reversed_cash_effect: number | null
+          rollback_reversed_project_cost: number | null
+          rollback_reversed_refund_effect: number | null
+          rollback_reversed_shared_overhead: number | null
+          rolled_back_at: string | null
+          rolled_back_by: string | null
           source_filename: string
           source_sha256: string
           source_sheet_name: string
@@ -123,6 +131,14 @@ export type Database = {
           error_count?: number
           id?: string
           opening_balance: number
+          rollback_reason?: string | null
+          rollback_reversal_count?: number | null
+          rollback_reversed_cash_effect?: number | null
+          rollback_reversed_project_cost?: number | null
+          rollback_reversed_refund_effect?: number | null
+          rollback_reversed_shared_overhead?: number | null
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
           source_filename: string
           source_sha256: string
           source_sheet_name: string
@@ -151,6 +167,14 @@ export type Database = {
           error_count?: number
           id?: string
           opening_balance?: number
+          rollback_reason?: string | null
+          rollback_reversal_count?: number | null
+          rollback_reversed_cash_effect?: number | null
+          rollback_reversed_project_cost?: number | null
+          rollback_reversed_refund_effect?: number | null
+          rollback_reversed_shared_overhead?: number | null
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
           source_filename?: string
           source_sha256?: string
           source_sheet_name?: string
@@ -2442,6 +2466,14 @@ export type Database = {
           error_count: number
           id: string
           opening_balance: number
+          rollback_reason: string | null
+          rollback_reversal_count: number | null
+          rollback_reversed_cash_effect: number | null
+          rollback_reversed_project_cost: number | null
+          rollback_reversed_refund_effect: number | null
+          rollback_reversed_shared_overhead: number | null
+          rolled_back_at: string | null
+          rolled_back_by: string | null
           source_filename: string
           source_sha256: string
           source_sheet_name: string
@@ -2678,6 +2710,14 @@ export type Database = {
           error_count: number
           id: string
           opening_balance: number
+          rollback_reason: string | null
+          rollback_reversal_count: number | null
+          rollback_reversed_cash_effect: number | null
+          rollback_reversed_project_cost: number | null
+          rollback_reversed_refund_effect: number | null
+          rollback_reversed_shared_overhead: number | null
+          rolled_back_at: string | null
+          rolled_back_by: string | null
           source_filename: string
           source_sha256: string
           source_sheet_name: string
@@ -2778,6 +2818,14 @@ export type Database = {
           error_count: number
           id: string
           opening_balance: number
+          rollback_reason: string | null
+          rollback_reversal_count: number | null
+          rollback_reversed_cash_effect: number | null
+          rollback_reversed_project_cost: number | null
+          rollback_reversed_refund_effect: number | null
+          rollback_reversed_shared_overhead: number | null
+          rolled_back_at: string | null
+          rolled_back_by: string | null
           source_filename: string
           source_sha256: string
           source_sheet_name: string
@@ -3074,6 +3122,51 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rollback_cash_import_batch: {
+        Args: { p_batch_id: string; p_reason: string }
+        Returns: {
+          business_date: string
+          calculated_closing_balance: number
+          canonical_cash_top_up_total: number | null
+          canonical_closing_cash: number | null
+          canonical_opening_cash: number | null
+          canonical_project_expense_total: number | null
+          canonical_project_refund_total: number | null
+          canonical_shared_overhead_total: number | null
+          committed_at: string | null
+          committed_by: string | null
+          created_at: string
+          created_by: string | null
+          error_count: number
+          id: string
+          opening_balance: number
+          rollback_reason: string | null
+          rollback_reversal_count: number | null
+          rollback_reversed_cash_effect: number | null
+          rollback_reversed_project_cost: number | null
+          rollback_reversed_refund_effect: number | null
+          rollback_reversed_shared_overhead: number | null
+          rolled_back_at: string | null
+          rolled_back_by: string | null
+          source_filename: string
+          source_sha256: string
+          source_sheet_name: string
+          status: Database["public"]["Enums"]["cash_import_batch_status"]
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          transaction_count: number
+          updated_at: string
+          warning_count: number
+          workbook_closing_balance: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_import_batches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_cash_import_label_mapping: {
         Args: {
           p_batch_id: string
@@ -3217,6 +3310,7 @@ export type Database = {
         | "ready_for_review"
         | "superseded"
         | "committed"
+        | "rolled_back"
       cash_import_mapping_kind:
         | "cash"
         | "existing_vessel_project"
@@ -3408,6 +3502,7 @@ export const Constants = {
         "ready_for_review",
         "superseded",
         "committed",
+        "rolled_back",
       ],
       cash_import_mapping_kind: [
         "cash",

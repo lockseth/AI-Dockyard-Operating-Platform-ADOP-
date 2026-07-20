@@ -107,11 +107,13 @@ select has_table('public', 'cash_import_events', 'public.cash_import_events exis
 select has_type('public', 'cash_import_batch_status', 'cash_import_batch_status enum exists');
 select ok(
   (select array_agg(enumlabel::text order by enumsortorder) from pg_enum where enumtypid = 'public.cash_import_batch_status'::regtype)
-    = array['draft', 'mapping_required', 'ready_for_review', 'superseded', 'committed'],
+    = array['draft', 'mapping_required', 'ready_for_review', 'superseded', 'committed', 'rolled_back'],
   -- 'committed' appended by Gate 1J-C (20260720120000_owner_approved_cash_
-  -- import_commit.sql) via ALTER TYPE ... ADD VALUE — new enum values are
-  -- always appended after existing ones, never inserted in sort order.
-  'cash_import_batch_status is exactly draft/mapping_required/ready_for_review/superseded/committed'
+  -- import_commit.sql), 'rolled_back' appended by Gate 1J-D
+  -- (20260720130000_append_only_cash_import_rollback.sql), both via ALTER
+  -- TYPE ... ADD VALUE — new enum values are always appended after existing
+  -- ones, never inserted in sort order.
+  'cash_import_batch_status is exactly draft/mapping_required/ready_for_review/superseded/committed/rolled_back'
 );
 
 select has_type('public', 'cash_import_mapping_kind', 'cash_import_mapping_kind enum exists');

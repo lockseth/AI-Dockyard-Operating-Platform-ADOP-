@@ -5,7 +5,9 @@ import type { CashImportBatchRow } from "@/lib/cash-import-staging/repository";
 // Shown once a batch reaches status = 'committed' — the RPC's own
 // canonical_* snapshot columns, never recomputed client-side. No approve
 // control is ever rendered again once this is shown (the page only renders
-// OwnerApprovalControl while status === 'ready_for_review').
+// OwnerApprovalControl while status === 'ready_for_review'). Owner sees
+// RollbackControl alongside this panel; every other role sees this
+// read-only.
 export function CommittedSummaryPanel({ batch }: { batch: CashImportBatchRow }) {
   return (
     <section className="flex flex-col gap-4 rounded-md border border-blue-200 bg-blue-50/40 p-4 dark:border-blue-900 dark:bg-blue-950/20">
@@ -13,7 +15,7 @@ export function CommittedSummaryPanel({ batch }: { batch: CashImportBatchRow }) 
         <h2 className="text-sm font-medium text-neutral-500">Batch Telah Disetujui &amp; Dimasukkan</h2>
         <p className="text-xs text-neutral-500">
           Disetujui oleh Owner pada {batch.committed_at ? new Date(batch.committed_at).toLocaleString("id-ID") : "-"}.
-          Staging tidak dapat diubah lagi. Rollback belum tersedia pada gate ini.
+          Staging tidak dapat diubah lagi.
         </p>
       </div>
 
