@@ -41,15 +41,43 @@ function optionalField(formData: FormData, name: string): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value : undefined;
 }
 
+const GENERIC_VALIDATION_ERROR = "Data tidak valid. Silakan muat ulang halaman dan coba lagi.";
+
+// A *ForActiveTenant service validates every field with Zod, including
+// fields the UI never renders an input for (tenantId, poolId, submissionId,
+// reconciliationId, entryType, businessDate — all hidden/server-derived).
+// If one of those fails, `fieldErrors` carries a key no form component ever
+// reads, so the failure would otherwise be silently dropped instead of
+// reaching the user. Surface it as a generic, safe `error` message instead —
+// never the raw field name or the schema's internal message — while leaving
+// fieldErrors for genuinely user-editable fields alone so their normal
+// per-field hints still render.
+function surfaceHiddenFieldErrors<T extends { error?: string; fieldErrors?: Record<string, string[]> }>(
+  result: T,
+  visibleFields: readonly string[],
+): T {
+  if (!result.fieldErrors) {
+    return result;
+  }
+  const hasHiddenFieldError = Object.keys(result.fieldErrors).some((key) => !visibleFields.includes(key));
+  if (!hasHiddenFieldError) {
+    return result;
+  }
+  return { ...result, error: result.error ?? GENERIC_VALIDATION_ERROR };
+}
+
 export async function ensureDailyCashPoolAction(
   _prevState: EnsureDailyCashPoolResult,
   formData: FormData,
 ): Promise<EnsureDailyCashPoolResult> {
   let result: EnsureDailyCashPoolResult;
   try {
-    result = await ensureDailyCashPoolForActiveTenant({
-      businessDate: formData.get("businessDate"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await ensureDailyCashPoolForActiveTenant({
+        businessDate: formData.get("businessDate"),
+      }),
+      [],
+    );
   } catch (error) {
     return mapThrown(error);
   }
@@ -66,12 +94,15 @@ export async function recordCashPoolEntryAction(
 ): Promise<RecordCashPoolEntryResult> {
   let result: RecordCashPoolEntryResult;
   try {
-    result = await recordCashPoolEntryForActiveTenant({
-      poolId: formData.get("poolId"),
-      entryType: formData.get("entryType"),
-      amount: formData.get("amount"),
-      description: optionalField(formData, "description"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await recordCashPoolEntryForActiveTenant({
+        poolId: formData.get("poolId"),
+        entryType: formData.get("entryType"),
+        amount: formData.get("amount"),
+        description: optionalField(formData, "description"),
+      }),
+      ["amount", "description"],
+    );
   } catch (error) {
     return mapThrown(error);
   }
@@ -89,16 +120,19 @@ export async function createExpenseDraftAction(
   let result: ExpenseSubmissionActionResult;
   try {
     const context = await requireTenantContext();
-    result = await createExpenseDraftForActiveTenant({
-      tenantId: context.tenantId,
-      poolId: formData.get("poolId"),
-      projectId: formData.get("projectId"),
-      categoryId: formData.get("categoryId"),
-      amount: formData.get("amount"),
-      description: formData.get("description"),
-      vendorId: optionalField(formData, "vendorId"),
-      referenceNumber: optionalField(formData, "referenceNumber"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await createExpenseDraftForActiveTenant({
+        tenantId: context.tenantId,
+        poolId: formData.get("poolId"),
+        projectId: formData.get("projectId"),
+        categoryId: formData.get("categoryId"),
+        amount: formData.get("amount"),
+        description: formData.get("description"),
+        vendorId: optionalField(formData, "vendorId"),
+        referenceNumber: optionalField(formData, "referenceNumber"),
+      }),
+      ["projectId", "categoryId", "vendorId", "amount", "description", "referenceNumber"],
+    );
   } catch (error) {
     return mapThrown(error);
   }
@@ -115,16 +149,19 @@ export async function reviseExpenseDraftAction(
 ): Promise<ExpenseSubmissionActionResult> {
   let result: ExpenseSubmissionActionResult;
   try {
-    result = await reviseExpenseDraftForActiveTenant({
-      submissionId: formData.get("submissionId"),
-      poolId: formData.get("poolId"),
-      projectId: formData.get("projectId"),
-      categoryId: formData.get("categoryId"),
-      amount: formData.get("amount"),
-      description: formData.get("description"),
-      vendorId: optionalField(formData, "vendorId"),
-      referenceNumber: optionalField(formData, "referenceNumber"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await reviseExpenseDraftForActiveTenant({
+        submissionId: formData.get("submissionId"),
+        poolId: formData.get("poolId"),
+        projectId: formData.get("projectId"),
+        categoryId: formData.get("categoryId"),
+        amount: formData.get("amount"),
+        description: formData.get("description"),
+        vendorId: optionalField(formData, "vendorId"),
+        referenceNumber: optionalField(formData, "referenceNumber"),
+      }),
+      ["projectId", "categoryId", "vendorId", "amount", "description", "referenceNumber"],
+    );
   } catch (error) {
     return mapThrown(error);
   }
@@ -141,9 +178,12 @@ export async function submitExpenseAction(
 ): Promise<ExpenseSubmissionActionResult> {
   let result: ExpenseSubmissionActionResult;
   try {
-    result = await submitExpenseForActiveTenant({
-      submissionId: formData.get("submissionId"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await submitExpenseForActiveTenant({
+        submissionId: formData.get("submissionId"),
+      }),
+      [],
+    );
   } catch (error) {
     return mapThrown(error);
   }
@@ -160,10 +200,13 @@ export async function cancelExpenseSubmissionAction(
 ): Promise<ExpenseSubmissionActionResult> {
   let result: ExpenseSubmissionActionResult;
   try {
-    result = await cancelExpenseSubmissionForActiveTenant({
-      submissionId: formData.get("submissionId"),
-      reason: formData.get("reason"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await cancelExpenseSubmissionForActiveTenant({
+        submissionId: formData.get("submissionId"),
+        reason: formData.get("reason"),
+      }),
+      ["reason"],
+    );
   } catch (error) {
     return mapThrown(error);
   }
@@ -180,11 +223,14 @@ export async function createCashReconciliationDraftAction(
 ): Promise<CashReconciliationResult> {
   let result: CashReconciliationResult;
   try {
-    result = await createCashReconciliationDraftForActiveTenant({
-      poolId: formData.get("poolId"),
-      actualCountedCash: formData.get("actualCountedCash"),
-      explanation: optionalField(formData, "explanation"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await createCashReconciliationDraftForActiveTenant({
+        poolId: formData.get("poolId"),
+        actualCountedCash: formData.get("actualCountedCash"),
+        explanation: optionalField(formData, "explanation"),
+      }),
+      ["actualCountedCash", "explanation"],
+    );
   } catch (error) {
     return mapThrown(error);
   }
@@ -201,11 +247,14 @@ export async function reviseCashReconciliationDraftAction(
 ): Promise<CashReconciliationResult> {
   let result: CashReconciliationResult;
   try {
-    result = await reviseCashReconciliationDraftForActiveTenant({
-      reconciliationId: formData.get("reconciliationId"),
-      actualCountedCash: formData.get("actualCountedCash"),
-      explanation: optionalField(formData, "explanation"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await reviseCashReconciliationDraftForActiveTenant({
+        reconciliationId: formData.get("reconciliationId"),
+        actualCountedCash: formData.get("actualCountedCash"),
+        explanation: optionalField(formData, "explanation"),
+      }),
+      ["actualCountedCash", "explanation"],
+    );
   } catch (error) {
     return mapThrown(error);
   }
@@ -222,9 +271,12 @@ export async function submitCashReconciliationAction(
 ): Promise<CashReconciliationResult> {
   let result: CashReconciliationResult;
   try {
-    result = await submitCashReconciliationForActiveTenant({
-      reconciliationId: formData.get("reconciliationId"),
-    });
+    result = surfaceHiddenFieldErrors(
+      await submitCashReconciliationForActiveTenant({
+        reconciliationId: formData.get("reconciliationId"),
+      }),
+      [],
+    );
   } catch (error) {
     return mapThrown(error);
   }

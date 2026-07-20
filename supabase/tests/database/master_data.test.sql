@@ -615,22 +615,22 @@ select set_config('request.jwt.claims', '', true);
 -- =============================================================================
 
 select is(
-  (select count(*)::int from public.service_types where tenant_id = 'a1111111-1111-1111-1111-111111111111'),
+  (select count(*)::int from public.service_types where tenant_id = 'a1111111-1111-4111-8111-111111111111'),
   4,
   'seeded tenant A has exactly 4 initial service types'
 );
 select is(
-  (select count(*)::int from public.service_types where tenant_id = 'b2222222-2222-2222-2222-222222222222'),
+  (select count(*)::int from public.service_types where tenant_id = 'b2222222-2222-4222-8222-222222222222'),
   4,
   'seeded tenant B has exactly 4 initial service types'
 );
 select is(
-  (select array_agg(code order by code) from public.service_types where tenant_id = 'a1111111-1111-1111-1111-111111111111'),
+  (select array_agg(code order by code) from public.service_types where tenant_id = 'a1111111-1111-4111-8111-111111111111'),
   array['docking', 'emergency', 'pltu', 'standard'],
   'seeded tenant A service types match the initial configuration'
 );
 select is(
-  (select array_agg(code order by code) from public.service_types where tenant_id = 'b2222222-2222-2222-2222-222222222222'),
+  (select array_agg(code order by code) from public.service_types where tenant_id = 'b2222222-2222-4222-8222-222222222222'),
   array['docking', 'emergency', 'pltu', 'standard'],
   'seeded tenant B service types match the initial configuration — independent per tenant'
 );

@@ -103,4 +103,50 @@ describe("operations-daily actions", () => {
       expect.objectContaining({ tenantId: "server-tenant" }),
     );
   });
+
+  // Regression test for the Gate 1H bug: a fieldErrors entry on a
+  // server-derived field with no matching UI input (tenantId has no form
+  // field in the expense draft form) must never be silently dropped — the
+  // browser previously showed no error at all and the draft simply never
+  // saved. It must now surface a generic, safe message instead.
+  it("surfaces a generic error when validation fails on a hidden/server-derived field", async () => {
+    requireTenantContext.mockResolvedValueOnce({ tenantId: "server-tenant", userId: "user-1", roles: ["admin"] });
+    createExpenseDraftForActiveTenant.mockResolvedValueOnce({
+      fieldErrors: { tenantId: ["ID tidak valid."] },
+    });
+
+    const { createExpenseDraftAction } = await import("./actions");
+    const formData = new FormData();
+    formData.set("poolId", "pool-1");
+    formData.set("projectId", "project-1");
+    formData.set("categoryId", "category-1");
+    formData.set("amount", "150000");
+    formData.set("description", "Solar");
+
+    const result = await createExpenseDraftAction({}, formData);
+
+    expect(result.error).toBeTruthy();
+    expect(result.error).not.toMatch(/tenantId/i);
+    expect(result.error).not.toBe("ID tidak valid.");
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("keeps per-field errors on genuinely user-editable fields without adding a generic error", async () => {
+    requireTenantContext.mockResolvedValueOnce({ tenantId: "server-tenant", userId: "user-1", roles: ["admin"] });
+    createExpenseDraftForActiveTenant.mockResolvedValueOnce({
+      fieldErrors: { amount: ["Nominal wajib diisi."] },
+    });
+
+    const { createExpenseDraftAction } = await import("./actions");
+    const formData = new FormData();
+    formData.set("poolId", "pool-1");
+    formData.set("projectId", "project-1");
+    formData.set("categoryId", "category-1");
+    formData.set("description", "Solar");
+
+    const result = await createExpenseDraftAction({}, formData);
+
+    expect(result).toEqual({ fieldErrors: { amount: ["Nominal wajib diisi."] } });
+    expect(result.error).toBeUndefined();
+  });
 });

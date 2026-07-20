@@ -8,7 +8,7 @@ import {
 } from "@/lib/operations-daily/actions";
 import { formatRupiah } from "@/lib/operations-daily/format";
 import { getExpenseSubmissionStatusLabel } from "@/lib/operations-daily/labels";
-import { FormError } from "@/components/master-data/FormError";
+import { FieldError, FormError } from "@/components/master-data/FormError";
 import { ExpenseFormFields } from "./ExpenseFormFields";
 import type { ExpenseSubmissionCurrentRow } from "@/lib/expense-approvals/repository";
 import type { ExpenseSubmissionActionResult } from "@/lib/expense-approvals/service";
@@ -196,6 +196,7 @@ export function ExpenseSubmissionRow({
             rows={2}
             className="rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
           />
+          <FieldError messages={cancelState.fieldErrors?.reason} />
           <FormError error={cancelState.error} />
           <div>
             <button
