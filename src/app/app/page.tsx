@@ -72,6 +72,21 @@ export default async function AppPage() {
         </section>
       ) : null}
 
+      {canAccessDailyOperations ? (
+        <section className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
+          <h2 className="text-sm font-medium text-neutral-500">Riwayat Transaksi</h2>
+          <p className="mt-2 text-sm text-neutral-500">
+            Lihat seluruh transaksi kas dan biaya proyek secara kronologis, dengan drill-down ke ledger asal.
+          </p>
+          <Link
+            href="/operations/history"
+            className="mt-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+          >
+            Buka Riwayat Transaksi
+          </Link>
+        </section>
+      ) : null}
+
       {canAccessCashImport ? (
         <section className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
           <h2 className="text-sm font-medium text-neutral-500">Import Data</h2>

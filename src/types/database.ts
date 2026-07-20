@@ -2430,6 +2430,38 @@ export type Database = {
           },
         ]
       }
+      trusted_transaction_history: {
+        Row: {
+          actor_user_id: string | null
+          business_date: string | null
+          cash_entry_id: string | null
+          cash_reverses_entry_id: string | null
+          cost_entry_id: string | null
+          cost_reverses_entry_id: string | null
+          created_at: string | null
+          description: string | null
+          display_amount: number | null
+          import_batch_id: string | null
+          import_row_id: string | null
+          logical_transaction_id: string | null
+          pool_id: string | null
+          project_code: string | null
+          project_id: string | null
+          reference_number: string | null
+          reversal_of_logical_id: string | null
+          reversed_by_logical_id: string | null
+          signed_cash_effect: number | null
+          signed_project_cost_effect: number | null
+          signed_shared_overhead_effect: number | null
+          source: string | null
+          status: string | null
+          tenant_id: string | null
+          transaction_direction: string | null
+          transaction_type: string | null
+          vessel_name: string | null
+        }
+        Relationships: []
+      }
       vessel_project_cost_summary: {
         Row: {
           project_id: string | null
@@ -2677,9 +2709,100 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_trusted_transaction_detail: {
+        Args: { p_logical_transaction_id: string; p_tenant_id: string }
+        Returns: {
+          actor_user_id: string | null
+          business_date: string | null
+          cash_entry_id: string | null
+          cash_reverses_entry_id: string | null
+          cost_entry_id: string | null
+          cost_reverses_entry_id: string | null
+          created_at: string | null
+          description: string | null
+          display_amount: number | null
+          import_batch_id: string | null
+          import_row_id: string | null
+          logical_transaction_id: string | null
+          pool_id: string | null
+          project_code: string | null
+          project_id: string | null
+          reference_number: string | null
+          reversal_of_logical_id: string | null
+          reversed_by_logical_id: string | null
+          signed_cash_effect: number | null
+          signed_project_cost_effect: number | null
+          signed_shared_overhead_effect: number | null
+          source: string | null
+          status: string | null
+          tenant_id: string | null
+          transaction_direction: string | null
+          transaction_type: string | null
+          vessel_name: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "trusted_transaction_history"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_unresolved_expense_count: {
         Args: { p_pool_id: string }
         Returns: number
+      }
+      list_trusted_transactions: {
+        Args: {
+          p_cursor_business_date?: string
+          p_cursor_created_at?: string
+          p_cursor_logical_id?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_import_batch_id?: string
+          p_limit?: number
+          p_project_id?: string
+          p_search?: string
+          p_source?: string
+          p_status?: string
+          p_tenant_id: string
+          p_transaction_direction?: string
+          p_transaction_type?: string
+        }
+        Returns: {
+          actor_user_id: string | null
+          business_date: string | null
+          cash_entry_id: string | null
+          cash_reverses_entry_id: string | null
+          cost_entry_id: string | null
+          cost_reverses_entry_id: string | null
+          created_at: string | null
+          description: string | null
+          display_amount: number | null
+          import_batch_id: string | null
+          import_row_id: string | null
+          logical_transaction_id: string | null
+          pool_id: string | null
+          project_code: string | null
+          project_id: string | null
+          reference_number: string | null
+          reversal_of_logical_id: string | null
+          reversed_by_logical_id: string | null
+          signed_cash_effect: number | null
+          signed_project_cost_effect: number | null
+          signed_shared_overhead_effect: number | null
+          source: string | null
+          status: string | null
+          tenant_id: string | null
+          transaction_direction: string | null
+          transaction_type: string | null
+          vessel_name: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trusted_transaction_history"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       log_master_data_audit_event: {
         Args: {
@@ -3271,6 +3394,30 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      summarize_trusted_transactions: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_import_batch_id?: string
+          p_project_id?: string
+          p_search?: string
+          p_source?: string
+          p_status?: string
+          p_tenant_id: string
+          p_transaction_direction?: string
+          p_transaction_type?: string
+        }
+        Returns: {
+          net_cash_effect: number
+          net_project_cost_effect: number
+          total_cash_in: number
+          total_cash_out: number
+          total_project_cost_increase: number
+          total_project_cost_reduction: number
+          total_shared_overhead: number
+          transaction_count: number
+        }[]
       }
       transition_vessel_project_lifecycle: {
         Args: {
