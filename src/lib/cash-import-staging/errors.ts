@@ -21,8 +21,41 @@ export function mapCashImportStagingError(error: PostgrestError | null | undefin
       return "Anda tidak memiliki izin untuk melakukan aksi ini.";
     case "P0001": {
       const message = error.message ?? "";
+      if (message.includes("not authorized to approve")) {
+        return "Hanya Owner yang dapat menyetujui dan memasukkan data import kas.";
+      }
+      if (message.includes("not authorized to reject")) {
+        return "Hanya Owner yang dapat menolak batch import kas.";
+      }
       if (message.includes("not authorized")) {
         return "Hanya admin yang dapat mengubah staging import kas.";
+      }
+      if (message.includes("BATCH_COMMITTED_IMMUTABLE")) {
+        return "Batch ini sudah disetujui dan dimasukkan ke data operasional — tidak dapat diubah lagi.";
+      }
+      if (message.includes("BATCH_ALREADY_COMMITTED")) {
+        return "Batch ini sudah disetujui sebelumnya. Tidak ada data yang digandakan.";
+      }
+      if (message.includes("BATCH_NOT_READY_FOR_REVIEW")) {
+        return "Batch belum siap untuk disetujui atau ditolak pada status saat ini.";
+      }
+      if (message.includes("MANUAL_REVIEW_UNRESOLVED")) {
+        return "Masih ada baris berstatus 'Perlu Tinjauan Manual' yang belum diputuskan sebagai include/skip.";
+      }
+      if (message.includes("MAPPING_NOT_COMMITTABLE")) {
+        return "Masih ada baris dengan mapping yang belum dapat dimasukkan ke data operasional (kandidat proyek baru/unresolved).";
+      }
+      if (message.includes("OPENING_BALANCE_CONFLICT")) {
+        return "Kas harian tanggal ini sudah memiliki transaksi — saldo awal tidak dapat dimasukkan lagi.";
+      }
+      if (message.includes("CASH_POOL_NOT_OPEN")) {
+        return "Kas harian tanggal ini sudah ditutup/pending close, tidak dapat menerima transaksi baru.";
+      }
+      if (message.includes("UNEXPECTED_ROW_DIRECTION") || message.includes("INVALID_ROW_AMOUNT")) {
+        return "Terdapat baris dengan nilai debit/kredit yang tidak sesuai dengan mapping-nya.";
+      }
+      if (message.includes("rejection reason is required")) {
+        return "Alasan penolakan wajib diisi.";
       }
       if (message.includes("MAPPING_PROJECT_REQUIRED")) {
         return "Pilih Project Kapal untuk mapping existing_vessel_project.";

@@ -40,3 +40,14 @@ export const getCashImportBatchDetailInputSchema = z.object({
   batchId: idSchema,
 });
 export type GetCashImportBatchDetailInput = z.infer<typeof getCashImportBatchDetailInputSchema>;
+
+export const approveAndCommitCashImportBatchInputSchema = z.object({
+  batchId: idSchema,
+});
+export type ApproveAndCommitCashImportBatchInput = z.infer<typeof approveAndCommitCashImportBatchInputSchema>;
+
+export const rejectCashImportBatchInputSchema = z.object({
+  batchId: idSchema,
+  reason: z.string().trim().min(1, "Alasan penolakan wajib diisi.").max(1000),
+});
+export type RejectCashImportBatchInput = z.infer<typeof rejectCashImportBatchInputSchema>;

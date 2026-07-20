@@ -58,8 +58,10 @@ select has_view('public', 'cash_pool_daily_summary', 'public.cash_pool_daily_sum
 select has_type('public', 'cash_pool_entry_type', 'cash_pool_entry_type enum exists');
 select ok(
   (select array_agg(enumlabel::text order by enumsortorder) from pg_enum where enumtypid = 'public.cash_pool_entry_type'::regtype)
-    = array['opening_cash', 'cash_top_up', 'other_cash_in'],
-  'cash_pool_entry_type is exactly opening_cash/cash_top_up/other_cash_in'
+    = array['opening_cash', 'cash_top_up', 'other_cash_in', 'project_refund'],
+  -- 'project_refund' appended by Gate 1J-C (20260720120000_owner_approved_
+  -- cash_import_commit.sql) via ALTER TYPE ... ADD VALUE.
+  'cash_pool_entry_type is exactly opening_cash/cash_top_up/other_cash_in/project_refund'
 );
 select has_type('public', 'cash_pool_entry_kind', 'cash_pool_entry_kind enum exists');
 

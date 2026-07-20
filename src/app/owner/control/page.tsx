@@ -3,6 +3,8 @@ import { logoutAction } from "@/lib/auth/actions";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { branding } from "@/lib/branding";
 import { canAccessOwnerControl } from "@/lib/owner-control/access";
+import { canApproveCashImportStaging } from "@/lib/cash-import-staging/access";
+import { listCashImportBatchesForActiveTenant } from "@/lib/cash-import-staging/service";
 import { formatBusinessDateLabel, getJakartaBusinessDate } from "@/lib/operations-daily/format";
 import { buildVesselProjectLabelMap } from "@/lib/operations-daily/view-model";
 import {
@@ -35,6 +37,7 @@ import { listVesselsForActiveTenant } from "@/lib/master-data/vessels/service";
 import { listExpenseCategoriesForActiveTenant } from "@/lib/master-data/expense-categories/service";
 import { listVendorsForActiveTenant } from "@/lib/master-data/vendors/service";
 import { AccessDenied } from "./AccessDenied";
+import { CashImportApprovalSection } from "./CashImportApprovalSection";
 import { OwnerSummarySection } from "./OwnerSummarySection";
 import { ExpenseReviewSection, type ExpenseReviewItem } from "./ExpenseReviewSection";
 import { DuplicateReviewSection, type DuplicateReviewItem } from "./DuplicateReviewSection";
@@ -62,6 +65,7 @@ export default async function OwnerControlPage() {
     categories,
     vendors,
     costSummaries,
+    cashImportBatches,
   ] = await Promise.all([
     pool ? getDailyCashPoolSummaryForActiveTenant(businessDate) : Promise.resolve(null),
     pool ? getCashPoolReconciliationForActiveTenant(pool.id) : Promise.resolve(null),
@@ -74,6 +78,7 @@ export default async function OwnerControlPage() {
     listExpenseCategoriesForActiveTenant(),
     listVendorsForActiveTenant(),
     listVesselProjectCostSummaryForActiveTenant(),
+    canApproveCashImportStaging(context.roles) ? listCashImportBatchesForActiveTenant() : Promise.resolve([]),
   ]);
 
   const businessDateByPoolId = buildCashPoolBusinessDateMap(allPools);
@@ -186,6 +191,7 @@ export default async function OwnerControlPage() {
 
       <main className="flex flex-1 flex-col gap-6 pb-16">
         <OwnerSummarySection summary={ownerSummary} activeProjectCostRows={activeProjectCostRows} />
+        <CashImportApprovalSection batches={cashImportBatches} />
         <ExpenseReviewSection items={expenseReviewItems} />
         <DuplicateReviewSection items={duplicateReviewItems} />
         <EodReviewSection items={eodReviewItems} />

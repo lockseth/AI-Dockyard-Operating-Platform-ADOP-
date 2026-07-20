@@ -6,6 +6,8 @@ const EVENT_LABEL: Record<string, string> = {
   label_mapping_set: "Mapping label diperbarui",
   row_disposition_set: "Disposisi baris diperbarui",
   ready_for_review: "Ditandai siap untuk review",
+  owner_approved_and_committed: "Disetujui Owner & dimasukkan ke kas/biaya operasional",
+  owner_rejected: "Ditolak Owner, dikembalikan ke Admin",
 };
 
 export function AuditTimeline({ events }: { events: CashImportEventRow[] }) {

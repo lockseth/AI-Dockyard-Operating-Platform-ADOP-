@@ -3,15 +3,18 @@ import { notFound } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { branding } from "@/lib/branding";
-import { canReadCashImportStaging, canWriteCashImportStaging } from "@/lib/cash-import-staging/access";
+import { canApproveCashImportStaging, canReadCashImportStaging, canWriteCashImportStaging } from "@/lib/cash-import-staging/access";
 import { getCashImportBatchDetailForActiveTenant } from "@/lib/cash-import-staging/service";
 import { summarizeCashImportLabels } from "@/lib/cash-import-staging/label-summary";
+import { buildCanonicalCommitPreview } from "@/lib/cash-import-staging/canonical-preview";
 import { listVesselProjectsForActiveTenant } from "@/lib/vessel-projects/service";
 import { AccessDenied } from "../AccessDenied";
 import { StagingBanner } from "../StagingBanner";
 import { AuditTimeline } from "./AuditTimeline";
 import { BatchSummaryPanel } from "./BatchSummaryPanel";
+import { CommittedSummaryPanel } from "./CommittedSummaryPanel";
 import { LabelMappingControl } from "./LabelMappingControl";
+import { OwnerApprovalControl } from "./OwnerApprovalControl";
 import { ReadyForReviewControl } from "./ReadyForReviewControl";
 import { RowTable } from "./RowTable";
 
@@ -24,6 +27,7 @@ export default async function CashImportBatchDetailPage({
 }) {
   const context = await requireTenantContext();
   const canRead = canReadCashImportStaging(context.roles);
+  const canApprove = canApproveCashImportStaging(context.roles);
   const canWrite = canWriteCashImportStaging(context.roles);
 
   if (!canRead) {
@@ -38,7 +42,10 @@ export default async function CashImportBatchDetailPage({
     notFound();
   }
 
-  const vesselProjects = canWrite ? await listVesselProjectsForActiveTenant() : [];
+  const isCommitted = detail.batch.status === "committed";
+  const canEditStaging = canWrite && !isCommitted;
+
+  const vesselProjects = canEditStaging ? await listVesselProjectsForActiveTenant() : [];
   const labelSummaries = summarizeCashImportLabels(detail.rows);
   const mappingIncomplete = labelSummaries.some(
     (label) =>
@@ -48,6 +55,8 @@ export default async function CashImportBatchDetailPage({
     (row) => row.provisional_classification !== "opening_cash" && row.disposition === null,
   );
   const readyBlocked = detail.batch.error_count > 0 || mappingIncomplete || dispositionIncomplete;
+  const canonicalPreview =
+    detail.batch.status === "ready_for_review" ? buildCanonicalCommitPreview(detail.batch, detail.rows) : null;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-10">
@@ -86,13 +95,24 @@ export default async function CashImportBatchDetailPage({
           </div>
         ) : null}
 
-        {!canWrite ? (
+        {!canWrite && !canApprove ? (
           <p className="text-xs text-neutral-500">
             Tampilan baca-saja — hanya Admin yang dapat mengubah mapping, disposisi, dan menyiapkan batch untuk review.
           </p>
         ) : null}
+        {isCommitted ? (
+          <p className="text-xs text-neutral-500">
+            Batch ini sudah disetujui dan dimasukkan ke data operasional — staging bersifat baca-saja.
+          </p>
+        ) : null}
 
         <BatchSummaryPanel batch={detail.batch} />
+
+        {isCommitted ? <CommittedSummaryPanel batch={detail.batch} /> : null}
+
+        {canApprove && canonicalPreview ? (
+          <OwnerApprovalControl batchId={detail.batch.id} preview={canonicalPreview} />
+        ) : null}
 
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-neutral-500">
@@ -105,20 +125,20 @@ export default async function CashImportBatchDetailPage({
                 batchId={detail.batch.id}
                 label={label}
                 vesselProjects={vesselProjects}
-                canWrite={canWrite}
+                canWrite={canEditStaging}
               />
             ))}
           </ul>
         </section>
 
-        <RowTable batchId={detail.batch.id} rows={detail.rows} canWrite={canWrite} />
+        <RowTable batchId={detail.batch.id} rows={detail.rows} canWrite={canEditStaging} />
 
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-neutral-500">Riwayat Aktivitas</h2>
           <AuditTimeline events={detail.events} />
         </section>
 
-        {canWrite ? (
+        {canEditStaging ? (
           <section className="flex flex-col gap-2 border-t border-neutral-200 pt-6 dark:border-neutral-800">
             <ReadyForReviewControl
               batchId={detail.batch.id}

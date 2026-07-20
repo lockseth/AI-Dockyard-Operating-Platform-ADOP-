@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { UnauthorizedTenantRoleError } from "@/lib/auth/tenant";
 import {
+  approveAndCommitCashImportBatchForActiveTenant,
   markCashImportBatchReadyForReviewForActiveTenant,
+  rejectCashImportBatchForActiveTenant,
   setCashImportLabelMappingForActiveTenant,
   setCashImportRowDispositionForActiveTenant,
   uploadCashReportForActiveTenant,
@@ -92,6 +94,48 @@ export async function setCashImportRowDispositionAction(
 
   if (!result.error && !result.fieldErrors && typeof batchId === "string") {
     revalidatePath(`/operations/import/${batchId}`);
+  }
+  return result;
+}
+
+export async function approveAndCommitCashImportBatchAction(
+  _prevState: CashImportStagingActionResult,
+  formData: FormData,
+): Promise<CashImportStagingActionResult> {
+  const batchId = formData.get("batchId");
+  let result: CashImportStagingActionResult;
+  try {
+    result = await approveAndCommitCashImportBatchForActiveTenant({ batchId });
+  } catch (error) {
+    return mapThrown(error);
+  }
+
+  if (!result.error && !result.fieldErrors && typeof batchId === "string") {
+    revalidatePath(`/operations/import/${batchId}`);
+    revalidatePath("/owner/control");
+    revalidatePath("/operations/daily");
+  }
+  return result;
+}
+
+export async function rejectCashImportBatchAction(
+  _prevState: CashImportStagingActionResult,
+  formData: FormData,
+): Promise<CashImportStagingActionResult> {
+  const batchId = formData.get("batchId");
+  let result: CashImportStagingActionResult;
+  try {
+    result = await rejectCashImportBatchForActiveTenant({
+      batchId,
+      reason: formData.get("reason"),
+    });
+  } catch (error) {
+    return mapThrown(error);
+  }
+
+  if (!result.error && !result.fieldErrors && typeof batchId === "string") {
+    revalidatePath(`/operations/import/${batchId}`);
+    revalidatePath("/owner/control");
   }
   return result;
 }

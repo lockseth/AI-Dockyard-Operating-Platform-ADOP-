@@ -7,6 +7,7 @@ const STATUS_LABEL: Record<CashImportBatchRow["status"], string> = {
   mapping_required: "Perlu Mapping",
   ready_for_review: "Siap Direview",
   superseded: "Digantikan",
+  committed: "Disetujui & Dimasukkan",
 };
 
 const STATUS_BADGE_CLASS: Record<CashImportBatchRow["status"], string> = {
@@ -14,6 +15,7 @@ const STATUS_BADGE_CLASS: Record<CashImportBatchRow["status"], string> = {
   mapping_required: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   ready_for_review: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
   superseded: "bg-neutral-100 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-500",
+  committed: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
 };
 
 export function BatchList({ batches }: { batches: CashImportBatchRow[] }) {

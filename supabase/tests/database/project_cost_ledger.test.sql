@@ -109,17 +109,30 @@ select has_view('public', 'cash_pool_daily_summary', 'public.cash_pool_daily_sum
 select has_type('public', 'project_cost_ledger_entry_kind', 'project_cost_ledger_entry_kind enum exists');
 select ok(
   (select array_agg(enumlabel::text order by enumsortorder) from pg_enum where enumtypid = 'public.project_cost_ledger_entry_kind'::regtype)
-    = array['expense', 'reversal'],
-  'project_cost_ledger_entry_kind is exactly expense/reversal'
+    = array['expense', 'reversal', 'refund'],
+  -- 'refund' appended by Gate 1J-C (20260720120000_owner_approved_cash_
+  -- import_commit.sql) via ALTER TYPE ... ADD VALUE.
+  'project_cost_ledger_entry_kind is exactly expense/reversal/refund'
 );
 
 select col_is_pk('public', 'project_cost_ledger_entries', 'id', 'project_cost_ledger_entries PK is id');
 select col_is_unique('public', 'vendors', array['id', 'tenant_id'], 'vendors (id, tenant_id) is now unique — added for the composite FK from project_cost_ledger_entries');
 select col_not_null('public', 'project_cost_ledger_entries', 'amount', 'project_cost_ledger_entries.amount is not null');
 select col_not_null('public', 'project_cost_ledger_entries', 'description', 'project_cost_ledger_entries.description is not null');
-select col_not_null('public', 'project_cost_ledger_entries', 'project_id', 'project_cost_ledger_entries.project_id is not null');
+-- project_id/category_id were widened to nullable by Gate 1J-C so an
+-- import-sourced shared-overhead/expense row (no vessel project, no
+-- expense_categories value from the source workbook) can be posted through
+-- this same table — every OTHER caller (record_project_expense /
+-- approve_expense_submission) still always supplies both.
+select ok(
+  (select is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'project_cost_ledger_entries' and column_name = 'project_id') = 'YES',
+  'project_cost_ledger_entries.project_id is nullable (Gate 1J-C: shared-overhead import rows carry no project)'
+);
+select ok(
+  (select is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'project_cost_ledger_entries' and column_name = 'category_id') = 'YES',
+  'project_cost_ledger_entries.category_id is nullable (Gate 1J-C: import rows carry no expense category)'
+);
 select col_not_null('public', 'project_cost_ledger_entries', 'pool_id', 'project_cost_ledger_entries.pool_id is not null');
-select col_not_null('public', 'project_cost_ledger_entries', 'category_id', 'project_cost_ledger_entries.category_id is not null');
 select ok(
   (select is_nullable from information_schema.columns
      where table_schema = 'public' and table_name = 'project_cost_ledger_entries' and column_name = 'vendor_id') = 'YES',

@@ -132,3 +132,15 @@ export async function markCashImportBatchReadyForReview(batchId: string) {
   const supabase = await createSupabaseServerClient();
   return supabase.rpc("mark_cash_import_batch_ready_for_review", { p_batch_id: batchId });
 }
+
+// Owner-only atomic canonical commit — tenant/actor are re-derived server-
+// side inside the RPC from the batch row itself, never accepted here.
+export async function approveAndCommitCashImportBatch(batchId: string) {
+  const supabase = await createSupabaseServerClient();
+  return supabase.rpc("approve_and_commit_cash_import_batch", { p_batch_id: batchId });
+}
+
+export async function rejectCashImportBatch(batchId: string, reason: string) {
+  const supabase = await createSupabaseServerClient();
+  return supabase.rpc("reject_cash_import_batch", { p_batch_id: batchId, p_reason: reason });
+}

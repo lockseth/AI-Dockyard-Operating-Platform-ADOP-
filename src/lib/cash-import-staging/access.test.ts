@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canReadCashImportStaging, canWriteCashImportStaging } from "./access";
+import { canApproveCashImportStaging, canReadCashImportStaging, canWriteCashImportStaging } from "./access";
 
 describe("canWriteCashImportStaging", () => {
   it("allows admin", () => {
@@ -33,5 +33,24 @@ describe("canReadCashImportStaging", () => {
 
   it("rejects a user with no roles", () => {
     expect(canReadCashImportStaging([])).toBe(false);
+  });
+});
+
+describe("canApproveCashImportStaging", () => {
+  it("allows owner only", () => {
+    expect(canApproveCashImportStaging(["owner"])).toBe(true);
+  });
+
+  it("rejects admin — admin cannot approve/commit its own staged batch", () => {
+    expect(canApproveCashImportStaging(["admin"])).toBe(false);
+  });
+
+  it("rejects reviewer and viewer", () => {
+    expect(canApproveCashImportStaging(["reviewer"])).toBe(false);
+    expect(canApproveCashImportStaging(["viewer"])).toBe(false);
+  });
+
+  it("rejects a user with no roles", () => {
+    expect(canApproveCashImportStaging([])).toBe(false);
   });
 });

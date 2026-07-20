@@ -6,6 +6,7 @@ const STATUS_LABEL: Record<CashImportBatchRow["status"], string> = {
   mapping_required: "Perlu Mapping",
   ready_for_review: "Siap Direview",
   superseded: "Digantikan",
+  committed: "Disetujui & Dimasukkan",
 };
 
 export function BatchSummaryPanel({ batch }: { batch: CashImportBatchRow }) {

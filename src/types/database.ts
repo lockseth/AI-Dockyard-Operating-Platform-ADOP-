@@ -82,6 +82,14 @@ export type Database = {
         Row: {
           business_date: string
           calculated_closing_balance: number
+          canonical_cash_top_up_total: number | null
+          canonical_closing_cash: number | null
+          canonical_opening_cash: number | null
+          canonical_project_expense_total: number | null
+          canonical_project_refund_total: number | null
+          canonical_shared_overhead_total: number | null
+          committed_at: string | null
+          committed_by: string | null
           created_at: string
           created_by: string | null
           error_count: number
@@ -102,6 +110,14 @@ export type Database = {
         Insert: {
           business_date: string
           calculated_closing_balance?: number
+          canonical_cash_top_up_total?: number | null
+          canonical_closing_cash?: number | null
+          canonical_opening_cash?: number | null
+          canonical_project_expense_total?: number | null
+          canonical_project_refund_total?: number | null
+          canonical_shared_overhead_total?: number | null
+          committed_at?: string | null
+          committed_by?: string | null
           created_at?: string
           created_by?: string | null
           error_count?: number
@@ -122,6 +138,14 @@ export type Database = {
         Update: {
           business_date?: string
           calculated_closing_balance?: number
+          canonical_cash_top_up_total?: number | null
+          canonical_closing_cash?: number | null
+          canonical_opening_cash?: number | null
+          canonical_project_expense_total?: number | null
+          canonical_project_refund_total?: number | null
+          canonical_shared_overhead_total?: number | null
+          committed_at?: string | null
+          committed_by?: string | null
           created_at?: string
           created_by?: string | null
           error_count?: number
@@ -316,6 +340,8 @@ export type Database = {
           entry_kind: Database["public"]["Enums"]["cash_pool_entry_kind"]
           entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
           id: string
+          import_batch_id: string | null
+          import_row_id: string | null
           pool_id: string
           reverses_entry_id: string | null
           tenant_id: string
@@ -328,6 +354,8 @@ export type Database = {
           entry_kind?: Database["public"]["Enums"]["cash_pool_entry_kind"]
           entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
           id?: string
+          import_batch_id?: string | null
+          import_row_id?: string | null
           pool_id: string
           reverses_entry_id?: string | null
           tenant_id: string
@@ -340,11 +368,27 @@ export type Database = {
           entry_kind?: Database["public"]["Enums"]["cash_pool_entry_kind"]
           entry_type?: Database["public"]["Enums"]["cash_pool_entry_type"]
           id?: string
+          import_batch_id?: string | null
+          import_row_id?: string | null
           pool_id?: string
           reverses_entry_id?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cash_pool_entries_import_batch_id_fkey"
+            columns: ["import_batch_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_batches"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_pool_entries_import_row_id_fkey"
+            columns: ["import_row_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_rows"
+            referencedColumns: ["id", "tenant_id"]
+          },
           {
             foreignKeyName: "cash_pool_entries_pool_id_tenant_id_fkey"
             columns: ["pool_id", "tenant_id"]
@@ -1299,6 +1343,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_refund_ledger_current"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_ledger_current"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expense_submissions_needs_correction_revision_id_fkey"
             columns: ["needs_correction_revision_id"]
             isOneToOne: false
@@ -1495,13 +1553,16 @@ export type Database = {
         Row: {
           actor_user_id: string | null
           amount: number
-          category_id: string
+          category_id: string | null
           created_at: string
           description: string
           entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          entry_scope: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
           id: string
+          import_batch_id: string | null
+          import_row_id: string | null
           pool_id: string
-          project_id: string
+          project_id: string | null
           reference_number: string | null
           reverses_entry_id: string | null
           tenant_id: string
@@ -1510,13 +1571,16 @@ export type Database = {
         Insert: {
           actor_user_id?: string | null
           amount: number
-          category_id: string
+          category_id?: string | null
           created_at?: string
           description: string
           entry_kind?: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          entry_scope?: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
           id?: string
+          import_batch_id?: string | null
+          import_row_id?: string | null
           pool_id: string
-          project_id: string
+          project_id?: string | null
           reference_number?: string | null
           reverses_entry_id?: string | null
           tenant_id: string
@@ -1525,13 +1589,16 @@ export type Database = {
         Update: {
           actor_user_id?: string | null
           amount?: number
-          category_id?: string
+          category_id?: string | null
           created_at?: string
           description?: string
           entry_kind?: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          entry_scope?: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
           id?: string
+          import_batch_id?: string | null
+          import_row_id?: string | null
           pool_id?: string
-          project_id?: string
+          project_id?: string | null
           reference_number?: string | null
           reverses_entry_id?: string | null
           tenant_id?: string
@@ -1543,6 +1610,20 @@ export type Database = {
             columns: ["category_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "expense_categories"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_import_batch_id_fkey"
+            columns: ["import_batch_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_batches"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_import_row_id_fkey"
+            columns: ["import_row_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_rows"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -1578,6 +1659,20 @@ export type Database = {
             columns: ["reverses_entry_id"]
             isOneToOne: false
             referencedRelation: "project_cost_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_refund_ledger_current"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_ledger_current"
             referencedColumns: ["id"]
           },
           {
@@ -1974,6 +2069,7 @@ export type Database = {
           opening_cash: number | null
           other_cash_in: number | null
           pool_id: string | null
+          project_refund_in: number | null
           tenant_id: string | null
           total_cash_out: number | null
         }
@@ -2171,7 +2267,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_refund_ledger_current"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_ledger_current"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expense_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_refund_ledger_current: {
+        Row: {
+          actor_user_id: string | null
+          amount: number | null
+          business_date: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          import_batch_id: string | null
+          import_row_id: string | null
+          pool_id: string | null
+          project_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_cost_ledger_entries_import_batch_id_fkey"
+            columns: ["import_batch_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_batches"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_import_row_id_fkey"
+            columns: ["import_row_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_rows"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_overhead_ledger_current: {
+        Row: {
+          actor_user_id: string | null
+          amount: number | null
+          business_date: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          import_batch_id: string | null
+          import_row_id: string | null
+          pool_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_cost_ledger_entries_import_batch_id_fkey"
+            columns: ["import_batch_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_batches"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_import_row_id_fkey"
+            columns: ["import_row_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_rows"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2197,6 +2424,43 @@ export type Database = {
       }
     }
     Functions: {
+      approve_and_commit_cash_import_batch: {
+        Args: { p_batch_id: string }
+        Returns: {
+          business_date: string
+          calculated_closing_balance: number
+          canonical_cash_top_up_total: number | null
+          canonical_closing_cash: number | null
+          canonical_opening_cash: number | null
+          canonical_project_expense_total: number | null
+          canonical_project_refund_total: number | null
+          canonical_shared_overhead_total: number | null
+          committed_at: string | null
+          committed_by: string | null
+          created_at: string
+          created_by: string | null
+          error_count: number
+          id: string
+          opening_balance: number
+          source_filename: string
+          source_sha256: string
+          source_sheet_name: string
+          status: Database["public"]["Enums"]["cash_import_batch_status"]
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          transaction_count: number
+          updated_at: string
+          warning_count: number
+          workbook_closing_balance: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_import_batches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_cash_reconciliation: {
         Args: { p_reconciliation_id: string }
         Returns: {
@@ -2401,6 +2665,14 @@ export type Database = {
         Returns: {
           business_date: string
           calculated_closing_balance: number
+          canonical_cash_top_up_total: number | null
+          canonical_closing_cash: number | null
+          canonical_opening_cash: number | null
+          canonical_project_expense_total: number | null
+          canonical_project_refund_total: number | null
+          canonical_shared_overhead_total: number | null
+          committed_at: string | null
+          committed_by: string | null
           created_at: string
           created_by: string | null
           error_count: number
@@ -2440,6 +2712,8 @@ export type Database = {
           entry_kind: Database["public"]["Enums"]["cash_pool_entry_kind"]
           entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
           id: string
+          import_batch_id: string | null
+          import_row_id: string | null
           pool_id: string
           reverses_entry_id: string | null
           tenant_id: string
@@ -2464,13 +2738,16 @@ export type Database = {
         Returns: {
           actor_user_id: string | null
           amount: number
-          category_id: string
+          category_id: string | null
           created_at: string
           description: string
           entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          entry_scope: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
           id: string
+          import_batch_id: string | null
+          import_row_id: string | null
           pool_id: string
-          project_id: string
+          project_id: string | null
           reference_number: string | null
           reverses_entry_id: string | null
           tenant_id: string
@@ -2479,6 +2756,43 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "project_cost_ledger_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reject_cash_import_batch: {
+        Args: { p_batch_id: string; p_reason: string }
+        Returns: {
+          business_date: string
+          calculated_closing_balance: number
+          canonical_cash_top_up_total: number | null
+          canonical_closing_cash: number | null
+          canonical_opening_cash: number | null
+          canonical_project_expense_total: number | null
+          canonical_project_refund_total: number | null
+          canonical_shared_overhead_total: number | null
+          committed_at: string | null
+          committed_by: string | null
+          created_at: string
+          created_by: string | null
+          error_count: number
+          id: string
+          opening_balance: number
+          source_filename: string
+          source_sha256: string
+          source_sheet_name: string
+          status: Database["public"]["Enums"]["cash_import_batch_status"]
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          transaction_count: number
+          updated_at: string
+          warning_count: number
+          workbook_closing_balance: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_import_batches"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2651,6 +2965,8 @@ export type Database = {
           entry_kind: Database["public"]["Enums"]["cash_pool_entry_kind"]
           entry_type: Database["public"]["Enums"]["cash_pool_entry_type"]
           id: string
+          import_batch_id: string | null
+          import_row_id: string | null
           pool_id: string
           reverses_entry_id: string | null
           tenant_id: string
@@ -2667,13 +2983,16 @@ export type Database = {
         Returns: {
           actor_user_id: string | null
           amount: number
-          category_id: string
+          category_id: string | null
           created_at: string
           description: string
           entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          entry_scope: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
           id: string
+          import_batch_id: string | null
+          import_row_id: string | null
           pool_id: string
-          project_id: string
+          project_id: string | null
           reference_number: string | null
           reverses_entry_id: string | null
           tenant_id: string
@@ -2897,6 +3216,7 @@ export type Database = {
         | "mapping_required"
         | "ready_for_review"
         | "superseded"
+        | "committed"
       cash_import_mapping_kind:
         | "cash"
         | "existing_vessel_project"
@@ -2914,7 +3234,11 @@ export type Database = {
       cash_import_row_status: "valid" | "warning" | "error"
       cash_pool_daily_close_status: "open" | "pending_close" | "closed"
       cash_pool_entry_kind: "entry" | "reversal"
-      cash_pool_entry_type: "opening_cash" | "cash_top_up" | "other_cash_in"
+      cash_pool_entry_type:
+        | "opening_cash"
+        | "cash_top_up"
+        | "other_cash_in"
+        | "project_refund"
       cash_reconciliation_status:
         | "draft"
         | "submitted"
@@ -2939,7 +3263,8 @@ export type Database = {
         | "cancelled"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
-      project_cost_ledger_entry_kind: "expense" | "reversal"
+      project_cost_ledger_entry_kind: "expense" | "reversal" | "refund"
+      project_cost_ledger_entry_scope: "project" | "shared_overhead"
       record_status: "active" | "inactive"
       tenant_role: "owner" | "admin" | "reviewer" | "viewer"
       tenant_status: "active" | "suspended"
@@ -3082,6 +3407,7 @@ export const Constants = {
         "mapping_required",
         "ready_for_review",
         "superseded",
+        "committed",
       ],
       cash_import_mapping_kind: [
         "cash",
@@ -3102,7 +3428,12 @@ export const Constants = {
       cash_import_row_status: ["valid", "warning", "error"],
       cash_pool_daily_close_status: ["open", "pending_close", "closed"],
       cash_pool_entry_kind: ["entry", "reversal"],
-      cash_pool_entry_type: ["opening_cash", "cash_top_up", "other_cash_in"],
+      cash_pool_entry_type: [
+        "opening_cash",
+        "cash_top_up",
+        "other_cash_in",
+        "project_refund",
+      ],
       cash_reconciliation_status: [
         "draft",
         "submitted",
@@ -3131,7 +3462,8 @@ export const Constants = {
       ],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
-      project_cost_ledger_entry_kind: ["expense", "reversal"],
+      project_cost_ledger_entry_kind: ["expense", "reversal", "refund"],
+      project_cost_ledger_entry_scope: ["project", "shared_overhead"],
       record_status: ["active", "inactive"],
       tenant_role: ["owner", "admin", "reviewer", "viewer"],
       tenant_status: ["active", "suspended"],
