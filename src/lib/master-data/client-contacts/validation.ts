@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { idSchema, optionalEmail, optionalText, recordStatusSchema, requiredText } from "../shared/validation";
+import { emptyToUndefined, idSchema, optionalEmail, optionalText, recordStatusSchema, requiredText } from "../shared/validation";
+
+export const clientContactRoleSchema = z.enum(["operational", "billing", "finance", "approver", "other"]);
 
 const contactFieldsSchema = z.object({
   fullName: requiredText(200, "Nama PIC wajib diisi."),
@@ -7,6 +9,10 @@ const contactFieldsSchema = z.object({
   email: optionalEmail(),
   whatsappNumber: optionalText(30),
   isPrimary: z.boolean().default(false),
+  role: z.preprocess(emptyToUndefined, clientContactRoleSchema.optional()),
+  receivesInvoiceWhatsapp: z.boolean().default(false),
+  receivesInvoiceEmail: z.boolean().default(false),
+  receivesCollectionReminder: z.boolean().default(false),
 });
 
 export const createClientContactInputSchema = contactFieldsSchema.extend({
@@ -22,8 +28,8 @@ export const clientContactStatusInputSchema = z.object({
   status: recordStatusSchema,
 });
 
-function isPrimaryFromFormData(formData: FormData): boolean {
-  return formData.get("isPrimary") === "on" || formData.get("isPrimary") === "true";
+function checkboxValue(formData: FormData, name: string): boolean {
+  return formData.get(name) === "on" || formData.get(name) === "true";
 }
 
 export function parseCreateClientContactFormData(formData: FormData) {
@@ -33,7 +39,11 @@ export function parseCreateClientContactFormData(formData: FormData) {
     positionDepartment: formData.get("positionDepartment"),
     email: formData.get("email"),
     whatsappNumber: formData.get("whatsappNumber"),
-    isPrimary: isPrimaryFromFormData(formData),
+    isPrimary: checkboxValue(formData, "isPrimary"),
+    role: formData.get("role"),
+    receivesInvoiceWhatsapp: checkboxValue(formData, "receivesInvoiceWhatsapp"),
+    receivesInvoiceEmail: checkboxValue(formData, "receivesInvoiceEmail"),
+    receivesCollectionReminder: checkboxValue(formData, "receivesCollectionReminder"),
   });
 }
 
@@ -43,6 +53,10 @@ export function parseUpdateClientContactFormData(formData: FormData) {
     positionDepartment: formData.get("positionDepartment"),
     email: formData.get("email"),
     whatsappNumber: formData.get("whatsappNumber"),
-    isPrimary: isPrimaryFromFormData(formData),
+    isPrimary: checkboxValue(formData, "isPrimary"),
+    role: formData.get("role"),
+    receivesInvoiceWhatsapp: checkboxValue(formData, "receivesInvoiceWhatsapp"),
+    receivesInvoiceEmail: checkboxValue(formData, "receivesInvoiceEmail"),
+    receivesCollectionReminder: checkboxValue(formData, "receivesCollectionReminder"),
   });
 }

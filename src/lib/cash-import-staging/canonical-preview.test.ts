@@ -167,4 +167,14 @@ describe("buildCanonicalCommitPreview", () => {
     expect(preview.blockers).toContain("VALIDATION_ERRORS_PRESENT");
     expect(preview.blockers).toContain("RECONCILIATION_VARIANCE");
   });
+
+  it("flags OPENING_BALANCE_CONFLICT when the caller reports an existing financial entry for this business date", () => {
+    const preview = buildCanonicalCommitPreview(batch({}), [], true);
+    expect(preview.blockers).toContain("OPENING_BALANCE_CONFLICT");
+  });
+
+  it("does not flag OPENING_BALANCE_CONFLICT by default (no conflict argument passed)", () => {
+    const preview = buildCanonicalCommitPreview(batch({}), []);
+    expect(preview.blockers).not.toContain("OPENING_BALANCE_CONFLICT");
+  });
 });

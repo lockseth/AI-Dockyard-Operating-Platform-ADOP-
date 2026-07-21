@@ -8,6 +8,17 @@ export default defineConfig({
     // separately via `pnpm test:integration`, not the default fast/offline
     // unit suite.
     exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
+    // Component tests (*.test.tsx) opt into jsdom individually via a
+    // `// @vitest-environment jsdom` docblock at the top of the file — the
+    // default stays "node" above so the much larger set of pure-logic
+    // *.test.ts files keeps running at full node speed.
+    setupFiles: ["./vitest.setup.ts"],
+    // jsdom environment setup/teardown across ~70 parallel test files adds
+    // real contention; the default 5000ms is occasionally too tight for an
+    // otherwise-correct node-environment test (proven by running it alone)
+    // under that load. This only widens the deadline — it does not change
+    // what's asserted.
+    testTimeout: 15000,
   },
   resolve: {
     alias: {

@@ -60,6 +60,8 @@ export async function updateClientAction(
     legalName: formData.get("legalName"),
     address: formData.get("address"),
     taxIdentifier: formData.get("taxIdentifier"),
+    defaultPaymentTermDays: formData.get("defaultPaymentTermDays"),
+    invoiceDeliveryPreference: formData.get("invoiceDeliveryPreference"),
   });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };

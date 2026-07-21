@@ -3,10 +3,18 @@
 import { useActionState } from "react";
 import { createClientContactAction } from "@/lib/master-data/client-contacts/actions";
 import type { MasterDataActionResult } from "@/lib/master-data/clients/service";
-import { CheckboxField, TextField } from "@/components/master-data/fields";
+import { CheckboxField, SelectField, TextField } from "@/components/master-data/fields";
 import { FormError } from "@/components/master-data/FormError";
 
 const initialState: MasterDataActionResult = {};
+
+const CONTACT_ROLE_OPTIONS = [
+  { value: "operational", label: "Operational" },
+  { value: "billing", label: "Billing" },
+  { value: "finance", label: "Finance" },
+  { value: "approver", label: "Approver" },
+  { value: "other", label: "Other" },
+];
 
 export function ContactCreateForm({ clientId }: { clientId: string }) {
   const [state, formAction, isPending] = useActionState(createClientContactAction, initialState);
@@ -30,8 +38,15 @@ export function ContactCreateForm({ clientId }: { clientId: string }) {
           name="whatsappNumber"
           errors={state.fieldErrors?.whatsappNumber}
         />
+        <SelectField label="Peran PIC (opsional)" name="role" options={CONTACT_ROLE_OPTIONS} errors={state.fieldErrors?.role} />
       </div>
       <CheckboxField label="Jadikan PIC utama" name="isPrimary" />
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-neutral-500">Penerima</span>
+        <CheckboxField label="Menerima invoice via WhatsApp" name="receivesInvoiceWhatsapp" />
+        <CheckboxField label="Menerima invoice via email" name="receivesInvoiceEmail" />
+        <CheckboxField label="Menerima reminder collection" name="receivesCollectionReminder" />
+      </div>
       <FormError error={state.error} />
       <div>
         <button

@@ -517,6 +517,7 @@ export type Database = {
           daily_close_status: Database["public"]["Enums"]["cash_pool_daily_close_status"]
           financial_version: number
           id: string
+          opening_cash_posted: boolean
           tenant_id: string
         }
         Insert: {
@@ -526,6 +527,7 @@ export type Database = {
           daily_close_status?: Database["public"]["Enums"]["cash_pool_daily_close_status"]
           financial_version?: number
           id?: string
+          opening_cash_posted?: boolean
           tenant_id: string
         }
         Update: {
@@ -535,6 +537,7 @@ export type Database = {
           daily_close_status?: Database["public"]["Enums"]["cash_pool_daily_close_status"]
           financial_version?: number
           id?: string
+          opening_cash_posted?: boolean
           tenant_id?: string
         }
         Relationships: [
@@ -804,6 +807,10 @@ export type Database = {
           id: string
           is_primary: boolean
           position_department: string | null
+          receives_collection_reminder: boolean
+          receives_invoice_email: boolean
+          receives_invoice_whatsapp: boolean
+          role: Database["public"]["Enums"]["client_contact_role"] | null
           status: Database["public"]["Enums"]["record_status"]
           tenant_id: string
           updated_at: string
@@ -818,6 +825,10 @@ export type Database = {
           id?: string
           is_primary?: boolean
           position_department?: string | null
+          receives_collection_reminder?: boolean
+          receives_invoice_email?: boolean
+          receives_invoice_whatsapp?: boolean
+          role?: Database["public"]["Enums"]["client_contact_role"] | null
           status?: Database["public"]["Enums"]["record_status"]
           tenant_id: string
           updated_at?: string
@@ -832,6 +843,10 @@ export type Database = {
           id?: string
           is_primary?: boolean
           position_department?: string | null
+          receives_collection_reminder?: boolean
+          receives_invoice_email?: boolean
+          receives_invoice_whatsapp?: boolean
+          role?: Database["public"]["Enums"]["client_contact_role"] | null
           status?: Database["public"]["Enums"]["record_status"]
           tenant_id?: string
           updated_at?: string
@@ -860,8 +875,12 @@ export type Database = {
           client_code: string | null
           created_at: string
           created_by: string | null
+          default_payment_term_days: number | null
           display_name: string
           id: string
+          invoice_delivery_preference:
+            | Database["public"]["Enums"]["invoice_delivery_channel"]
+            | null
           legal_name: string | null
           status: Database["public"]["Enums"]["record_status"]
           tax_identifier: string | null
@@ -873,8 +892,12 @@ export type Database = {
           client_code?: string | null
           created_at?: string
           created_by?: string | null
+          default_payment_term_days?: number | null
           display_name: string
           id?: string
+          invoice_delivery_preference?:
+            | Database["public"]["Enums"]["invoice_delivery_channel"]
+            | null
           legal_name?: string | null
           status?: Database["public"]["Enums"]["record_status"]
           tax_identifier?: string | null
@@ -886,8 +909,12 @@ export type Database = {
           client_code?: string | null
           created_at?: string
           created_by?: string | null
+          default_payment_term_days?: number | null
           display_name?: string
           id?: string
+          invoice_delivery_preference?:
+            | Database["public"]["Enums"]["invoice_delivery_channel"]
+            | null
           legal_name?: string | null
           status?: Database["public"]["Enums"]["record_status"]
           tax_identifier?: string | null
@@ -1450,6 +1477,7 @@ export type Database = {
           display_name: string
           id: string
           legal_name: string | null
+          logo_path: string | null
           status: Database["public"]["Enums"]["legal_entity_status"]
           tenant_id: string
           updated_at: string
@@ -1459,6 +1487,7 @@ export type Database = {
           display_name: string
           id?: string
           legal_name?: string | null
+          logo_path?: string | null
           status?: Database["public"]["Enums"]["legal_entity_status"]
           tenant_id: string
           updated_at?: string
@@ -1468,6 +1497,7 @@ export type Database = {
           display_name?: string
           id?: string
           legal_name?: string | null
+          logo_path?: string | null
           status?: Database["public"]["Enums"]["legal_entity_status"]
           tenant_id?: string
           updated_at?: string
@@ -2016,9 +2046,10 @@ export type Database = {
           closed_by: string | null
           created_at: string
           created_by: string | null
-          facility_location_id: string
+          facility_location_id: string | null
           id: string
           lifecycle_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          priority: Database["public"]["Enums"]["vessel_project_priority"]
           project_code: string | null
           ready_to_close_at: string | null
           service_type_id: string
@@ -2033,9 +2064,10 @@ export type Database = {
           closed_by?: string | null
           created_at?: string
           created_by?: string | null
-          facility_location_id: string
+          facility_location_id?: string | null
           id?: string
           lifecycle_status?: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          priority?: Database["public"]["Enums"]["vessel_project_priority"]
           project_code?: string | null
           ready_to_close_at?: string | null
           service_type_id: string
@@ -2050,9 +2082,10 @@ export type Database = {
           closed_by?: string | null
           created_at?: string
           created_by?: string | null
-          facility_location_id?: string
+          facility_location_id?: string | null
           id?: string
           lifecycle_status?: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          priority?: Database["public"]["Enums"]["vessel_project_priority"]
           project_code?: string | null
           ready_to_close_at?: string | null
           service_type_id?: string
@@ -2868,6 +2901,7 @@ export type Database = {
           daily_close_status: Database["public"]["Enums"]["cash_pool_daily_close_status"]
           financial_version: number
           id: string
+          opening_cash_posted: boolean
           tenant_id: string
         }
         SetofOptions: {
@@ -3201,6 +3235,7 @@ export type Database = {
           daily_close_status: Database["public"]["Enums"]["cash_pool_daily_close_status"]
           financial_version: number
           id: string
+          opening_cash_posted: boolean
           tenant_id: string
         }
         SetofOptions: {
@@ -3519,6 +3554,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_vessel_project_priority: {
+        Args: {
+          p_priority: Database["public"]["Enums"]["vessel_project_priority"]
+          p_project_id: string
+        }
+        Returns: {
+          client_id: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          facility_location_id: string | null
+          id: string
+          lifecycle_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          priority: Database["public"]["Enums"]["vessel_project_priority"]
+          project_code: string | null
+          ready_to_close_at: string | null
+          service_type_id: string
+          start_date: string
+          tenant_id: string
+          updated_at: string
+          vessel_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vessel_projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       submit_cash_reconciliation: {
         Args: { p_reconciliation_id: string }
         Returns: {
@@ -3611,9 +3676,10 @@ export type Database = {
           closed_by: string | null
           created_at: string
           created_by: string | null
-          facility_location_id: string
+          facility_location_id: string | null
           id: string
           lifecycle_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
+          priority: Database["public"]["Enums"]["vessel_project_priority"]
           project_code: string | null
           ready_to_close_at: string | null
           service_type_id: string
@@ -3666,6 +3732,12 @@ export type Database = {
         | "approved"
         | "needs_correction"
         | "rejected"
+      client_contact_role:
+        | "operational"
+        | "billing"
+        | "finance"
+        | "approver"
+        | "other"
       expense_duplicate_candidate_status:
         | "pending"
         | "not_duplicate"
@@ -3682,6 +3754,7 @@ export type Database = {
         | "rejected"
         | "needs_correction"
         | "cancelled"
+      invoice_delivery_channel: "whatsapp" | "email" | "both"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
       notification_event_type: "import_review_requested" | "import_approved"
@@ -3692,6 +3765,7 @@ export type Database = {
       tenant_role: "owner" | "admin" | "reviewer" | "viewer"
       tenant_status: "active" | "suspended"
       vessel_project_lifecycle_status: "active" | "ready_to_close" | "closed"
+      vessel_project_priority: "emergency" | "standard" | "urgent"
     }
     CompositeTypes: {
       cash_import_batch_creation_result: {
@@ -3865,6 +3939,13 @@ export const Constants = {
         "needs_correction",
         "rejected",
       ],
+      client_contact_role: [
+        "operational",
+        "billing",
+        "finance",
+        "approver",
+        "other",
+      ],
       expense_duplicate_candidate_status: [
         "pending",
         "not_duplicate",
@@ -3884,6 +3965,7 @@ export const Constants = {
         "needs_correction",
         "cancelled",
       ],
+      invoice_delivery_channel: ["whatsapp", "email", "both"],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
       notification_event_type: ["import_review_requested", "import_approved"],
@@ -3894,6 +3976,7 @@ export const Constants = {
       tenant_role: ["owner", "admin", "reviewer", "viewer"],
       tenant_status: ["active", "suspended"],
       vessel_project_lifecycle_status: ["active", "ready_to_close", "closed"],
+      vessel_project_priority: ["emergency", "standard", "urgent"],
     },
   },
 } as const

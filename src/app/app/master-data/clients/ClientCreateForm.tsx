@@ -3,10 +3,16 @@
 import { useActionState } from "react";
 import { createClientAction } from "@/lib/master-data/clients/actions";
 import type { MasterDataActionResult } from "@/lib/master-data/clients/service";
-import { TextAreaField, TextField } from "@/components/master-data/fields";
+import { SelectField, TextAreaField, TextField } from "@/components/master-data/fields";
 import { FormError } from "@/components/master-data/FormError";
 
 const initialState: MasterDataActionResult = {};
+
+const INVOICE_DELIVERY_OPTIONS = [
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "email", label: "Email" },
+  { value: "both", label: "WhatsApp & Email" },
+];
 
 export function ClientCreateForm() {
   const [state, formAction, isPending] = useActionState(createClientAction, initialState);
@@ -38,8 +44,20 @@ export function ClientCreateForm() {
           name="taxIdentifier"
           errors={state.fieldErrors?.taxIdentifier}
         />
+        <TextField
+          label="Jangka Waktu Pembayaran Default (hari, opsional)"
+          name="defaultPaymentTermDays"
+          type="number"
+          errors={state.fieldErrors?.defaultPaymentTermDays}
+        />
+        <SelectField
+          label="Preferensi Pengiriman Invoice (opsional)"
+          name="invoiceDeliveryPreference"
+          options={INVOICE_DELIVERY_OPTIONS}
+          errors={state.fieldErrors?.invoiceDeliveryPreference}
+        />
       </div>
-      <TextAreaField label="Alamat (opsional)" name="address" errors={state.fieldErrors?.address} />
+      <TextAreaField label="Alamat / Billing Address (opsional)" name="address" errors={state.fieldErrors?.address} />
       <FormError error={state.error} />
       <div>
         <button

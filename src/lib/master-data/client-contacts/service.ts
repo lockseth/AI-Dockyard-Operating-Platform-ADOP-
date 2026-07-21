@@ -41,6 +41,10 @@ export async function createClientContact(input: CreateClientContactInput): Prom
     email: input.email ?? null,
     whatsapp_number: normalizeWhatsappNumber(input.whatsappNumber),
     is_primary: input.isPrimary,
+    role: input.role ?? null,
+    receives_invoice_whatsapp: input.receivesInvoiceWhatsapp,
+    receives_invoice_email: input.receivesInvoiceEmail,
+    receives_collection_reminder: input.receivesCollectionReminder,
   });
 
   if (error || !data) {
@@ -68,6 +72,10 @@ export async function updateClientContact(
     email: input.email ?? null,
     whatsapp_number: normalizeWhatsappNumber(input.whatsappNumber),
     is_primary: input.isPrimary,
+    role: input.role ?? null,
+    receives_invoice_whatsapp: input.receivesInvoiceWhatsapp,
+    receives_invoice_email: input.receivesInvoiceEmail,
+    receives_collection_reminder: input.receivesCollectionReminder,
   });
 
   if (error || !data) {

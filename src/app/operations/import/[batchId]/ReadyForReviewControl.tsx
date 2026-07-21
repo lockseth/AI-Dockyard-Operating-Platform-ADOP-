@@ -18,7 +18,7 @@ export function ReadyForReviewControl({ batchId, disabled }: { batchId: string; 
         disabled={isPending || disabled}
         className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
       >
-        {isPending ? "Memproses..." : "Siapkan untuk Review"}
+        {isPending ? "Memproses..." : "Ajukan Import"}
       </button>
       <FormError error={state.error} />
     </form>

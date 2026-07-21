@@ -18,6 +18,8 @@ export interface TenantMembership {
 export interface LegalEntitySummary {
   id: string;
   displayName: string;
+  legalName: string | null;
+  logoPath: string | null;
 }
 
 export interface TenantContext {
@@ -107,13 +109,15 @@ async function getLegalEntitiesForTenant(
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("legal_entities")
-    .select("id, display_name")
+    .select("id, display_name, legal_name, logo_path")
     .eq("tenant_id", tenantId)
     .eq("status", "active");
 
   return (data ?? []).map((row) => ({
     id: row.id,
     displayName: row.display_name,
+    legalName: row.legal_name,
+    logoPath: row.logo_path,
   }));
 }
 

@@ -28,7 +28,8 @@ export type CommitBlocker =
   | "MANUAL_REVIEW_UNRESOLVED"
   | "MAPPING_NOT_COMMITTABLE"
   | "VALIDATION_ERRORS_PRESENT"
-  | "RECONCILIATION_VARIANCE";
+  | "RECONCILIATION_VARIANCE"
+  | "OPENING_BALANCE_CONFLICT";
 
 function isIncludableRow(row: CashImportRowRow): boolean {
   return row.provisional_classification !== "opening_cash";
@@ -37,6 +38,7 @@ function isIncludableRow(row: CashImportRowRow): boolean {
 export function buildCanonicalCommitPreview(
   batch: CashImportBatchRow,
   rows: CashImportRowRow[],
+  hasOpeningBalanceConflict = false,
 ): CanonicalCommitPreview {
   let cashTopUpTotal = 0;
   let projectRefundTotal = 0;
@@ -52,6 +54,9 @@ export function buildCanonicalCommitPreview(
   }
   if (batch.workbook_closing_balance === null || batch.workbook_closing_balance !== batch.calculated_closing_balance) {
     blockers.add("RECONCILIATION_VARIANCE");
+  }
+  if (hasOpeningBalanceConflict) {
+    blockers.add("OPENING_BALANCE_CONFLICT");
   }
 
   for (const row of rows) {

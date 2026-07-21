@@ -6,6 +6,16 @@ describe("facilityLocationInputSchema", () => {
     expect(facilityLocationInputSchema.safeParse({ name: "" }).success).toBe(false);
     expect(facilityLocationInputSchema.safeParse({ name: "Dermaga 1" }).success).toBe(true);
   });
+
+  it("rejects a bare generic \"PLTU\" name (case-insensitive, trimmed) — it is a category, not a location", () => {
+    expect(facilityLocationInputSchema.safeParse({ name: "PLTU" }).success).toBe(false);
+    expect(facilityLocationInputSchema.safeParse({ name: "pltu" }).success).toBe(false);
+    expect(facilityLocationInputSchema.safeParse({ name: "  PLTU  " }).success).toBe(false);
+  });
+
+  it("accepts a specific PLTU site name", () => {
+    expect(facilityLocationInputSchema.safeParse({ name: "PLTU Kanci" }).success).toBe(true);
+  });
 });
 
 describe("parseFacilityLocationFormData", () => {

@@ -3,20 +3,12 @@
 import { useActionState, useState } from "react";
 import { approveAndCommitCashImportBatchAction, rejectCashImportBatchAction } from "@/lib/cash-import-staging/actions";
 import type { CashImportStagingActionResult } from "@/lib/cash-import-staging/service";
-import type { CanonicalCommitPreview, CommitBlocker } from "@/lib/cash-import-staging/canonical-preview";
+import type { CanonicalCommitPreview } from "@/lib/cash-import-staging/canonical-preview";
+import { BLOCKER_LABEL } from "@/lib/cash-import-staging/blocker-labels";
 import { formatRupiah } from "@/lib/operations-daily/format";
 import { FormError } from "@/components/master-data/FormError";
 
 const initialState: CashImportStagingActionResult = {};
-
-const BLOCKER_LABEL: Record<CommitBlocker, string> = {
-  MAPPING_INCOMPLETE: "Masih ada label kapal yang belum dipetakan.",
-  DISPOSITION_INCOMPLETE: "Masih ada baris yang belum memiliki keputusan (disposisi).",
-  MANUAL_REVIEW_UNRESOLVED: "Masih ada baris berstatus 'Perlu Tinjauan Manual' yang belum diputuskan.",
-  MAPPING_NOT_COMMITTABLE: "Ada baris dengan mapping kandidat proyek baru/unresolved — belum dapat dimasukkan ke data operasional.",
-  VALIDATION_ERRORS_PRESENT: "Masih ada baris berstatus error.",
-  RECONCILIATION_VARIANCE: "Saldo penutup workbook belum rekonsiliasi dengan hasil hitung ulang.",
-};
 
 // Owner-only review surface on the batch detail page — shown only while the
 // batch is ready_for_review. approveAndCommitCashImportBatchAction /

@@ -5,6 +5,7 @@ import { setCashImportRowDispositionAction } from "@/lib/cash-import-staging/act
 import type { CashImportStagingActionResult } from "@/lib/cash-import-staging/service";
 import type { CashImportRowRow } from "@/lib/cash-import-staging/repository";
 import { FormError } from "@/components/master-data/FormError";
+import { inputClassName } from "@/components/master-data/fields";
 
 const initialState: CashImportStagingActionResult = {};
 
@@ -44,7 +45,8 @@ export function RowDispositionControl({
           name="disposition"
           value={disposition}
           onChange={(event) => setDisposition(event.target.value)}
-          className="rounded-md border border-neutral-300 bg-transparent px-2 py-1 text-xs dark:border-neutral-700"
+          aria-label="Disposisi baris"
+          className={`${inputClassName} px-2 py-1 text-xs`}
         >
           <option value="" disabled>
             Pilih...
@@ -70,7 +72,7 @@ export function RowDispositionControl({
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           placeholder="Alasan (wajib)"
-          className="rounded-md border border-neutral-300 bg-transparent px-2 py-1 text-xs dark:border-neutral-700"
+          className={`${inputClassName} px-2 py-1 text-xs`}
         />
       ) : null}
       <FormError error={state.error} />

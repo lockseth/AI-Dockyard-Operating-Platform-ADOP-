@@ -38,6 +38,9 @@ export function mapCashPoolError(error: PostgrestError | null | undefined): stri
       if (error.message?.includes("amount must be greater than zero")) {
         return "Nominal harus lebih besar dari nol.";
       }
+      if (error.message?.includes("opening cash already posted")) {
+        return "Saldo awal untuk hari ini sudah pernah diposting.";
+      }
       if (error.message?.includes("pool not found") || error.message?.includes("entry not found")) {
         return "Data tidak ditemukan.";
       }

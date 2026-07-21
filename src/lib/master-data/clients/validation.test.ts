@@ -19,12 +19,45 @@ describe("clientInputSchema", () => {
       legalName: "",
       address: "",
       taxIdentifier: "",
+      defaultPaymentTermDays: "",
+      invoiceDeliveryPreference: "",
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.clientCode).toBeUndefined();
       expect(result.data.legalName).toBeUndefined();
+      expect(result.data.defaultPaymentTermDays).toBeUndefined();
+      expect(result.data.invoiceDeliveryPreference).toBeUndefined();
     }
+  });
+
+  it("accepts a valid defaultPaymentTermDays and invoiceDeliveryPreference", () => {
+    const result = clientInputSchema.safeParse({
+      displayName: "PT Kapal Nusantara",
+      defaultPaymentTermDays: "30",
+      invoiceDeliveryPreference: "both",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.defaultPaymentTermDays).toBe(30);
+      expect(result.data.invoiceDeliveryPreference).toBe("both");
+    }
+  });
+
+  it("rejects a non-positive defaultPaymentTermDays", () => {
+    const result = clientInputSchema.safeParse({
+      displayName: "PT Kapal Nusantara",
+      defaultPaymentTermDays: "0",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid invoiceDeliveryPreference value", () => {
+    const result = clientInputSchema.safeParse({
+      displayName: "PT Kapal Nusantara",
+      invoiceDeliveryPreference: "fax",
+    });
+    expect(result.success).toBe(false);
   });
 });
 

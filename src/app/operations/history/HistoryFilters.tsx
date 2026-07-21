@@ -12,6 +12,7 @@ import {
   TRANSACTION_STATUS_LABEL,
   TRANSACTION_TYPE_LABEL,
 } from "@/lib/transaction-history/labels";
+import { SelectField } from "@/components/master-data/fields";
 
 export interface HistoryFiltersValue {
   dateFrom?: string;
@@ -44,61 +45,47 @@ export function HistoryFilters({
         Sampai Tanggal
         <input type="date" name="dateTo" defaultValue={value.dateTo ?? ""} className={inputClass} />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-neutral-500">
-        Project Kapal
-        <select name="projectId" defaultValue={value.projectId ?? ""} className={inputClass}>
-          <option value="">Semua Project</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.project_code ?? project.id.slice(0, 8)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-neutral-500">
-        Jenis Transaksi
-        <select name="transactionType" defaultValue={value.transactionType ?? ""} className={inputClass}>
-          <option value="">Semua Jenis</option>
-          {TRANSACTION_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {TRANSACTION_TYPE_LABEL[type]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-neutral-500">
-        Arah
-        <select name="transactionDirection" defaultValue={value.transactionDirection ?? ""} className={inputClass}>
-          <option value="">Semua Arah</option>
-          {TRANSACTION_DIRECTIONS.map((direction) => (
-            <option key={direction} value={direction}>
-              {TRANSACTION_DIRECTION_LABEL[direction]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-neutral-500">
-        Sumber
-        <select name="source" defaultValue={value.source ?? ""} className={inputClass}>
-          <option value="">Semua Sumber</option>
-          {TRANSACTION_SOURCES.map((source) => (
-            <option key={source} value={source}>
-              {TRANSACTION_SOURCE_LABEL[source]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-neutral-500">
-        Status
-        <select name="status" defaultValue={value.status ?? ""} className={inputClass}>
-          <option value="">Semua Status</option>
-          {TRANSACTION_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {TRANSACTION_STATUS_LABEL[status]}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SelectField
+        label="Project Kapal"
+        name="projectId"
+        defaultValue={value.projectId}
+        placeholder="Semua Project"
+        options={projects.map((project) => ({
+          value: project.id,
+          label: project.project_code ?? project.id.slice(0, 8),
+        }))}
+      />
+      <SelectField
+        label="Jenis Transaksi"
+        name="transactionType"
+        defaultValue={value.transactionType}
+        placeholder="Semua Jenis"
+        options={TRANSACTION_TYPES.map((type) => ({ value: type, label: TRANSACTION_TYPE_LABEL[type] }))}
+      />
+      <SelectField
+        label="Arah"
+        name="transactionDirection"
+        defaultValue={value.transactionDirection}
+        placeholder="Semua Arah"
+        options={TRANSACTION_DIRECTIONS.map((direction) => ({
+          value: direction,
+          label: TRANSACTION_DIRECTION_LABEL[direction],
+        }))}
+      />
+      <SelectField
+        label="Sumber"
+        name="source"
+        defaultValue={value.source}
+        placeholder="Semua Sumber"
+        options={TRANSACTION_SOURCES.map((source) => ({ value: source, label: TRANSACTION_SOURCE_LABEL[source] }))}
+      />
+      <SelectField
+        label="Status"
+        name="status"
+        defaultValue={value.status}
+        placeholder="Semua Status"
+        options={TRANSACTION_STATUSES.map((status) => ({ value: status, label: TRANSACTION_STATUS_LABEL[status] }))}
+      />
       <label className="flex flex-col gap-1 text-xs text-neutral-500">
         Cari
         <input

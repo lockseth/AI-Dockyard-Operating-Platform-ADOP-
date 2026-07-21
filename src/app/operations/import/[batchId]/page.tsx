@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { logoutAction } from "@/lib/auth/actions";
 import { requireTenantContext } from "@/lib/auth/tenant";
-import { branding } from "@/lib/branding";
+import { AppShell } from "@/components/shell/AppShell";
 import {
   canApproveCashImportStaging,
   canReadCashImportStaging,
@@ -18,6 +17,7 @@ import { StagingBanner } from "../StagingBanner";
 import { AuditTimeline } from "./AuditTimeline";
 import { BatchSummaryPanel } from "./BatchSummaryPanel";
 import { CommittedSummaryPanel } from "./CommittedSummaryPanel";
+import { ImportPreviewPanel } from "./ImportPreviewPanel";
 import { LabelMappingControl } from "./LabelMappingControl";
 import { OwnerApprovalControl } from "./OwnerApprovalControl";
 import { ReadyForReviewControl } from "./ReadyForReviewControl";
@@ -39,7 +39,11 @@ export default async function CashImportBatchDetailPage({
   const canWrite = canWriteCashImportStaging(context.roles);
 
   if (!canRead) {
-    return <AccessDenied />;
+    return (
+      <AppShell title="Detail Batch Import">
+        <AccessDenied />
+      </AppShell>
+    );
   }
 
   const { batchId } = await params;
@@ -66,34 +70,23 @@ export default async function CashImportBatchDetailPage({
   const dispositionIncomplete = detail.rows.some(
     (row) => row.provisional_classification !== "opening_cash" && row.disposition === null,
   );
-  const readyBlocked = detail.batch.error_count > 0 || mappingIncomplete || dispositionIncomplete;
-  const canonicalPreview =
-    detail.batch.status === "ready_for_review" ? buildCanonicalCommitPreview(detail.batch, detail.rows) : null;
+  const readyBlocked =
+    detail.batch.error_count > 0 || mappingIncomplete || dispositionIncomplete || detail.hasOpeningBalanceConflict;
+  // Computed for every status (not only ready_for_review) so the Preview
+  // panel — and its OPENING_BALANCE_CONFLICT signal — is visible before the
+  // batch is even submitted, per the locked Upload → Staging → Mapping →
+  // Validasi → Preview → Ajukan Import → Setujui & Import flow.
+  const canonicalPreview = buildCanonicalCommitPreview(detail.batch, detail.rows, detail.hasOpeningBalanceConflict);
 
   return (
+    <AppShell title="Detail Batch Import">
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-10">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6 dark:border-neutral-800">
-        <div>
-          <span className="text-xs font-medium uppercase tracking-widest text-neutral-500">
-            {branding.productName} {branding.brandedBy}
-          </span>
-          <h1 className="text-xl font-semibold tracking-tight">Detail Batch Import</h1>
-          <Link
-            href="/operations/import"
-            className="text-sm text-neutral-500 underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"
-          >
-            Kembali ke Daftar Batch
-          </Link>
-        </div>
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            className="text-sm text-neutral-500 underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"
-          >
-            Keluar
-          </button>
-        </form>
-      </header>
+      <Link
+        href="/operations/import"
+        className="text-sm text-neutral-500 underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"
+      >
+        &larr; Kembali ke Daftar Batch
+      </Link>
 
       <main className="flex flex-1 flex-col gap-6 pb-16">
         <StagingBanner />
@@ -123,7 +116,11 @@ export default async function CashImportBatchDetailPage({
         {isCommitted ? <CommittedSummaryPanel batch={detail.batch} /> : null}
         {isRolledBack ? <RolledBackSummaryPanel batch={detail.batch} /> : null}
 
-        {canApprove && canonicalPreview ? (
+        {!isCommitted && !isRolledBack ? (
+          <ImportPreviewPanel rows={detail.rows} preview={canonicalPreview} />
+        ) : null}
+
+        {canApprove && detail.batch.status === "ready_for_review" ? (
           <OwnerApprovalControl batchId={detail.batch.id} preview={canonicalPreview} />
         ) : null}
 
@@ -169,5 +166,6 @@ export default async function CashImportBatchDetailPage({
         ) : null}
       </main>
     </div>
+    </AppShell>
   );
 }

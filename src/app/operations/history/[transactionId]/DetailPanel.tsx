@@ -11,6 +11,8 @@ import {
 import type { TrustedTransactionRow } from "@/lib/transaction-history/types";
 import { buildEffectClauses } from "@/lib/transaction-history/present";
 import type { CashImportBatchRow } from "@/lib/cash-import-staging/repository";
+import type { TenantRole } from "@/lib/auth/tenant";
+import { ReversalControl } from "./ReversalControl";
 
 function projectDescriptor(transaction: TrustedTransactionRow): string {
   if (transaction.vessel_name) {
@@ -62,11 +64,13 @@ export function DetailPanel({
   originalTransaction,
   reversalTransaction,
   importBatch,
+  viewerRoles,
 }: {
   transaction: TrustedTransactionRow;
   originalTransaction: TrustedTransactionRow | null;
   reversalTransaction: TrustedTransactionRow | null;
   importBatch: CashImportBatchRow | null;
+  viewerRoles: TenantRole[];
 }) {
   const effectClauses = buildEffectClauses(transaction);
   const isPairedRefund = transaction.transaction_type === "project_refund" || transaction.transaction_type === "project_refund_reversal";
@@ -110,6 +114,7 @@ export function DetailPanel({
         <Field label="Nominal" value={formatRupiah(transaction.display_amount)} />
         <Field label="Deskripsi/Alasan" value={transaction.description ?? "-"} />
         <Field label="Nomor Referensi" value={transaction.reference_number ?? "-"} />
+        <Field label="Dicatat Oleh (Actor)" value={<span className="break-all font-mono text-xs">{transaction.actor_user_id ?? "-"}</span>} />
       </section>
 
       <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
@@ -155,6 +160,11 @@ export function DetailPanel({
           </div>
         </section>
       ) : null}
+
+      <section className="flex flex-col gap-2">
+        <h3 className="text-sm font-medium text-neutral-500">Koreksi</h3>
+        <ReversalControl transaction={transaction} viewerRoles={viewerRoles} />
+      </section>
     </div>
   );
 }

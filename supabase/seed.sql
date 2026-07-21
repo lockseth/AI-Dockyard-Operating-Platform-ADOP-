@@ -19,25 +19,31 @@ values
   ('b2222222-2222-4222-8222-222222222222', 'tenant-b', 'Tenant B', 'active')
 on conflict (id) do nothing;
 
--- legal_name is intentionally null — Pak Hanafi's final legal entity name is
--- not locked yet. Never hardcode "PT Gamatara" or any other legal name here.
-insert into public.legal_entities (id, tenant_id, legal_name, display_name, status)
+-- Tenant A's legal entity is now locked to Pak Hanafi's real legal name and
+-- logo (design partner: PT Gamatara — a different concept from this legal
+-- entity, which is the tenant/customer identity shown in the product UI).
+-- Tenant B stays an unbranded placeholder on purpose: it exists only to
+-- prove tenant isolation in tests, never to be shown to a real user.
+insert into public.legal_entities (id, tenant_id, legal_name, display_name, logo_path, status)
 values
-  ('a1111111-e1e1-e1e1-e1e1-e1e1e1e1e1e1', 'a1111111-1111-4111-8111-111111111111', null, 'Legal Entity A — TBD', 'active'),
-  ('b2222222-e2e2-e2e2-e2e2-e2e2e2e2e2e2', 'b2222222-2222-4222-8222-222222222222', null, 'Legal Entity B — TBD', 'active')
+  ('a1111111-e1e1-e1e1-e1e1-e1e1e1e1e1e1', 'a1111111-1111-4111-8111-111111111111', 'PT PELAYARAN GEMA BAHARI', 'Legal Entity A', '/branding/pt-pelayaran-gema-bahari-logo.png', 'active'),
+  ('b2222222-e2e2-e2e2-e2e2-e2e2e2e2e2e2', 'b2222222-2222-4222-8222-222222222222', null, 'Legal Entity B — TBD', null, 'active')
 on conflict (id) do nothing;
 
 -- Gate 1A — initial service type configuration, seeded per tenant (tenant-safe,
--- not a shared row). Emergency/Standard/Docking/PLTU are a starting point;
--- tenants may add further service types later via the master-data UI.
+-- not a shared row). Emergency/Standard/PLTU are redefined as Project
+-- Priority / Facility Location concepts (Locked UI & Operational Safety
+-- Revision, Gate 3) and seeded inactive from the start; Docking remains the
+-- only active starting Service Type. Tenants may add further service types
+-- later via the master-data UI.
 insert into public.service_types (tenant_id, code, name, sort_order, status)
 values
-  ('a1111111-1111-4111-8111-111111111111', 'emergency', 'Emergency', 1, 'active'),
-  ('a1111111-1111-4111-8111-111111111111', 'standard', 'Standard', 2, 'active'),
+  ('a1111111-1111-4111-8111-111111111111', 'emergency', 'Emergency', 1, 'inactive'),
+  ('a1111111-1111-4111-8111-111111111111', 'standard', 'Standard', 2, 'inactive'),
   ('a1111111-1111-4111-8111-111111111111', 'docking', 'Docking', 3, 'active'),
-  ('a1111111-1111-4111-8111-111111111111', 'pltu', 'PLTU', 4, 'active'),
-  ('b2222222-2222-4222-8222-222222222222', 'emergency', 'Emergency', 1, 'active'),
-  ('b2222222-2222-4222-8222-222222222222', 'standard', 'Standard', 2, 'active'),
+  ('a1111111-1111-4111-8111-111111111111', 'pltu', 'PLTU', 4, 'inactive'),
+  ('b2222222-2222-4222-8222-222222222222', 'emergency', 'Emergency', 1, 'inactive'),
+  ('b2222222-2222-4222-8222-222222222222', 'standard', 'Standard', 2, 'inactive'),
   ('b2222222-2222-4222-8222-222222222222', 'docking', 'Docking', 3, 'active'),
-  ('b2222222-2222-4222-8222-222222222222', 'pltu', 'PLTU', 4, 'active')
+  ('b2222222-2222-4222-8222-222222222222', 'pltu', 'PLTU', 4, 'inactive')
 on conflict (tenant_id, code) do nothing;

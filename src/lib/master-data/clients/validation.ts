@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { idSchema, optionalText, recordStatusSchema, requiredText } from "../shared/validation";
+import { emptyToUndefined, idSchema, optionalText, recordStatusSchema, requiredText } from "../shared/validation";
+
+export const invoiceDeliveryChannelSchema = z.enum(["whatsapp", "email", "both"]);
+
+const optionalPaymentTermDays = z.preprocess(
+  emptyToUndefined,
+  z.coerce.number().int().positive("Jangka waktu pembayaran harus lebih dari 0 hari.").optional(),
+);
+
+const optionalInvoiceDeliveryPreference = z.preprocess(emptyToUndefined, invoiceDeliveryChannelSchema.optional());
 
 export const clientInputSchema = z.object({
   clientCode: optionalText(50),
@@ -7,6 +16,8 @@ export const clientInputSchema = z.object({
   legalName: optionalText(200),
   address: optionalText(500),
   taxIdentifier: optionalText(50),
+  defaultPaymentTermDays: optionalPaymentTermDays,
+  invoiceDeliveryPreference: optionalInvoiceDeliveryPreference,
 });
 
 export type ClientInput = z.infer<typeof clientInputSchema>;
@@ -25,5 +36,7 @@ export function parseClientFormData(formData: FormData) {
     legalName: formData.get("legalName"),
     address: formData.get("address"),
     taxIdentifier: formData.get("taxIdentifier"),
+    defaultPaymentTermDays: formData.get("defaultPaymentTermDays"),
+    invoiceDeliveryPreference: formData.get("invoiceDeliveryPreference"),
   });
 }

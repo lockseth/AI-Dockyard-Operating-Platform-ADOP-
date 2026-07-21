@@ -31,6 +31,45 @@ export async function listCashImportBatchesForTenant(tenantId: string): Promise<
   return data ?? [];
 }
 
+// Read-only mirror of approve_and_commit_cash_import_batch's own
+// OPENING_BALANCE_CONFLICT check (20260720120000 §6b) — lets the UI show a
+// BLOCKED signal before the owner even attempts to approve, instead of only
+// discovering the conflict from a failed commit. Does NOT call
+// get_or_create_daily_cash_pool (that would create a pool as a side effect
+// of merely viewing a preview) — if no pool exists yet for this date, there
+// is nothing to conflict with.
+export async function hasExistingFinancialEntriesForBusinessDate(
+  tenantId: string,
+  businessDate: string,
+): Promise<boolean> {
+  const supabase = await createSupabaseServerClient();
+  const { data: pool, error: poolError } = await supabase
+    .from("cash_pools")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("business_date", businessDate)
+    .maybeSingle();
+
+  if (poolError) throw poolError;
+  if (!pool) return false;
+
+  const [{ count: entryCount, error: entryError }, { count: costCount, error: costError }] = await Promise.all([
+    supabase
+      .from("cash_pool_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("pool_id", pool.id),
+    supabase
+      .from("project_cost_ledger_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("pool_id", pool.id),
+  ]);
+
+  if (entryError) throw entryError;
+  if (costError) throw costError;
+
+  return (entryCount ?? 0) > 0 || (costCount ?? 0) > 0;
+}
+
 export async function getCashImportBatch(tenantId: string, batchId: string): Promise<CashImportBatchRow | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

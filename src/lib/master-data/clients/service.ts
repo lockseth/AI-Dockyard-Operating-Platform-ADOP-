@@ -36,6 +36,8 @@ export async function createClient(input: ClientInput): Promise<CreateClientResu
     legal_name: input.legalName ?? null,
     address: input.address ?? null,
     tax_identifier: input.taxIdentifier ?? null,
+    default_payment_term_days: input.defaultPaymentTermDays ?? null,
+    invoice_delivery_preference: input.invoiceDeliveryPreference ?? null,
   });
 
   if (error || !data) {
@@ -60,6 +62,8 @@ export async function updateClient(id: string, input: ClientInput): Promise<Mast
     legal_name: input.legalName ?? null,
     address: input.address ?? null,
     tax_identifier: input.taxIdentifier ?? null,
+    default_payment_term_days: input.defaultPaymentTermDays ?? null,
+    invoice_delivery_preference: input.invoiceDeliveryPreference ?? null,
   });
 
   if (error || !data) {

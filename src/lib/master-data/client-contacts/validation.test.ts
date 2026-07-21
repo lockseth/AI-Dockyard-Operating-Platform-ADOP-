@@ -22,13 +22,28 @@ describe("createClientContactInputSchema", () => {
     ).toBe(false);
   });
 
-  it("defaults isPrimary to false when not provided", () => {
+  it("defaults isPrimary and every recipient flag to false when not provided", () => {
     const result = createClientContactInputSchema.safeParse({
       clientId: VALID_CLIENT_ID,
       fullName: "Budi",
     });
     expect(result.success).toBe(true);
     expect(result.success && result.data.isPrimary).toBe(false);
+    expect(result.success && result.data.receivesInvoiceWhatsapp).toBe(false);
+    expect(result.success && result.data.receivesInvoiceEmail).toBe(false);
+    expect(result.success && result.data.receivesCollectionReminder).toBe(false);
+    expect(result.success && result.data.role).toBeUndefined();
+  });
+
+  it("accepts a valid role and rejects an invalid one", () => {
+    expect(
+      createClientContactInputSchema.safeParse({ clientId: VALID_CLIENT_ID, fullName: "Budi", role: "billing" })
+        .success,
+    ).toBe(true);
+    expect(
+      createClientContactInputSchema.safeParse({ clientId: VALID_CLIENT_ID, fullName: "Budi", role: "manager" })
+        .success,
+    ).toBe(false);
   });
 
   it("accepts a valid email and rejects an invalid one", () => {
@@ -77,6 +92,22 @@ describe("parseCreateClientContactFormData", () => {
     const result = parseCreateClientContactFormData(formData);
     expect(result.success).toBe(true);
     expect(result.success && result.data.isPrimary).toBe(false);
+  });
+
+  it("reads every recipient checkbox and the role select", () => {
+    const formData = new FormData();
+    formData.set("clientId", VALID_CLIENT_ID);
+    formData.set("fullName", "Budi Santoso");
+    formData.set("role", "billing");
+    formData.set("receivesInvoiceWhatsapp", "on");
+    formData.set("receivesInvoiceEmail", "on");
+
+    const result = parseCreateClientContactFormData(formData);
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.role).toBe("billing");
+    expect(result.success && result.data.receivesInvoiceWhatsapp).toBe(true);
+    expect(result.success && result.data.receivesInvoiceEmail).toBe(true);
+    expect(result.success && result.data.receivesCollectionReminder).toBe(false);
   });
 });
 

@@ -52,7 +52,26 @@ export function OpenCashSection({
         </form>
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <CashEntryForm poolId={pool.id} entryType="opening_cash" label="Catat Opening Cash" disabled={!mutationOpen} />
+          {pool.opening_cash_posted ? (
+            <div className="flex flex-col gap-2 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+              <span className="text-sm font-medium">Catat Opening Cash</span>
+              <span className="w-fit rounded-full bg-neutral-200 px-2.5 py-0.5 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                BLOCKED
+              </span>
+              <p className="text-xs text-neutral-500">
+                Saldo awal untuk {formatBusinessDateLabel(businessDate)} sudah diposting. Koreksi hanya dapat
+                dilakukan melalui reversal di Riwayat Transaksi.
+              </p>
+            </div>
+          ) : (
+            <CashEntryForm
+              poolId={pool.id}
+              entryType="opening_cash"
+              label="Catat Opening Cash"
+              disabled={!mutationOpen}
+              businessDate={businessDate}
+            />
+          )}
           <CashEntryForm poolId={pool.id} entryType="cash_top_up" label="Tambah Cash Top-Up" disabled={!mutationOpen} />
           <CashEntryForm poolId={pool.id} entryType="other_cash_in" label="Tambah Other Cash-In" disabled={!mutationOpen} />
         </div>

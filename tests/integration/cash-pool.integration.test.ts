@@ -289,6 +289,12 @@ describe("shared daily cash pool — real local Supabase", () => {
       p_business_date: businessDate,
     });
 
+    // entryA is the pool's one-and-only opening_cash entry (Gate 1's atomic
+    // duplicate guard now rejects a second opening_cash entry per pool — see
+    // 20260721020000_opening_cash_pool_atomic_guard.sql) — a cash_top_up
+    // entry is used alongside it purely so the summary has two independent,
+    // non-zero components to distinguish "reversed and excluded" from "the
+    // whole summary went to zero".
     const { data: entryA } = await ownerAClient.rpc("record_cash_pool_entry", {
       p_pool_id: pool.id,
       p_entry_type: "opening_cash",
@@ -296,16 +302,17 @@ describe("shared daily cash pool — real local Supabase", () => {
     });
     await ownerAClient.rpc("record_cash_pool_entry", {
       p_pool_id: pool.id,
-      p_entry_type: "opening_cash",
+      p_entry_type: "cash_top_up",
       p_amount: 2_000_000,
     });
 
     const { data: summaryBefore } = await ownerAClient
       .from("cash_pool_daily_summary")
-      .select("opening_cash")
+      .select("opening_cash, cash_top_up")
       .eq("pool_id", pool.id)
       .single();
-    expect(summaryBefore!.opening_cash).toBe(3_000_000);
+    expect(summaryBefore!.opening_cash).toBe(1_000_000);
+    expect(summaryBefore!.cash_top_up).toBe(2_000_000);
 
     const { data: reversal, error: reversalError } = await ownerAClient.rpc("reverse_cash_pool_entry", {
       p_entry_id: entryA.id,
@@ -319,10 +326,11 @@ describe("shared daily cash pool — real local Supabase", () => {
 
     const { data: summaryAfter } = await ownerAClient
       .from("cash_pool_daily_summary")
-      .select("opening_cash")
+      .select("opening_cash, cash_top_up")
       .eq("pool_id", pool.id)
       .single();
-    expect(summaryAfter!.opening_cash).toBe(2_000_000);
+    expect(summaryAfter!.opening_cash).toBe(0);
+    expect(summaryAfter!.cash_top_up).toBe(2_000_000);
 
     // Double reversal is rejected.
     const { error: doubleReversalError } = await ownerAClient.rpc("reverse_cash_pool_entry", {

@@ -1,13 +1,26 @@
 import { FieldError } from "./FormError";
 
-const inputClassName =
-  "rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:border-neutral-700";
+// Shared across every text/select input in the app — a fix here reaches
+// every consumer at once (LOCK Gate 4: "perbaiki shared component/design
+// token, bukan hanya satu halaman"). focus:ring is visible against both
+// light and dark backgrounds; disabled gets a distinct opacity + cursor so
+// it reads as inactive without becoming illegible; aria-invalid gets a red
+// border so an error state is visible on the control itself, not only in
+// the text below it.
+//
+// Exported (not just used internally) so compact, non-labeled controls that
+// can't use the full TextField/SelectField wrapper (e.g. an inline
+// disposition <select> next to a button) can still apply the exact same
+// base token instead of hand-rolling a near-duplicate className.
+export const inputClassName =
+  "rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-red-500 dark:border-neutral-700 dark:aria-[invalid=true]:border-red-500";
 
 export function TextField({
   label,
   name,
   defaultValue,
   required,
+  disabled,
   type = "text",
   errors,
 }: {
@@ -15,6 +28,7 @@ export function TextField({
   name: string;
   defaultValue?: string | number | null;
   required?: boolean;
+  disabled?: boolean;
   type?: string;
   errors?: string[];
 }) {
@@ -29,6 +43,8 @@ export function TextField({
         type={type}
         defaultValue={defaultValue ?? undefined}
         required={required}
+        disabled={disabled}
+        aria-invalid={errors && errors.length > 0}
         className={inputClassName}
       />
       <FieldError messages={errors} />
@@ -93,20 +109,31 @@ export function SelectField({
   defaultValue,
   options,
   errors,
+  disabled,
+  placeholder = "—",
 }: {
   label: string;
   name: string;
   defaultValue?: string | null;
   options: Array<{ value: string; label: string }>;
   errors?: string[];
+  disabled?: boolean;
+  placeholder?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={name} className="text-sm font-medium">
         {label}
       </label>
-      <select id={name} name={name} defaultValue={defaultValue ?? ""} className={inputClassName}>
-        <option value="">—</option>
+      <select
+        id={name}
+        name={name}
+        defaultValue={defaultValue ?? ""}
+        disabled={disabled}
+        aria-invalid={errors && errors.length > 0}
+        className={inputClassName}
+      >
+        <option value="">{placeholder}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

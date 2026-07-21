@@ -7,6 +7,7 @@ import {
   approveAndCommitCashImportBatch,
   createCashImportBatch,
   getCashImportBatch,
+  hasExistingFinancialEntriesForBusinessDate,
   listCashImportBatchesForTenant,
   listCashImportEventsForBatch,
   listCashImportRowsForBatch,
@@ -45,6 +46,14 @@ export interface CashImportBatchDetail {
   batch: CashImportBatchRow;
   rows: CashImportRowRow[];
   events: CashImportEventRow[];
+  // Read-only mirror of the commit RPC's own OPENING_BALANCE_CONFLICT check
+  // — true when a cash pool for this batch's business_date already has ANY
+  // cash_pool_entries/project_cost_ledger_entries row(s), matching the
+  // exact commit-time guard. Shown as a BLOCKED signal before the owner
+  // ever attempts approval; the RPC's own check remains the real
+  // enforcement (this can go stale between page load and commit — a
+  // concurrent commit still fails safely at that point).
+  hasOpeningBalanceConflict: boolean;
 }
 
 // RLS (owner/admin only) is the final enforcement layer for reads — same
@@ -66,12 +75,13 @@ export async function getCashImportBatchDetailForActiveTenant(rawInput: unknown)
     return null;
   }
 
-  const [rows, events] = await Promise.all([
+  const [rows, events, hasOpeningBalanceConflict] = await Promise.all([
     listCashImportRowsForBatch(context.tenantId, batch.id),
     listCashImportEventsForBatch(context.tenantId, batch.id),
+    hasExistingFinancialEntriesForBusinessDate(context.tenantId, batch.business_date),
   ]);
 
-  return { batch, rows, events };
+  return { batch, rows, events, hasOpeningBalanceConflict };
 }
 
 // The buffer is read once here, parsed in memory, and discarded — never

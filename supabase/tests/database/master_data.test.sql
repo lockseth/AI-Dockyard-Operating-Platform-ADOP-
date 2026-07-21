@@ -635,6 +635,31 @@ select is(
   'seeded tenant B service types match the initial configuration — independent per tenant'
 );
 
+-- Locked UI & Operational Safety Revision, Gate 3 — Emergency/Standard/PLTU
+-- are redefined as Project Priority / Facility Location concepts and are
+-- seeded (and data-migrated for any pre-existing tenant) inactive; Docking
+-- is the only one of the original four that stays active.
+select is(
+  (select status::text from public.service_types where tenant_id = 'a1111111-1111-4111-8111-111111111111' and code = 'emergency'),
+  'inactive',
+  'seeded tenant A Emergency service type is inactive'
+);
+select is(
+  (select status::text from public.service_types where tenant_id = 'a1111111-1111-4111-8111-111111111111' and code = 'standard'),
+  'inactive',
+  'seeded tenant A Standard service type is inactive'
+);
+select is(
+  (select status::text from public.service_types where tenant_id = 'a1111111-1111-4111-8111-111111111111' and code = 'pltu'),
+  'inactive',
+  'seeded tenant A PLTU service type is inactive'
+);
+select is(
+  (select status::text from public.service_types where tenant_id = 'a1111111-1111-4111-8111-111111111111' and code = 'docking'),
+  'active',
+  'seeded tenant A Docking service type remains active'
+);
+
 -- =============================================================================
 -- MASTER DATA AUDIT
 -- =============================================================================

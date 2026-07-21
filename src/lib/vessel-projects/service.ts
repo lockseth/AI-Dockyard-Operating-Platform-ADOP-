@@ -6,11 +6,16 @@ import {
   insertVesselProject,
   listVesselProjectCostSummary,
   listVesselProjects,
+  setVesselProjectPriority,
   transitionVesselProjectLifecycle,
   type VesselProjectCostSummaryRow,
   type VesselProjectRow,
 } from "./repository";
-import { createVesselProjectInputSchema, transitionVesselProjectInputSchema } from "./validation";
+import {
+  createVesselProjectInputSchema,
+  setVesselProjectPriorityInputSchema,
+  transitionVesselProjectInputSchema,
+} from "./validation";
 
 export interface VesselProjectActionResult {
   error?: string;
@@ -51,9 +56,10 @@ export async function createVesselProject(rawInput: unknown): Promise<CreateVess
     vessel_id: input.vesselId,
     client_id: input.clientId,
     service_type_id: input.serviceTypeId,
-    facility_location_id: input.facilityLocationId,
+    facility_location_id: input.facilityLocationId ?? null,
     project_code: input.projectCode ?? null,
     start_date: input.startDate,
+    priority: input.priority,
     created_by: context.userId,
   });
 
@@ -84,6 +90,31 @@ export async function transitionVesselProject(rawInput: unknown): Promise<Vessel
   }
 
   const { error } = await transitionVesselProjectLifecycle(id, toStatus, reason);
+  if (error) {
+    return { error: mapVesselProjectError(error) };
+  }
+
+  return {};
+}
+
+// The RPC re-derives tenant_id from the project row and re-checks
+// owner/admin membership server-side — this never accepts or forges either.
+export async function setVesselProjectPriorityForActiveTenant(rawInput: unknown): Promise<VesselProjectActionResult> {
+  const parsed = setVesselProjectPriorityInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  const { id, priority } = parsed.data;
+
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner", "admin"]);
+
+  const before = await getVesselProjectById(context.tenantId, id);
+  if (!before) {
+    return { error: "Project tidak ditemukan." };
+  }
+
+  const { error } = await setVesselProjectPriority(id, priority);
   if (error) {
     return { error: mapVesselProjectError(error) };
   }
