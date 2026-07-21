@@ -7,7 +7,7 @@ import type { CashImportLabelSummary } from "@/lib/cash-import-staging/label-sum
 import type { CashImportMappingKind } from "@/lib/cash-import-staging/types";
 import type { VesselProjectRow } from "@/lib/vessel-projects/repository";
 import { FormError } from "@/components/master-data/FormError";
-import { inputClassName } from "@/components/master-data/fields";
+import { selectClassName } from "@/components/master-data/fields";
 
 const initialState: CashImportStagingActionResult = {};
 
@@ -53,7 +53,7 @@ export function LabelMappingControl({
             value={mappingKind}
             onChange={(event) => setMappingKind(event.target.value as CashImportMappingKind)}
             aria-label="Jenis mapping"
-            className={`${inputClassName} px-2 py-1 text-xs`}
+            className={`${selectClassName} px-2 py-1 text-xs`}
           >
             {(Object.entries(MAPPING_LABEL) as Array<[CashImportMappingKind, string]>).map(([value, text]) => (
               <option key={value} value={value}>
@@ -67,7 +67,7 @@ export function LabelMappingControl({
               value={projectId}
               onChange={(event) => setProjectId(event.target.value)}
               aria-label="Project Kapal tujuan"
-              className={`${inputClassName} px-2 py-1 text-xs`}
+              className={`${selectClassName} px-2 py-1 text-xs`}
             >
               <option value="">Pilih Project Kapal...</option>
               {vesselProjects.map((project) => (

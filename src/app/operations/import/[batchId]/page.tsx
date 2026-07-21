@@ -12,6 +12,7 @@ import { getCashImportBatchDetailForActiveTenant } from "@/lib/cash-import-stagi
 import { summarizeCashImportLabels } from "@/lib/cash-import-staging/label-summary";
 import { buildCanonicalCommitPreview } from "@/lib/cash-import-staging/canonical-preview";
 import { listVesselProjectsForActiveTenant } from "@/lib/vessel-projects/service";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { AccessDenied } from "../AccessDenied";
 import { StagingBanner } from "../StagingBanner";
 import { AuditTimeline } from "./AuditTimeline";
@@ -145,10 +146,9 @@ export default async function CashImportBatchDetailPage({
 
         <RowTable batchId={detail.batch.id} rows={detail.rows} canWrite={canEditStaging} />
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-neutral-500">Riwayat Aktivitas</h2>
+        <Disclosure title="Riwayat Aktivitas" defaultOpen={false} summary={`${detail.events.length} peristiwa`}>
           <AuditTimeline events={detail.events} />
-        </section>
+        </Disclosure>
 
         {canEditStaging ? (
           <section className="flex flex-col gap-2 border-t border-neutral-200 pt-6 dark:border-neutral-800">

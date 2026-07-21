@@ -12,6 +12,7 @@ import type { TrustedTransactionRow } from "@/lib/transaction-history/types";
 import { buildEffectClauses } from "@/lib/transaction-history/present";
 import type { CashImportBatchRow } from "@/lib/cash-import-staging/repository";
 import type { TenantRole } from "@/lib/auth/tenant";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { ReversalControl } from "./ReversalControl";
 
 function projectDescriptor(transaction: TrustedTransactionRow): string {
@@ -117,9 +118,8 @@ export function DetailPanel({
         <Field label="Dicatat Oleh (Actor)" value={<span className="break-all font-mono text-xs">{transaction.actor_user_id ?? "-"}</span>} />
       </section>
 
-      <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-        <h3 className="text-sm font-medium text-neutral-500">Ledger Terkait (Provenance)</h3>
-        <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Disclosure title="Ledger Terkait (Provenance)" defaultOpen={false}>
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {transaction.cash_entry_id ? (
             <Field label="ID Entry Kas" value={<span className="break-all font-mono text-xs">{transaction.cash_entry_id}</span>} />
           ) : null}
@@ -128,13 +128,13 @@ export function DetailPanel({
           ) : null}
         </dl>
         {isPairedRefund ? (
-          <p className="mt-3 text-xs text-neutral-500">
+          <p className="text-xs text-neutral-500">
             Ini adalah kejadian bisnis tunggal (cash-in dan cost-reduction/increase yang berpasangan) — nominal di atas
             tidak dihitung dua kali; kedua efek ledger di atas terjadi bersamaan dari satu baris import yang sama.
           </p>
         ) : null}
         {importBatch ? (
-          <div className="mt-3 rounded-md border border-neutral-200 p-3 text-sm dark:border-neutral-800">
+          <div className="rounded-md border border-neutral-200 p-3 text-sm dark:border-neutral-800">
             <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">Import Batch</div>
             <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
               <span>
@@ -149,16 +149,13 @@ export function DetailPanel({
             </div>
           </div>
         ) : null}
-      </section>
+      </Disclosure>
 
       {originalTransaction || reversalTransaction ? (
-        <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-          <h3 className="text-sm font-medium text-neutral-500">Hubungan Reversal</h3>
-          <div className="mt-3 flex flex-col gap-3">
-            {originalTransaction ? <LinkedTransactionCard title="Transaksi Asli" transaction={originalTransaction} /> : null}
-            {reversalTransaction ? <LinkedTransactionCard title="Transaksi Pembatal" transaction={reversalTransaction} /> : null}
-          </div>
-        </section>
+        <Disclosure title="Hubungan Reversal" defaultOpen>
+          {originalTransaction ? <LinkedTransactionCard title="Transaksi Asli" transaction={originalTransaction} /> : null}
+          {reversalTransaction ? <LinkedTransactionCard title="Transaksi Pembatal" transaction={reversalTransaction} /> : null}
+        </Disclosure>
       ) : null}
 
       <section className="flex flex-col gap-2">

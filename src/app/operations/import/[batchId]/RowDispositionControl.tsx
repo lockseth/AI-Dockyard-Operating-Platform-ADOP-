@@ -5,7 +5,7 @@ import { setCashImportRowDispositionAction } from "@/lib/cash-import-staging/act
 import type { CashImportStagingActionResult } from "@/lib/cash-import-staging/service";
 import type { CashImportRowRow } from "@/lib/cash-import-staging/repository";
 import { FormError } from "@/components/master-data/FormError";
-import { inputClassName } from "@/components/master-data/fields";
+import { inputClassName, selectClassName } from "@/components/master-data/fields";
 
 const initialState: CashImportStagingActionResult = {};
 
@@ -46,7 +46,7 @@ export function RowDispositionControl({
           value={disposition}
           onChange={(event) => setDisposition(event.target.value)}
           aria-label="Disposisi baris"
-          className={`${inputClassName} px-2 py-1 text-xs`}
+          className={`${selectClassName} px-2 py-1 text-xs`}
         >
           <option value="" disabled>
             Pilih...

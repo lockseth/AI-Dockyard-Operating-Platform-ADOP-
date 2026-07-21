@@ -15,6 +15,17 @@ import { FieldError } from "./FormError";
 export const inputClassName =
   "rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-red-500 dark:border-neutral-700 dark:aria-[invalid=true]:border-red-500";
 
+// <select> gets its own token instead of reusing inputClassName's
+// bg-transparent: a native select's dropdown popup is OS-rendered and
+// doesn't follow the card background it sits on, so the closed box needs an
+// explicit light surface (white/slate-900 text) that matches the
+// select/option/optgroup rule in globals.css — otherwise the box and its
+// own popup can show mismatched colors. Keep every disabled/focus/error
+// utility class identical to inputClassName so shared behavior stays
+// consistent between text and select fields.
+export const selectClassName =
+  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-50 disabled:text-slate-400 aria-[invalid=true]:border-red-500 dark:border-neutral-700";
+
 export function TextField({
   label,
   name,
@@ -131,7 +142,7 @@ export function SelectField({
         defaultValue={defaultValue ?? ""}
         disabled={disabled}
         aria-invalid={errors && errors.length > 0}
-        className={inputClassName}
+        className={selectClassName}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (

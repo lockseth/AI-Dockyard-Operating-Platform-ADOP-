@@ -7,7 +7,6 @@ import { listContactsForClient } from "@/lib/master-data/client-contacts/service
 import { listVesselsForClient } from "@/lib/master-data/vessels/service";
 import { StatusBadge } from "@/components/master-data/StatusBadge";
 import { StatusToggleForm } from "@/components/master-data/StatusToggleForm";
-import { CollapsibleCreatePanel } from "@/components/master-data/CollapsibleCreatePanel";
 import { VesselRow } from "@/components/master-data/VesselRow";
 import { Badge } from "@/components/ui/Badge";
 import type { Tone } from "@/components/ui/tone";
@@ -111,11 +110,7 @@ export default async function ClientDetailPage({
             ))}
           </ul>
         )}
-        {canMutate ? (
-          <CollapsibleCreatePanel label="Tambah PIC">
-            <ContactCreateForm clientId={client.id} />
-          </CollapsibleCreatePanel>
-        ) : null}
+        {canMutate ? <ContactCreateForm clientId={client.id} /> : null}
       </section>
 
       <section className="flex flex-col gap-3">
@@ -131,11 +126,7 @@ export default async function ClientDetailPage({
             ))}
           </ul>
         )}
-        {canMutate ? (
-          <CollapsibleCreatePanel label="Tambah Kapal">
-            <VesselCreateForm clientId={client.id} />
-          </CollapsibleCreatePanel>
-        ) : null}
+        {canMutate ? <VesselCreateForm clientId={client.id} /> : null}
       </section>
     </div>
   );
