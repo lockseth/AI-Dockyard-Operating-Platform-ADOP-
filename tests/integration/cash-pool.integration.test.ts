@@ -176,6 +176,58 @@ describe("shared daily cash pool — real local Supabase", () => {
     expect(count).toBe(1);
   });
 
+  // Regression for the post-b9d79e6 corrective audit: the actual failure
+  // mode 20260721020000_opening_cash_pool_atomic_guard.sql guards against is
+  // a genuine concurrent/duplicate submission race (e.g. a double-click or
+  // two browser tabs both firing record_cash_pool_entry(..., 'opening_cash',
+  // ...) for the same pool at nearly the same instant) — never an
+  // auto-post triggered by rendering, an effect, a loader, navigation, or
+  // stale form state. Both CashEntryForm.tsx and OpenCashSection.tsx have
+  // always required an explicit "Simpan"/"Konfirmasi & Posting" click at
+  // every point in this codebase's history (confirmed back to 5f48996's
+  // original CashEntryForm) — there is no code path that posts without one.
+  // cash_pool_opening_cash_guard.test.sql (pgTAP) already proves the second
+  // of two *sequential* calls is rejected; this proves it under real
+  // concurrent load against local Supabase, exactly like the
+  // "concurrent create" test above proves get_or_create_daily_cash_pool.
+  it("concurrent opening_cash submissions for the same pool: exactly one posts, the rest are rejected — proves the real race the atomic guard closes", async () => {
+    const ownerAClient = await signInAsMember(ownerA.email);
+    const businessDate = randomBusinessDate();
+
+    const { data: pool } = await ownerAClient.rpc("get_or_create_daily_cash_pool", {
+      p_tenant_id: TENANT_A_ID,
+      p_business_date: businessDate,
+    });
+
+    const results = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        ownerAClient.rpc("record_cash_pool_entry", {
+          p_pool_id: pool.id,
+          p_entry_type: "opening_cash",
+          p_amount: 1_000_000 + index,
+        }),
+      ),
+    );
+
+    const succeeded = results.filter((r) => r.error === null);
+    const failed = results.filter((r) => r.error !== null);
+    expect(succeeded).toHaveLength(1);
+    expect(failed).toHaveLength(7);
+    for (const result of failed) {
+      expect(result.error!.message).toContain("opening cash already posted for this pool");
+    }
+
+    const { count } = await admin
+      .from("cash_pool_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("pool_id", pool.id)
+      .eq("entry_type", "opening_cash");
+    expect(count).toBe(1);
+
+    const { data: poolAfter } = await admin.from("cash_pools").select("opening_cash_posted").eq("id", pool.id).single();
+    expect(poolAfter!.opening_cash_posted).toBe(true);
+  });
+
   it("reviewer and viewer cannot create a pool; a forged/foreign tenant_id is rejected", async () => {
     const businessDate = randomBusinessDate();
 

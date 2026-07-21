@@ -354,6 +354,72 @@ describe("owner-approved cash import commit — real local Supabase", () => {
     expect(secondApproveError!.message).toContain("OPENING_BALANCE_CONFLICT");
   });
 
+  // Regression for the post-b9d79e6 corrective audit: canonical-preview.test.ts
+  // only proves buildCanonicalCommitPreview's own bucket math reacts to a
+  // synthetic `hasConflict` boolean passed straight in — it never proves the
+  // real read path (getCashImportBatchDetailForActiveTenant ->
+  // hasExistingFinancialEntriesForBusinessDate in
+  // src/lib/cash-import-staging/{service,repository}.ts) actually detects a
+  // committed same-business-date pool against real Supabase, and does so
+  // BEFORE the owner ever attempts approval. This runs the exact
+  // cash_pools -> cash_pool_entries/project_cost_ledger_entries count query
+  // that repository function performs, over the same RLS-scoped PostgREST
+  // surface every other test in this file uses (matching the "no direct
+  // src/lib import" pattern integration tests here already follow, since
+  // that function requires Next.js's createSupabaseServerClient() request
+  // context and cannot be called directly from a plain Vitest process).
+  it("pre-approval BLOCKED signal: hasOpeningBalanceConflict is true for a second same-date batch before approval is ever attempted", async () => {
+    const businessDate = randomBusinessDate();
+    const firstBatchId = await stageReadyBatch(businessDate, randomSha("oacic-preflight-first"));
+
+    const ownerAClient = await signInAsMember(ownerA.email);
+    const { error: firstApproveError } = await ownerAClient.rpc("approve_and_commit_cash_import_batch", {
+      p_batch_id: firstBatchId,
+    });
+    expect(firstApproveError).toBeNull();
+
+    const secondBatchId = await stageReadyBatch(businessDate, randomSha("oacic-preflight-second"));
+
+    // Same query hasExistingFinancialEntriesForBusinessDate runs: find the
+    // pool for (tenant, business_date), then check whether it already has
+    // any cash_pool_entries/project_cost_ledger_entries rows.
+    const { data: pool, error: poolError } = await ownerAClient
+      .from("cash_pools")
+      .select("id")
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("business_date", businessDate)
+      .single();
+    expect(poolError).toBeNull();
+
+    const [{ count: entryCount }, { count: costCount }] = await Promise.all([
+      ownerAClient.from("cash_pool_entries").select("id", { count: "exact", head: true }).eq("pool_id", pool!.id),
+      ownerAClient
+        .from("project_cost_ledger_entries")
+        .select("id", { count: "exact", head: true })
+        .eq("pool_id", pool!.id),
+    ]);
+    const hasOpeningBalanceConflict = (entryCount ?? 0) > 0 || (costCount ?? 0) > 0;
+
+    // The BLOCKED signal is available from this read alone — no approval
+    // call has been made against secondBatchId at this point.
+    expect(hasOpeningBalanceConflict).toBe(true);
+
+    const { data: secondBatchBefore } = await admin
+      .from("cash_import_batches")
+      .select("status")
+      .eq("id", secondBatchId)
+      .single();
+    expect(secondBatchBefore!.status).toBe("ready_for_review");
+
+    // The RPC itself remains the real enforcement, unchanged by the
+    // preflight read above.
+    const { error: secondApproveError } = await ownerAClient.rpc("approve_and_commit_cash_import_batch", {
+      p_batch_id: secondBatchId,
+    });
+    expect(secondApproveError).not.toBeNull();
+    expect(secondApproveError!.message).toContain("OPENING_BALANCE_CONFLICT");
+  });
+
   it("concurrent approval: two simultaneous approve calls on the same batch produce exactly one committed posting", async () => {
     const businessDate = randomBusinessDate();
     const batchId = await stageReadyBatch(businessDate, randomSha("oacic-concurrent"));

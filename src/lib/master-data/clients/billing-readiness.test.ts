@@ -62,6 +62,12 @@ describe("computeClientBillingReadiness", () => {
     expect(readiness.missing).toContain("Nama legal client belum diisi.");
   });
 
+  it("is INCOMPLETE and explains what's missing when address is not set", () => {
+    const readiness = computeClientBillingReadiness(client({ address: null }), [contact()]);
+    expect(readiness.status).toBe("INCOMPLETE");
+    expect(readiness.missing).toContain("Alamat billing belum diisi.");
+  });
+
   it("is INCOMPLETE when there is no active billing-role PIC", () => {
     const readiness = computeClientBillingReadiness(client(), [contact({ role: "operational" })]);
     expect(readiness.status).toBe("INCOMPLETE");
