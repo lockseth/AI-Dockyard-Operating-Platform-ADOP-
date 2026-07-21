@@ -79,14 +79,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "={{ $env.FONNTE_TOKEN }}" }
+            { "name": "Authorization", "value": "={{ $env.FONNTE_SENDER_DEVICE_TOKEN }}" }
           ]
         },
         "sendBody": true,
         "specifyBody": "keypair",
         "bodyParameters": {
           "parameters": [
-            { "name": "target", "value": "={{ $env.OWNER_WHATSAPP_NUMBER }}" },
+            { "name": "target", "value": "={{ $env.RECIPIENT_OWNER_WHATSAPP_NUMBER }}" },
             { "name": "message", "value": "={{ $('Claim Notification').item.json.event.message }}" }
           ]
         },
@@ -95,7 +95,7 @@
         }
       },
       "id": "send-via-fonnte",
-      "name": "Send via Fonnte",
+      "name": "Send via Fonnte (Hendro's paired device -> owner recipient)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [660, -80],
