@@ -1,0 +1,211 @@
+{
+  "name": "ADOP Gate 1L — Owner Control WhatsApp Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every Minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADOP_APP_URL }}/api/internal/notifications/claim",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-secret", "value": "={{ $env.ADOP_INTERNAL_API_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workerId: \"n8n-\" + $execution.id, leaseSeconds: 300 }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "claim-notification",
+      "name": "Claim Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-event",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-event",
+      "name": "Has Event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.fonnte.com/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ $env.FONNTE_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "target", "value": "={{ $env.OWNER_WHATSAPP_NUMBER }}" },
+            { "name": "message", "value": "={{ $('Claim Notification').item.json.event.message }}" }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send-via-fonnte",
+      "name": "Send via Fonnte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, -80],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "fonnte-ok",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fonnte-success",
+      "name": "Fonnte Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADOP_APP_URL }}/api/internal/notifications/complete",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-secret", "value": "={{ $env.ADOP_INTERNAL_API_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $('Claim Notification').item.json.event.id, workerId: \"n8n-\" + $execution.id, providerMessageId: String($json.id || '') }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "complete-notification",
+      "name": "Complete Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADOP_APP_URL }}/api/internal/notifications/fail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-secret", "value": "={{ $env.ADOP_INTERNAL_API_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $('Claim Notification').item.json.event.id, workerId: \"n8n-\" + $execution.id, error: String(($json.reason || $json.message || 'fonnte send failed')).slice(0, 2000) }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "fail-notification",
+      "name": "Fail Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0]
+    }
+  ],
+  "connections": {
+    "Every Minute": {
+      "main": [[{ "node": "Claim Notification", "type": "main", "index": 0 }]]
+    },
+    "Claim Notification": {
+      "main": [[{ "node": "Has Event?", "type": "main", "index": 0 }]]
+    },
+    "Has Event?": {
+      "main": [
+        [{ "node": "Send via Fonnte", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Send via Fonnte": {
+      "main": [[{ "node": "Fonnte Success?", "type": "main", "index": 0 }]]
+    },
+    "Fonnte Success?": {
+      "main": [
+        [{ "node": "Complete Notification", "type": "main", "index": 0 }],
+        [{ "node": "Fail Notification", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

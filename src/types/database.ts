@@ -1552,6 +1552,80 @@ export type Database = {
           },
         ]
       }
+      notification_events: {
+        Row: {
+          attempt_count: number
+          channel: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          sent_at: string | null
+          source_event_id: string
+          status: Database["public"]["Enums"]["notification_status"]
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          channel?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id?: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          max_attempts?: number
+          payload?: Json
+          provider_message_id?: string | null
+          sent_at?: string | null
+          source_event_id: string
+          status?: Database["public"]["Enums"]["notification_status"]
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          channel?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["notification_event_type"]
+          id?: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          max_attempts?: number
+          payload?: Json
+          provider_message_id?: string | null
+          sent_at?: string | null
+          source_event_id?: string
+          status?: Database["public"]["Enums"]["notification_status"]
+          subject_id?: string
+          subject_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -2603,6 +2677,70 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_next_notification_event: {
+        Args: { p_lease_seconds?: number; p_worker_id: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          sent_at: string | null
+          source_event_id: string
+          status: Database["public"]["Enums"]["notification_status"]
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_notification_event: {
+        Args: {
+          p_event_id: string
+          p_provider_message_id?: string
+          p_worker_id: string
+        }
+        Returns: {
+          attempt_count: number
+          channel: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          sent_at: string | null
+          source_event_id: string
+          status: Database["public"]["Enums"]["notification_status"]
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_cash_import_batch: {
         Args: {
           p_business_date: string
@@ -2687,6 +2825,36 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fail_notification_event: {
+        Args: { p_error: string; p_event_id: string; p_worker_id: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          sent_at: string | null
+          source_event_id: string
+          status: Database["public"]["Enums"]["notification_status"]
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3516,6 +3684,8 @@ export type Database = {
         | "cancelled"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
+      notification_event_type: "import_review_requested" | "import_approved"
+      notification_status: "pending" | "processing" | "sent" | "failed"
       project_cost_ledger_entry_kind: "expense" | "reversal" | "refund"
       project_cost_ledger_entry_scope: "project" | "shared_overhead"
       record_status: "active" | "inactive"
@@ -3716,6 +3886,8 @@ export const Constants = {
       ],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
+      notification_event_type: ["import_review_requested", "import_approved"],
+      notification_status: ["pending", "processing", "sent", "failed"],
       project_cost_ledger_entry_kind: ["expense", "reversal", "refund"],
       project_cost_ledger_entry_scope: ["project", "shared_overhead"],
       record_status: ["active", "inactive"],
