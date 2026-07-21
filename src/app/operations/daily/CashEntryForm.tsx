@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { recordCashPoolEntryAction } from "@/lib/operations-daily/actions";
 import { FieldError, FormError } from "@/components/master-data/FormError";
+import { Callout } from "@/components/ui/Callout";
 import { formatBusinessDateLabel, formatRupiah } from "@/lib/operations-daily/format";
 import type { CashPoolEntryType } from "@/lib/cash-pool/types";
 import type { RecordCashPoolEntryResult } from "@/lib/cash-pool/service";
@@ -116,9 +117,8 @@ function OpeningCashEntryForm({
 
   if (showConfirm) {
     return (
-      <div className="flex flex-col gap-3 rounded-md border border-amber-300 bg-amber-50/60 p-3 dark:border-amber-800 dark:bg-amber-950/30">
-        <span className="text-sm font-medium text-amber-900 dark:text-amber-200">Konfirmasi Saldo Awal</span>
-        <dl className="flex flex-col gap-1 text-xs text-amber-900 dark:text-amber-200">
+      <Callout tone="warning" title="Konfirmasi Saldo Awal" className="flex flex-col gap-3">
+        <dl className="flex flex-col gap-1 text-xs">
           <div className="flex justify-between gap-2">
             <dt>Tanggal Operasional</dt>
             <dd className="font-medium">{businessDate ? formatBusinessDateLabel(businessDate) : "-"}</dd>
@@ -128,7 +128,7 @@ function OpeningCashEntryForm({
             <dd className="font-medium">{formatRupiah(parsedAmount)}</dd>
           </div>
         </dl>
-        <p className="text-xs text-amber-800 dark:text-amber-300">
+        <p className="text-xs">
           Setelah dikonfirmasi, saldo awal ini menjadi transaksi append-only — tidak dapat diedit atau dihapus.
           Koreksi hanya dapat dilakukan melalui reversal di Riwayat Transaksi.
         </p>
@@ -156,7 +156,7 @@ function OpeningCashEntryForm({
             </button>
           </div>
         </form>
-      </div>
+      </Callout>
     );
   }
 

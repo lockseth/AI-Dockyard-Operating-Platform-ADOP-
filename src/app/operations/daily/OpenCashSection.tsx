@@ -6,6 +6,7 @@ import { formatBusinessDateLabel, formatRupiah } from "@/lib/operations-daily/fo
 import { getCashPoolDailyCloseStatusLabel } from "@/lib/operations-daily/labels";
 import { isCashPoolOpenForMutation } from "@/lib/operations-daily/view-model";
 import { FormError } from "@/components/master-data/FormError";
+import { Badge } from "@/components/ui/Badge";
 import { CashEntryForm } from "./CashEntryForm";
 import type { CashPoolDailySummaryRow, CashPoolRow } from "@/lib/cash-pool/repository";
 import type { EnsureDailyCashPoolResult } from "@/lib/cash-pool/service";
@@ -55,9 +56,9 @@ export function OpenCashSection({
           {pool.opening_cash_posted ? (
             <div className="flex flex-col gap-2 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
               <span className="text-sm font-medium">Catat Opening Cash</span>
-              <span className="w-fit rounded-full bg-neutral-200 px-2.5 py-0.5 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+              <Badge tone="danger" className="w-fit">
                 BLOCKED
-              </span>
+              </Badge>
               <p className="text-xs text-neutral-500">
                 Saldo awal untuk {formatBusinessDateLabel(businessDate)} sudah diposting. Koreksi hanya dapat
                 dilakukan melalui reversal di Riwayat Transaksi.

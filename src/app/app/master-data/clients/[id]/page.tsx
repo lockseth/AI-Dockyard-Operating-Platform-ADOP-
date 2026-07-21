@@ -2,18 +2,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { getClientForActiveTenant } from "@/lib/master-data/clients/service";
-import { computeClientBillingReadiness } from "@/lib/master-data/clients/billing-readiness";
+import { computeClientBillingReadiness, type BillingReadinessStatus } from "@/lib/master-data/clients/billing-readiness";
 import { listContactsForClient } from "@/lib/master-data/client-contacts/service";
 import { listVesselsForClient } from "@/lib/master-data/vessels/service";
 import { StatusBadge } from "@/components/master-data/StatusBadge";
 import { StatusToggleForm } from "@/components/master-data/StatusToggleForm";
 import { CollapsibleCreatePanel } from "@/components/master-data/CollapsibleCreatePanel";
 import { VesselRow } from "@/components/master-data/VesselRow";
+import { Badge } from "@/components/ui/Badge";
+import type { Tone } from "@/components/ui/tone";
 import { setClientStatusAction } from "@/lib/master-data/clients/actions";
 import { ClientEditForm } from "./ClientEditForm";
 import { ContactCreateForm } from "./ContactCreateForm";
 import { ContactRow } from "./ContactRow";
 import { VesselCreateForm } from "./VesselCreateForm";
+
+const BILLING_READINESS_TONE: Record<BillingReadinessStatus, Tone> = {
+  READY: "success",
+  INCOMPLETE: "warning",
+  BLOCKED: "danger",
+};
 
 export default async function ClientDetailPage({
   params,
@@ -58,17 +66,7 @@ export default async function ClientDetailPage({
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-medium text-neutral-500">Billing Readiness</h3>
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
-              billingReadiness.status === "READY"
-                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
-                : billingReadiness.status === "BLOCKED"
-                  ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
-                  : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-            }`}
-          >
-            {billingReadiness.status}
-          </span>
+          <Badge tone={BILLING_READINESS_TONE[billingReadiness.status]}>{billingReadiness.status}</Badge>
           {billingReadiness.missing.length > 0 ? (
             <ul className="list-disc pl-4 text-xs text-neutral-500">
               {billingReadiness.missing.map((reason) => (
