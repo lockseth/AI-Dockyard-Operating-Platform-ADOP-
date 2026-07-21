@@ -6,8 +6,11 @@ export default defineConfig({
     environment: "node",
     // Integration tests need a running local Supabase stack — they run
     // separately via `pnpm test:integration`, not the default fast/offline
-    // unit suite.
-    exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
+    // unit suite. `.claude/worktrees/**` holds isolated git worktrees the
+    // Agent/task tooling creates for background sessions — without this
+    // exclude, a leftover worktree's own copy of the repo gets scanned
+    // alongside the real one, producing duplicate/stale test results.
+    exclude: ["**/node_modules/**", "**/*.integration.test.ts", "**/.claude/worktrees/**"],
     // Component tests (*.test.tsx) opt into jsdom individually via a
     // `// @vitest-environment jsdom` docblock at the top of the file — the
     // default stays "node" above so the much larger set of pure-logic
