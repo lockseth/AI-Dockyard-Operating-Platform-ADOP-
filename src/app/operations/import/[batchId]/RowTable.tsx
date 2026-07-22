@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { formatRupiah } from "@/lib/operations-daily/format";
 import type { CashImportRowRow } from "@/lib/cash-import-staging/repository";
 import { RowDispositionControl } from "./RowDispositionControl";
+import { Table, TableHead, TableRow, Th, Td } from "@/components/ui/Table";
 
 type StatusFilter = "all" | "valid" | "warning" | "error";
 
@@ -64,55 +65,53 @@ export function RowTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[880px] text-left text-xs">
-          <thead>
-            <tr className="border-b border-neutral-200 text-neutral-500 dark:border-neutral-800">
-              <th className="py-1.5 pr-2">Baris</th>
-              <th className="py-1.5 pr-2">Keterangan</th>
-              <th className="py-1.5 pr-2">Kapal/Kategori</th>
-              <th className="py-1.5 pr-2 text-right">Debit</th>
-              <th className="py-1.5 pr-2 text-right">Kredit</th>
-              <th className="py-1.5 pr-2">Status</th>
-              <th className="py-1.5 pr-2">Duplikat</th>
-              <th className="py-1.5">Disposisi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-neutral-100 align-top dark:border-neutral-900">
-                <td className="py-1.5 pr-2">{row.source_row_number}</td>
-                <td className="py-1.5 pr-2">{row.description ?? "-"}</td>
-                <td className="py-1.5 pr-2">{row.vessel_label ?? "-"}</td>
-                <td className="py-1.5 pr-2 text-right">{row.debit === null ? "-" : formatRupiah(row.debit)}</td>
-                <td className="py-1.5 pr-2 text-right">{row.credit === null ? "-" : formatRupiah(row.credit)}</td>
-                <td className="py-1.5 pr-2">
-                  <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_BADGE_CLASS[row.status]}`}>
-                    {row.status}
+      <Table minWidth="880px">
+        <TableHead>
+          <TableRow>
+            <Th density="compact">Baris</Th>
+            <Th density="compact">Keterangan</Th>
+            <Th density="compact">Kapal/Kategori</Th>
+            <Th density="compact" align="right">Debit</Th>
+            <Th density="compact" align="right">Kredit</Th>
+            <Th density="compact">Status</Th>
+            <Th density="compact">Duplikat</Th>
+            <Th density="compact">Disposisi</Th>
+          </TableRow>
+        </TableHead>
+        <tbody>
+          {filteredRows.map((row) => (
+            <TableRow key={row.id} className="align-top">
+              <Td density="compact">{row.source_row_number}</Td>
+              <Td density="compact">{row.description ?? "-"}</Td>
+              <Td density="compact">{row.vessel_label ?? "-"}</Td>
+              <Td density="compact" align="right">{row.debit === null ? "-" : formatRupiah(row.debit)}</Td>
+              <Td density="compact" align="right">{row.credit === null ? "-" : formatRupiah(row.credit)}</Td>
+              <Td density="compact">
+                <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_BADGE_CLASS[row.status]}`}>
+                  {row.status}
+                </span>
+              </Td>
+              <Td density="compact">
+                {row.duplicate_group_key ? (
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                    Kandidat Duplikat
                   </span>
-                </td>
-                <td className="py-1.5 pr-2">
-                  {row.duplicate_group_key ? (
-                    <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                      Kandidat Duplikat
-                    </span>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td className="py-1.5">
-                  <RowDispositionControl
-                    key={`${row.id}-${row.disposition ?? "unset"}-${row.disposition_reason ?? ""}`}
-                    batchId={batchId}
-                    row={row}
-                    canWrite={canWrite}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                ) : (
+                  "-"
+                )}
+              </Td>
+              <Td density="compact">
+                <RowDispositionControl
+                  key={`${row.id}-${row.disposition ?? "unset"}-${row.disposition_reason ?? ""}`}
+                  batchId={batchId}
+                  row={row}
+                  canWrite={canWrite}
+                />
+              </Td>
+            </TableRow>
+          ))}
+        </tbody>
+      </Table>
     </section>
   );
 }

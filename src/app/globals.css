@@ -3,11 +3,33 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ADOP brand chrome tokens — additive only. These drive the sidebar,
+     login brand panel, and primary/owner buttons; they intentionally do
+     NOT replace the emerald/amber/red/blue/neutral tone system in
+     components/ui/tone.ts, which already backs Badge/Callout across every
+     page outside this redesign's scope. */
+  --color-brand-navy: #1c2a30;
+  --color-brand-navy-hover: #283c45;
+  --color-brand-navy-active: #101a1e;
+  --color-brand-gold: #c99a3d;
+  --color-brand-gold-hover: #b48630;
+  --color-brand-gold-active: #9c7327;
+  --shadow-brand-sm: 0 1px 2px rgba(15, 23, 30, 0.08);
+  --shadow-brand-lg: 0 12px 32px rgba(15, 23, 30, 0.22);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-navy: var(--color-brand-navy);
+  --color-brand-navy-hover: var(--color-brand-navy-hover);
+  --color-brand-navy-active: var(--color-brand-navy-active);
+  --color-brand-gold: var(--color-brand-gold);
+  --color-brand-gold-hover: var(--color-brand-gold-hover);
+  --color-brand-gold-active: var(--color-brand-gold-active);
+  --shadow-brand-sm: var(--shadow-brand-sm);
+  --shadow-brand-lg: var(--shadow-brand-lg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

@@ -1,4 +1,4 @@
-import { SelectField, TextAreaField, TextField } from "@/components/master-data/fields";
+import { CurrencyField, SelectField, TextAreaField, TextField } from "@/components/master-data/fields";
 import type { VesselProjectOption } from "@/lib/operations-daily/view-model";
 
 export interface ExpenseFormDefaultValues {
@@ -47,10 +47,9 @@ export function ExpenseFormFields({
           defaultValue={defaultValues?.vendorId}
           errors={fieldErrors?.vendorId}
         />
-        <TextField
-          label="Nominal (Rp)"
+        <CurrencyField
+          label="Nominal"
           name="amount"
-          type="number"
           required
           defaultValue={defaultValues?.amount}
           errors={fieldErrors?.amount}

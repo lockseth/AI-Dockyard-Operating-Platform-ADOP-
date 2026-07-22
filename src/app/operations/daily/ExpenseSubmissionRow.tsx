@@ -9,7 +9,11 @@ import {
 import { formatRupiah } from "@/lib/operations-daily/format";
 import { getExpenseSubmissionStatusLabel } from "@/lib/operations-daily/labels";
 import { FieldError, FormError } from "@/components/master-data/FormError";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { inputClassName } from "@/components/master-data/fields";
 import { ExpenseFormFields } from "./ExpenseFormFields";
+import type { Tone } from "@/components/ui/tone";
 import type { ExpenseSubmissionCurrentRow } from "@/lib/expense-approvals/repository";
 import type { ExpenseSubmissionActionResult } from "@/lib/expense-approvals/service";
 import type { VesselProjectOption } from "@/lib/operations-daily/view-model";
@@ -17,6 +21,15 @@ import type { VesselProjectOption } from "@/lib/operations-daily/view-model";
 const initialReviseState: ExpenseSubmissionActionResult = {};
 const initialSubmitState: ExpenseSubmissionActionResult = {};
 const initialCancelState: ExpenseSubmissionActionResult = {};
+
+const STATUS_TONE: Record<string, Tone> = {
+  draft: "neutral",
+  submitted: "warning",
+  needs_correction: "warning",
+  approved: "success",
+  rejected: "danger",
+  cancelled: "neutral",
+};
 
 export function ExpenseSubmissionRow({
   submission,
@@ -61,16 +74,16 @@ export function ExpenseSubmissionRow({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-medium">{projectLabel}</p>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
             {categoryLabel}
             {vendorLabel ? ` — ${vendorLabel}` : ""}
           </p>
         </div>
         <div className="text-right">
           <p className="font-medium">{formatRupiah(submission.amount)}</p>
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <Badge tone={STATUS_TONE[status ?? "draft"] ?? "neutral"} dot className="mt-1">
             {getExpenseSubmissionStatusLabel(status ?? "draft")} · Revisi {submission.revision_number}
-          </span>
+          </Badge>
         </div>
       </div>
 
@@ -94,13 +107,9 @@ export function ExpenseSubmissionRow({
 
       {canMutate ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setIsEditing((prev) => !prev)}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:border-neutral-400 dark:border-neutral-700"
-          >
+          <Button variant="secondary" size="sm" onClick={() => setIsEditing((prev) => !prev)}>
             {isEditing ? "Batal Edit" : "Edit"}
-          </button>
+          </Button>
 
           <form
             action={submitFormAction}
@@ -111,22 +120,19 @@ export function ExpenseSubmissionRow({
             }}
           >
             <input type="hidden" name="submissionId" value={submissionId} />
-            <button
-              type="submit"
-              disabled={!canSubmit || isSubmitting}
-              className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-            >
+            <Button type="submit" variant="primary" size="sm" disabled={!canSubmit} loading={isSubmitting}>
               {isSubmitting ? "Mengirim..." : "Kirim"}
-            </button>
+            </Button>
           </form>
 
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setIsCancelling((prev) => !prev)}
-            className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:border-red-400 dark:border-red-800 dark:text-red-400"
+            className="!border-red-300 !text-red-600 hover:!bg-red-50 dark:!border-red-800 dark:!text-red-400"
           >
             {isCancelling ? "Batal" : "Batalkan"}
-          </button>
+          </Button>
         </div>
       ) : null}
 
@@ -158,13 +164,9 @@ export function ExpenseSubmissionRow({
           />
           <FormError error={reviseState.error} />
           <div>
-            <button
-              type="submit"
-              disabled={isRevising}
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-            >
+            <Button type="submit" variant="primary" loading={isRevising}>
               {isRevising ? "Menyimpan..." : "Simpan Revisi"}
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}
@@ -194,18 +196,14 @@ export function ExpenseSubmissionRow({
             name="reason"
             required
             rows={2}
-            className="rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
+            className={inputClassName}
           />
           <FieldError messages={cancelState.fieldErrors?.reason} />
           <FormError error={cancelState.error} />
           <div>
-            <button
-              type="submit"
-              disabled={isCancellingRequest}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            >
+            <Button type="submit" variant="destructive" loading={isCancellingRequest}>
               {isCancellingRequest ? "Membatalkan..." : "Konfirmasi Batalkan"}
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}

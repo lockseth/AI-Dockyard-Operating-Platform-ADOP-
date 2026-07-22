@@ -100,38 +100,38 @@ export default async function DailyOperationsPage() {
 
   return (
     <AppShell title="Operasional Harian Admin" operationalDateLabel={formatBusinessDateLabel(businessDate)}>
-    <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-6 py-10">
-      <main className="flex flex-1 flex-col gap-6 pb-16">
-        <OpenCashSection businessDate={businessDate} pool={pool} summary={summary} />
+      <div className="mx-auto flex w-full max-w-4xl flex-col px-6 py-10">
+        <main className="flex flex-1 flex-col gap-8 pb-16">
+          <OpenCashSection businessDate={businessDate} pool={pool} summary={summary} />
 
-        <ExpenseFormSection
-          poolId={pool?.id ?? null}
-          projectOptions={projectOptions}
-          categoryOptions={categoryOptions}
-          vendorOptions={vendorOptions}
-        />
+          <ExpenseFormSection
+            poolId={pool?.id ?? null}
+            projectOptions={projectOptions}
+            categoryOptions={categoryOptions}
+            vendorOptions={vendorOptions}
+          />
 
-        <SubmissionStatusSection
-          submissions={submissions}
-          duplicateSubmissionIds={duplicateSubmissionIds}
-          decisionReasonBySubmissionId={decisionReasonBySubmissionId}
-          projectLabelById={projectLabelById}
-          categoryLabelById={categoryLabelById}
-          vendorLabelById={vendorLabelById}
-          canSubmit={canSubmitExpense}
-          projectOptions={projectOptions}
-          categoryOptions={categoryOptions}
-          vendorOptions={vendorOptions}
-        />
+          <SubmissionStatusSection
+            submissions={submissions}
+            duplicateSubmissionIds={duplicateSubmissionIds}
+            decisionReasonBySubmissionId={decisionReasonBySubmissionId}
+            projectLabelById={projectLabelById}
+            categoryLabelById={categoryLabelById}
+            vendorLabelById={vendorLabelById}
+            canSubmit={canSubmitExpense}
+            projectOptions={projectOptions}
+            categoryOptions={categoryOptions}
+            vendorOptions={vendorOptions}
+          />
 
-        <EodCloseSection
-          pool={pool}
-          summary={summary}
-          reconciliation={reconciliation}
-          unresolvedExpenseCount={unresolvedExpenseCount}
-        />
-      </main>
-    </div>
+          <EodCloseSection
+            pool={pool}
+            summary={summary}
+            reconciliation={reconciliation}
+            unresolvedExpenseCount={unresolvedExpenseCount}
+          />
+        </main>
+      </div>
     </AppShell>
   );
 }

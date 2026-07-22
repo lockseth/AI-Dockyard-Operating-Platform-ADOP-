@@ -3,15 +3,14 @@
 import { useActionState, useState } from "react";
 import { recordCashPoolEntryAction } from "@/lib/operations-daily/actions";
 import { FieldError, FormError } from "@/components/master-data/FormError";
+import { inputClassName } from "@/components/master-data/fields";
+import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { formatBusinessDateLabel, formatRupiah } from "@/lib/operations-daily/format";
 import type { CashPoolEntryType } from "@/lib/cash-pool/types";
 import type { RecordCashPoolEntryResult } from "@/lib/cash-pool/service";
 
 const initialState: RecordCashPoolEntryResult = {};
-
-const inputClassName =
-  "rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 disabled:opacity-60 dark:border-neutral-700";
 
 export function CashEntryForm({
   poolId,
@@ -80,13 +79,9 @@ function StandardCashEntryForm({
         className={inputClassName}
       />
       <FormError error={state.error} />
-      <button
-        type="submit"
-        disabled={disabled || isPending}
-        className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-      >
+      <Button type="submit" variant="primary" size="sm" disabled={disabled} loading={isPending}>
         {isPending ? "Menyimpan..." : "Simpan"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -139,21 +134,12 @@ function OpeningCashEntryForm({
           <input type="hidden" name="description" value={description} />
           <FormError error={state.error} />
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-md bg-amber-800 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-            >
+            <Button type="submit" variant="brand" size="sm" loading={isPending}>
               {isPending ? "Memposting..." : "Konfirmasi & Posting"}
-            </button>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => setShowConfirm(false)}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700"
-            >
+            </Button>
+            <Button type="button" variant="secondary" size="sm" disabled={isPending} onClick={() => setShowConfirm(false)}>
               Batal
-            </button>
+            </Button>
           </div>
         </form>
       </Callout>
@@ -184,14 +170,9 @@ function OpeningCashEntryForm({
         disabled={disabled}
         className={inputClassName}
       />
-      <button
-        type="button"
-        disabled={disabled || !canReview}
-        onClick={() => setShowConfirm(true)}
-        className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-      >
+      <Button type="button" variant="primary" size="sm" disabled={disabled || !canReview} onClick={() => setShowConfirm(true)}>
         Tinjau & Konfirmasi
-      </button>
+      </Button>
     </div>
   );
 }

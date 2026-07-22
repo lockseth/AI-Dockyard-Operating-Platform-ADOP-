@@ -9,9 +9,23 @@ import {
 import { formatRupiah } from "@/lib/operations-daily/format";
 import { getCashReconciliationStatusLabel } from "@/lib/operations-daily/labels";
 import { FieldError, FormError } from "@/components/master-data/FormError";
+import { inputClassName } from "@/components/master-data/fields";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, StatCard } from "@/components/ui/Card";
+import { Callout } from "@/components/ui/Callout";
 import type { CashPoolDailySummaryRow, CashPoolRow } from "@/lib/cash-pool/repository";
 import type { CashPoolReconciliationCurrentRow } from "@/lib/cash-reconciliation/repository";
 import type { CashReconciliationResult } from "@/lib/cash-reconciliation/service";
+import type { Tone } from "@/components/ui/tone";
+
+const RECONCILIATION_STATUS_TONE: Record<string, Tone> = {
+  draft: "neutral",
+  submitted: "warning",
+  needs_correction: "warning",
+  approved: "success",
+  rejected: "danger",
+};
 
 const initialDraftState: CashReconciliationResult = {};
 const initialSubmitState: CashReconciliationResult = {};
@@ -38,12 +52,12 @@ export function EodCloseSection({
 
   if (pool?.daily_close_status === "closed") {
     return (
-      <section id="tutup-kas" className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
-        <h2 className="text-lg font-semibold tracking-tight">4. Tutup Kas Hari Ini</h2>
-        <p className="mt-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+      <Card id="tutup-kas" className="scroll-mt-4">
+        <h2 className="text-[20px] font-extrabold tracking-tight">4. Tutup Kas Hari Ini</h2>
+        <Badge tone="success" dot className="mt-3">
           Kas hari ini sudah ditutup.
-        </p>
-      </section>
+        </Badge>
+      </Card>
     );
   }
 
@@ -57,38 +71,45 @@ export function EodCloseSection({
   const hasUnresolvedExpenses = unresolvedExpenseCount > 0;
 
   return (
-    <section id="tutup-kas" className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
-      <h2 className="text-lg font-semibold tracking-tight">4. Tutup Kas Hari Ini</h2>
+    <Card id="tutup-kas" className="scroll-mt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[20px] font-extrabold tracking-tight">4. Tutup Kas Hari Ini</h2>
+        {pool ? (
+          <Badge tone={RECONCILIATION_STATUS_TONE[reconciliation?.status ?? "draft"] ?? "neutral"} dot>
+            {getCashReconciliationStatusLabel(reconciliation?.status ?? null)}
+          </Badge>
+        ) : null}
+      </div>
 
       {!pool ? (
-        <p className="mt-3 text-sm text-neutral-500">Kas hari ini belum dibuka.</p>
+        <p className="mt-3 text-sm text-neutral-500 dark:text-neutral-400">Kas hari ini belum dibuka.</p>
       ) : (
         <>
-          <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-            <SummaryRow label="Opening Cash" value={formatRupiah(summary?.opening_cash)} />
-            <SummaryRow
-              label="Total Cash-In (Top-Up + Lainnya)"
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard eyebrow="Opening Cash" value={formatRupiah(summary?.opening_cash)} />
+            <StatCard
+              eyebrow="Total Cash-In"
               value={formatRupiah((summary?.cash_top_up ?? 0) + (summary?.other_cash_in ?? 0))}
+              note="Top-Up + Lainnya"
             />
-            <SummaryRow label="Total Cash-Out" value={formatRupiah(summary?.total_cash_out)} />
-            <SummaryRow label="Expected Closing Cash" value={formatRupiah(summary?.closing_cash)} />
-            <SummaryRow label="Pengajuan Belum Final" value={String(unresolvedExpenseCount)} />
-            <SummaryRow label="Status Rekonsiliasi" value={getCashReconciliationStatusLabel(reconciliation?.status ?? null)} />
-          </dl>
+            <StatCard eyebrow="Total Cash-Out" value={formatRupiah(summary?.total_cash_out)} />
+            <StatCard eyebrow="Expected Closing Cash" value={formatRupiah(summary?.closing_cash)} />
+            <StatCard eyebrow="Pengajuan Belum Final" value={String(unresolvedExpenseCount)} />
+          </div>
 
           {hasUnresolvedExpenses ? (
-            <p role="alert" className="mt-3 text-sm text-amber-600 dark:text-amber-400">
+            <Callout tone="warning" role="alert" className="mt-4 text-sm">
               Masih ada {unresolvedExpenseCount} pengajuan biaya yang belum memiliki keputusan final. Selesaikan
               pada{" "}
               <a href="#status-pengajuan" className="underline underline-offset-4">
                 daftar Status Pengajuan
               </a>{" "}
               sebelum menutup kas.
-            </p>
+            </Callout>
           ) : null}
 
           {isAwaitingReview ? (
-            <p className="mt-3 text-sm text-neutral-500">
+            <p className="mt-3 text-sm text-neutral-500 dark:text-neutral-400">
               Rekonsiliasi sedang menunggu review Pak Hanafi — form terkunci sampai ada keputusan.
             </p>
           ) : null}
@@ -112,7 +133,7 @@ export function EodCloseSection({
               {!reconciliation ? <input type="hidden" name="poolId" value={pool.id} /> : null}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="actualCountedCash" className="text-sm font-medium">
+                  <label htmlFor="actualCountedCash" className="text-[12.5px] font-semibold text-neutral-700 dark:text-neutral-300">
                     Kas Fisik Terhitung (Rp)
                   </label>
                   <input
@@ -123,12 +144,12 @@ export function EodCloseSection({
                     step="1"
                     required
                     defaultValue={reconciliation?.actual_counted_cash ?? undefined}
-                    className="rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
+                    className={inputClassName}
                   />
                   <FieldError messages={draftState.fieldErrors?.actualCountedCash} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="explanation" className="text-sm font-medium">
+                  <label htmlFor="explanation" className="text-[12.5px] font-semibold text-neutral-700 dark:text-neutral-300">
                     Catatan / Penjelasan Selisih
                   </label>
                   <textarea
@@ -136,20 +157,16 @@ export function EodCloseSection({
                     name="explanation"
                     rows={2}
                     defaultValue={reconciliation?.explanation ?? undefined}
-                    className="rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
+                    className={inputClassName}
                   />
                   <FieldError messages={draftState.fieldErrors?.explanation} />
                 </div>
               </div>
               <FormError error={draftState.error} />
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="submit"
-                  disabled={isSavingDraft}
-                  className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700"
-                >
+                <Button type="submit" variant="secondary" loading={isSavingDraft}>
                   {isSavingDraft ? "Menyimpan..." : reconciliation ? "Simpan Revisi" : "Simpan Draft Rekonsiliasi"}
-                </button>
+                </Button>
               </div>
             </form>
           ) : null}
@@ -166,26 +183,13 @@ export function EodCloseSection({
             >
               <input type="hidden" name="reconciliationId" value={reconciliation.reconciliation_id ?? ""} />
               <FormError error={submitState.error} />
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-              >
+              <Button type="submit" variant="primary" loading={isSubmitting}>
                 {isSubmitting ? "Mengirim..." : "Kirim ke Pak Hanafi"}
-              </button>
+              </Button>
             </form>
           ) : null}
         </>
       )}
-    </section>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-md bg-neutral-50 px-3 py-2 dark:bg-neutral-900">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="font-medium">{value}</dd>
-    </div>
+    </Card>
   );
 }

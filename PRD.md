@@ -430,6 +430,8 @@ Minimal pada Phase 1 menampilkan:
 
 Target owner dashboard lintas fase menambahkan Piutang, Progress Kapal, unbilled project, invoice delivery, profit, dan forecast setelah modul sumbernya aktif. UI tidak boleh menampilkan placeholder seolah datanya sudah tersedia.
 
+**Status implementasi (per revisi UI navy/gold):** `/owner/control` (Owner Control, akses Owner-only) sudah mengimplementasikan sebagian besar figur di atas — ringkasan kas, project aktif, antrean review/approval, dan status EOD — lengkap dengan aksi approve/reject/commit/rollback. `/app` sebelumnya hanya Foundation Workspace (identity readout tanpa data operasional); kini menjadi dashboard landing untuk Admin (dan role lain yang mengakses `/app`) berisi status kas hari ini, ringkasan Project Kapal aktif, pekerjaan yang memerlukan tindakan, dan aktivitas/transaksi terbaru, memakai fungsi query `*ForActiveTenant` yang sama dengan Owner Control/`/app/reviews` — bersifat read-only, tanpa memindahkan aksi keputusan Owner-only. Widget Piutang, Progress Kapal, unbilled project, invoice delivery, profit, dan forecast tetap belum ada karena modul sumbernya belum aktif.
+
 Angka harus dapat ditelusuri sampai ke transaksi sumber.
 
 Pak Hanafi menerima Morning Daily Expense Brief untuk aktivitas hari sebelumnya. Waktu kirim bersifat configurable; jam final menunggu konfirmasi discovery.

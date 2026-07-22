@@ -7,11 +7,22 @@ import { getCashPoolDailyCloseStatusLabel } from "@/lib/operations-daily/labels"
 import { isCashPoolOpenForMutation } from "@/lib/operations-daily/view-model";
 import { FormError } from "@/components/master-data/FormError";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card, StatCard } from "@/components/ui/Card";
+import { Callout } from "@/components/ui/Callout";
 import { CashEntryForm } from "./CashEntryForm";
 import type { CashPoolDailySummaryRow, CashPoolRow } from "@/lib/cash-pool/repository";
 import type { EnsureDailyCashPoolResult } from "@/lib/cash-pool/service";
+import type { CashPoolDailyCloseStatus } from "@/lib/cash-reconciliation/types";
+import type { Tone } from "@/components/ui/tone";
 
 const initialState: EnsureDailyCashPoolResult = {};
+
+const STATUS_TONE: Record<CashPoolDailyCloseStatus, Tone> = {
+  open: "success",
+  pending_close: "warning",
+  closed: "neutral",
+};
 
 export function OpenCashSection({
   businessDate,
@@ -24,42 +35,49 @@ export function OpenCashSection({
 }) {
   const [state, formAction, isPending] = useActionState(ensureDailyCashPoolAction, initialState);
   const mutationOpen = isCashPoolOpenForMutation(pool);
+  const statusTone: Tone = pool ? STATUS_TONE[pool.daily_close_status] : "neutral";
 
   return (
-    <section className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
-      <h2 className="text-lg font-semibold tracking-tight">1. Buka Kas Hari Ini</h2>
-      <p className="mt-1 text-sm text-neutral-500">{formatBusinessDateLabel(businessDate)}</p>
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[20px] font-extrabold tracking-tight">1. Buka Kas Hari Ini</h2>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{formatBusinessDateLabel(businessDate)}</p>
+        </div>
+        <Badge tone={statusTone} dot>
+          {getCashPoolDailyCloseStatusLabel(pool?.daily_close_status ?? null)}
+        </Badge>
+      </div>
 
-      <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-        <SummaryRow label="Status Kas" value={getCashPoolDailyCloseStatusLabel(pool?.daily_close_status ?? null)} />
-        <SummaryRow label="Opening Cash" value={formatRupiah(summary?.opening_cash)} />
-        <SummaryRow label="Cash Top-Up" value={formatRupiah(summary?.cash_top_up)} />
-        <SummaryRow label="Other Cash-In" value={formatRupiah(summary?.other_cash_in)} />
-        <SummaryRow label="Total Cash-Out" value={formatRupiah(summary?.total_cash_out)} />
-        <SummaryRow label="Expected Closing Cash" value={formatRupiah(summary?.closing_cash)} />
-      </dl>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard eyebrow="Opening Cash" value={formatRupiah(summary?.opening_cash)} />
+        <StatCard eyebrow="Cash Top-Up" value={formatRupiah(summary?.cash_top_up)} />
+        <StatCard eyebrow="Other Cash-In" value={formatRupiah(summary?.other_cash_in)} />
+        <StatCard eyebrow="Total Cash-Out" value={formatRupiah(summary?.total_cash_out)} />
+        <StatCard
+          eyebrow="Expected Closing Cash"
+          value={formatRupiah(summary?.closing_cash)}
+          note="Saldo Awal + Cash-In − Cash-Out"
+        />
+      </div>
 
       {!pool ? (
         <form action={formAction} className="mt-4 flex flex-col items-start gap-2">
           <input type="hidden" name="businessDate" value={businessDate} />
           <FormError error={state.error} />
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-          >
+          <Button type="submit" variant="primary" loading={isPending}>
             {isPending ? "Membuka..." : "Buka Kas Hari Ini"}
-          </button>
+          </Button>
         </form>
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {pool.opening_cash_posted ? (
-            <div className="flex flex-col gap-2 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+            <div className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
               <span className="text-sm font-medium">Catat Opening Cash</span>
               <Badge tone="danger" className="w-fit">
                 BLOCKED
               </Badge>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 Saldo awal untuk {formatBusinessDateLabel(businessDate)} sudah diposting. Koreksi hanya dapat
                 dilakukan melalui reversal di Riwayat Transaksi.
               </p>
@@ -79,19 +97,10 @@ export function OpenCashSection({
       )}
 
       {pool && !mutationOpen ? (
-        <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+        <Callout tone="warning" className="mt-4 text-xs">
           Kas hari ini {getCashPoolDailyCloseStatusLabel(pool.daily_close_status)} — input finansial dikunci.
-        </p>
+        </Callout>
       ) : null}
-    </section>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-md bg-neutral-50 px-3 py-2 dark:bg-neutral-900">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="font-medium">{value}</dd>
-    </div>
+    </Card>
   );
 }

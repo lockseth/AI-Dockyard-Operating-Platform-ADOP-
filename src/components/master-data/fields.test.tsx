@@ -13,7 +13,7 @@ describe("SelectField — shared dropdown accessibility (LOCK Gate 4)", () => {
     render(<SelectField label="Pilihan" name="pilihan" options={options} />);
     const select = screen.getByLabelText("Pilihan");
     expect(select.className).toMatch(/focus:ring-2/);
-    expect(select.className).toMatch(/focus:ring-neutral-400/);
+    expect(select.className).toMatch(/focus:border-blue-500/);
   });
 
   it("marks the selected option via defaultValue so the current selection is readable", () => {
@@ -26,7 +26,8 @@ describe("SelectField — shared dropdown accessibility (LOCK Gate 4)", () => {
     render(<SelectField label="Pilihan" name="pilihan" options={options} disabled />);
     const select = screen.getByLabelText("Pilihan") as HTMLSelectElement;
     expect(select.disabled).toBe(true);
-    expect(select.className).toMatch(/disabled:opacity-50/);
+    expect(select.className).toMatch(/disabled:bg-slate-50/);
+    expect(select.className).toMatch(/disabled:text-slate-400/);
     expect(select.className).toMatch(/disabled:cursor-not-allowed/);
   });
 
@@ -55,7 +56,9 @@ describe("TextField — shared disabled/error state (LOCK Gate 4)", () => {
     render(<TextField label="Nama" name="nama" disabled />);
     const input = screen.getByLabelText("Nama") as HTMLInputElement;
     expect(input.disabled).toBe(true);
-    expect(input.className).toMatch(/disabled:opacity-50/);
+    expect(input.className).toMatch(/disabled:bg-neutral-50/);
+    expect(input.className).toMatch(/disabled:text-neutral-400/);
+    expect(input.className).toMatch(/disabled:cursor-not-allowed/);
   });
 
   it("marks aria-invalid when field errors are present", () => {

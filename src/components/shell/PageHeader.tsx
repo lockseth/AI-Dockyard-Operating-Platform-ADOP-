@@ -6,10 +6,10 @@ export function PageHeader({
   operationalDateLabel?: string;
 }) {
   return (
-    <header className="flex items-center justify-between gap-4 border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
+    <header className="flex min-h-[44px] items-center justify-between gap-4 border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
       <div>
-        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-        {operationalDateLabel ? <p className="text-sm text-neutral-500">{operationalDateLabel}</p> : null}
+        <h1 className="text-lg font-bold tracking-tight">{title}</h1>
+        {operationalDateLabel ? <p className="text-sm text-neutral-500 dark:text-neutral-400">{operationalDateLabel}</p> : null}
       </div>
       <span
         aria-hidden

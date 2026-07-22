@@ -13,18 +13,68 @@ import { FieldError } from "./FormError";
 // disposition <select> next to a button) can still apply the exact same
 // base token instead of hand-rolling a near-duplicate className.
 export const inputClassName =
-  "rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-red-500 dark:border-neutral-700 dark:aria-[invalid=true]:border-red-500";
+  "h-[42px] rounded-lg border-[1.5px] border-neutral-300 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-50 disabled:text-neutral-400 aria-[invalid=true]:border-red-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:disabled:bg-neutral-950 dark:aria-[invalid=true]:border-red-500";
 
-// <select> gets its own token instead of reusing inputClassName's
-// bg-transparent: a native select's dropdown popup is OS-rendered and
-// doesn't follow the card background it sits on, so the closed box needs an
-// explicit light surface (white/slate-900 text) that matches the
-// select/option/optgroup rule in globals.css — otherwise the box and its
-// own popup can show mismatched colors. Keep every disabled/focus/error
-// utility class identical to inputClassName so shared behavior stays
-// consistent between text and select fields.
+// <select> gets its own token instead of reusing inputClassName's bg: a
+// native select's dropdown popup is OS-rendered and doesn't follow the card
+// background it sits on, so the closed box needs an explicit light surface
+// (white/slate-900 text) that matches the select/option/optgroup rule in
+// globals.css — otherwise the box and its own popup can show mismatched
+// colors. Keep every disabled/focus/error utility class identical to
+// inputClassName so shared behavior stays consistent between text and
+// select fields.
 export const selectClassName =
-  "rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-50 disabled:text-slate-400 aria-[invalid=true]:border-red-500 dark:border-neutral-700";
+  "h-[42px] rounded-lg border-[1.5px] border-neutral-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-slate-50 disabled:text-slate-400 aria-[invalid=true]:border-red-500 dark:border-neutral-700";
+
+// Composite Rp-prefixed currency control — same outer border/radius/height
+// as inputClassName, split into a muted prefix chip and a borderless number
+// input. Kept as type="number" (not a masked/formatted text input) so
+// server-side parsing of the submitted form value is unchanged.
+export function CurrencyField({
+  label,
+  name,
+  defaultValue,
+  required,
+  disabled,
+  errors,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: number | null;
+  required?: boolean;
+  disabled?: boolean;
+  errors?: string[];
+}) {
+  const hasError = !!errors && errors.length > 0;
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={name} className="text-sm font-medium">
+        {label}
+        {required ? <span className="text-red-600 dark:text-red-400"> *</span> : null}
+      </label>
+      <div
+        className={`flex h-[42px] items-center overflow-hidden rounded-lg border-[1.5px] border-neutral-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:border-neutral-700 ${
+          hasError ? "border-red-500 dark:border-red-500" : ""
+        } ${disabled ? "bg-neutral-50 dark:bg-neutral-950" : "bg-white dark:bg-neutral-900"}`}
+      >
+        <span className="flex h-full shrink-0 items-center border-r border-neutral-300 bg-neutral-100 px-3 text-sm font-semibold text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
+          Rp
+        </span>
+        <input
+          id={name}
+          name={name}
+          type="number"
+          defaultValue={defaultValue ?? undefined}
+          required={required}
+          disabled={disabled}
+          aria-invalid={hasError}
+          className="h-full flex-1 border-none bg-transparent px-3 text-sm text-neutral-900 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-neutral-400 dark:text-neutral-100"
+        />
+      </div>
+      <FieldError messages={errors} />
+    </div>
+  );
+}
 
 export function TextField({
   label,
