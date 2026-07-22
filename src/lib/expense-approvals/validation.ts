@@ -15,26 +15,50 @@ const optionalIdSchema = z.preprocess(
   idSchema.optional(),
 );
 
+const entryScopeSchema = z.enum(["project", "shared_overhead"]).default("project");
+
 const expenseSubmissionFieldsSchema = {
   poolId: idSchema,
-  projectId: idSchema,
+  // Required only for entryScope "project" — enforced by the superRefine
+  // below (and, authoritatively, by create_expense_draft/revise_expense_
+  // draft's own check server-side), not by the schema type itself, since
+  // a shared_overhead submission never carries a project.
+  projectId: optionalIdSchema,
   categoryId: idSchema,
   amount: amountSchema,
   description: requiredText(500, "Keterangan wajib diisi."),
   vendorId: optionalIdSchema,
   referenceNumber: optionalText(100),
+  entryScope: entryScopeSchema,
+  facilityLocationId: optionalIdSchema,
 };
 
-export const createExpenseDraftInputSchema = z.object({
-  tenantId: idSchema,
-  ...expenseSubmissionFieldsSchema,
-});
+function requireProjectForProjectScope(
+  data: { entryScope: "project" | "shared_overhead"; projectId?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (data.entryScope === "project" && !data.projectId) {
+    ctx.addIssue({ code: "custom", path: ["projectId"], message: "Project Kapal wajib diisi." });
+  }
+  if (data.entryScope === "shared_overhead" && data.projectId) {
+    ctx.addIssue({ code: "custom", path: ["projectId"], message: "Biaya Bersama/Overhead tidak boleh memiliki Project Kapal." });
+  }
+}
+
+export const createExpenseDraftInputSchema = z
+  .object({
+    tenantId: idSchema,
+    ...expenseSubmissionFieldsSchema,
+  })
+  .superRefine(requireProjectForProjectScope);
 export type CreateExpenseDraftInput = z.infer<typeof createExpenseDraftInputSchema>;
 
-export const reviseExpenseDraftInputSchema = z.object({
-  submissionId: idSchema,
-  ...expenseSubmissionFieldsSchema,
-});
+export const reviseExpenseDraftInputSchema = z
+  .object({
+    submissionId: idSchema,
+    ...expenseSubmissionFieldsSchema,
+  })
+  .superRefine(requireProjectForProjectScope);
 export type ReviseExpenseDraftInput = z.infer<typeof reviseExpenseDraftInputSchema>;
 
 export const submitExpenseInputSchema = z.object({

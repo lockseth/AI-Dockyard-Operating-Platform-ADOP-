@@ -74,6 +74,8 @@ export async function createExpenseDraftForActiveTenant(rawInput: unknown): Prom
     description: input.description,
     vendorId: input.vendorId,
     referenceNumber: input.referenceNumber,
+    entryScope: input.entryScope,
+    facilityLocationId: input.facilityLocationId,
   });
   if (error || !data) {
     return { error: mapExpenseApprovalError(error) };
@@ -101,6 +103,8 @@ export async function reviseExpenseDraftForActiveTenant(rawInput: unknown): Prom
     description: input.description,
     vendorId: input.vendorId,
     referenceNumber: input.referenceNumber,
+    entryScope: input.entryScope,
+    facilityLocationId: input.facilityLocationId,
   });
   if (error || !data) {
     return { error: mapExpenseApprovalError(error) };

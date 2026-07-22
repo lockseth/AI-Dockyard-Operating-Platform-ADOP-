@@ -68,6 +68,12 @@ export function mapExpenseApprovalError(error: PostgrestError | null | undefined
       if (error.message?.includes("closed to new expenses")) {
         return "Project sudah closed dan tidak dapat menerima biaya baru.";
       }
+      if (error.message?.includes("project is required for a project-scoped expense")) {
+        return "Project Kapal wajib diisi untuk Biaya Project Kapal.";
+      }
+      if (error.message?.includes("shared overhead expense cannot carry a project")) {
+        return "Biaya Bersama/Overhead tidak boleh memiliki Project Kapal.";
+      }
       if (error.message?.includes("amount must be greater than zero")) {
         return "Nominal harus lebih besar dari nol.";
       }

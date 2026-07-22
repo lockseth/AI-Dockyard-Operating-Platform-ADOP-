@@ -20,7 +20,7 @@ export interface NavGroup {
 export function getNavGroupsForRoles(roles: TenantRole[]): NavGroup[] {
   const groups: NavGroup[] = [
     {
-      title: "OVERVIEW",
+      title: "RINGKASAN",
       items: [{ href: "/app", label: "Dashboard" }],
     },
   ];
@@ -29,6 +29,7 @@ export function getNavGroupsForRoles(roles: TenantRole[]): NavGroup[] {
   if (canAccessDailyOperations(roles)) {
     operasionalItems.push({ href: "/operations/daily", label: "Operasional Harian" });
     operasionalItems.push({ href: "/operations/history", label: "Riwayat Transaksi" });
+    operasionalItems.push({ href: "/operations/overhead", label: "Biaya Bersama/Overhead" });
   }
   operasionalItems.push({ href: "/app/vessel-projects", label: "Project Kapal" });
   operasionalItems.push({ href: "/app/reviews", label: "Review & Approval" });
@@ -38,19 +39,11 @@ export function getNavGroupsForRoles(roles: TenantRole[]): NavGroup[] {
   if (canReadCashImportStaging(roles)) {
     dataItems.push({ href: "/operations/import", label: "Import Data" });
   }
-  groups.push({ title: "DATA", items: dataItems });
+  groups.push({ title: "MANAJEMEN DATA", items: dataItems });
 
   if (canAccessOwnerControl(roles)) {
     groups.push({ title: "OWNER", items: [{ href: "/owner/control", label: "Owner Control" }] });
   }
-
-  groups.push({
-    title: "PENGATURAN",
-    items: [
-      { href: "/app/company-profile", label: "Profil Perusahaan" },
-      { href: "/app/users", label: "User & Hak Akses" },
-    ],
-  });
 
   return groups;
 }

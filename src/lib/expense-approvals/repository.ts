@@ -1,6 +1,7 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
+import type { ExpenseEntryScope } from "./types";
 
 export type ExpenseSubmissionRow = Tables<"expense_submissions">;
 export type ExpenseSubmissionRevisionRow = Tables<"expense_submission_revisions">;
@@ -59,12 +60,14 @@ export async function listExpenseSubmissionStatusEvents(
 export async function createExpenseDraft(params: {
   tenantId: string;
   poolId: string;
-  projectId: string;
+  projectId?: string;
   categoryId: string;
   amount: number;
   description: string;
   vendorId?: string;
   referenceNumber?: string;
+  entryScope: ExpenseEntryScope;
+  facilityLocationId?: string;
 }) {
   const supabase = await createSupabaseServerClient();
   return supabase.rpc("create_expense_draft", {
@@ -76,6 +79,8 @@ export async function createExpenseDraft(params: {
     p_description: params.description,
     p_vendor_id: params.vendorId,
     p_reference_number: params.referenceNumber,
+    p_entry_scope: params.entryScope,
+    p_facility_location_id: params.facilityLocationId,
   });
 }
 
@@ -84,12 +89,14 @@ export async function createExpenseDraft(params: {
 export async function reviseExpenseDraft(params: {
   submissionId: string;
   poolId: string;
-  projectId: string;
+  projectId?: string;
   categoryId: string;
   amount: number;
   description: string;
   vendorId?: string;
   referenceNumber?: string;
+  entryScope: ExpenseEntryScope;
+  facilityLocationId?: string;
 }) {
   const supabase = await createSupabaseServerClient();
   return supabase.rpc("revise_expense_draft", {
@@ -101,6 +108,8 @@ export async function reviseExpenseDraft(params: {
     p_description: params.description,
     p_vendor_id: params.vendorId,
     p_reference_number: params.referenceNumber,
+    p_entry_scope: params.entryScope,
+    p_facility_location_id: params.facilityLocationId,
   });
 }
 

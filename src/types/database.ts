@@ -1148,9 +1148,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          entry_scope: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id: string | null
           id: string
           pool_id: string
-          project_id: string
+          project_id: string | null
           reference_number: string | null
           revision_number: number
           submission_id: string
@@ -1163,9 +1165,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
+          entry_scope?: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id?: string | null
           id?: string
           pool_id: string
-          project_id: string
+          project_id?: string | null
           reference_number?: string | null
           revision_number: number
           submission_id: string
@@ -1178,9 +1182,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          entry_scope?: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id?: string | null
           id?: string
           pool_id?: string
-          project_id?: string
+          project_id?: string | null
           reference_number?: string | null
           revision_number?: number
           submission_id?: string
@@ -1193,6 +1199,13 @@ export type Database = {
             columns: ["category_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "expense_categories"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_facility_location_id_tenant_i_fkey"
+            columns: ["facility_location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -1399,6 +1412,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "project_refund_ledger_current"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_allocation_status"
+            referencedColumns: ["overhead_entry_id"]
           },
           {
             foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
@@ -1686,6 +1706,7 @@ export type Database = {
           description: string
           entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
           entry_scope: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id: string | null
           id: string
           import_batch_id: string | null
           import_row_id: string | null
@@ -1704,6 +1725,7 @@ export type Database = {
           description: string
           entry_kind?: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
           entry_scope?: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id?: string | null
           id?: string
           import_batch_id?: string | null
           import_row_id?: string | null
@@ -1722,6 +1744,7 @@ export type Database = {
           description?: string
           entry_kind?: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
           entry_scope?: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id?: string | null
           id?: string
           import_batch_id?: string | null
           import_row_id?: string | null
@@ -1738,6 +1761,13 @@ export type Database = {
             columns: ["category_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "expense_categories"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_facility_location_id_tenant_id_fkey"
+            columns: ["facility_location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -1800,6 +1830,13 @@ export type Database = {
             foreignKeyName: "project_cost_ledger_entries_reverses_entry_id_fkey"
             columns: ["reverses_entry_id"]
             isOneToOne: false
+            referencedRelation: "shared_overhead_allocation_status"
+            referencedColumns: ["overhead_entry_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
             referencedRelation: "shared_overhead_ledger_current"
             referencedColumns: ["id"]
           },
@@ -1856,6 +1893,109 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "service_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_overhead_allocations: {
+        Row: {
+          actor_user_id: string | null
+          allocation_kind: Database["public"]["Enums"]["shared_overhead_allocation_kind"]
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          overhead_entry_id: string
+          project_id: string
+          reverses_allocation_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          allocation_kind?: Database["public"]["Enums"]["shared_overhead_allocation_kind"]
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          overhead_entry_id: string
+          project_id: string
+          reverses_allocation_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          allocation_kind?: Database["public"]["Enums"]["shared_overhead_allocation_kind"]
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          overhead_entry_id?: string
+          project_id?: string
+          reverses_allocation_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_ledger_entries"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_refund_ledger_current"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_allocation_status"
+            referencedColumns: ["overhead_entry_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_ledger_current"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_reverses_allocation_id_fkey"
+            columns: ["reverses_allocation_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_reverses_allocation_id_fkey"
+            columns: ["reverses_allocation_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_allocations_current"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2373,6 +2513,10 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           description: string | null
+          entry_scope:
+            | Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+            | null
+          facility_location_id: string | null
           ledger_entry_id: string | null
           pool_id: string | null
           project_id: string | null
@@ -2403,6 +2547,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "project_refund_ledger_current"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_allocation_status"
+            referencedColumns: ["overhead_entry_id"]
           },
           {
             foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
@@ -2479,6 +2630,132 @@ export type Database = {
           },
           {
             foreignKeyName: "project_cost_ledger_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_overhead_allocation_status: {
+        Row: {
+          allocated_amount: number | null
+          allocation_status: string | null
+          business_date: string | null
+          description: string | null
+          facility_location_id: string | null
+          overhead_amount: number | null
+          overhead_entry_id: string | null
+          pool_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_cost_ledger_entries_facility_location_id_tenant_id_fkey"
+            columns: ["facility_location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pool_daily_summary"
+            referencedColumns: ["pool_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_pool_id_tenant_id_fkey"
+            columns: ["pool_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_pools"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_overhead_allocations_current: {
+        Row: {
+          actor_user_id: string | null
+          amount: number | null
+          created_at: string | null
+          id: string | null
+          note: string | null
+          overhead_entry_id: string | null
+          project_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          amount?: number | null
+          created_at?: string | null
+          id?: string | null
+          note?: string | null
+          overhead_entry_id?: string | null
+          project_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          amount?: number | null
+          created_at?: string | null
+          id?: string | null
+          note?: string | null
+          overhead_entry_id?: string | null
+          project_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_ledger_entries"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_refund_ledger_current"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_allocation_status"
+            referencedColumns: ["overhead_entry_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_ledger_current"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2587,6 +2864,32 @@ export type Database = {
       }
     }
     Functions: {
+      allocate_shared_overhead_entry: {
+        Args: {
+          p_amount: number
+          p_note?: string
+          p_overhead_entry_id: string
+          p_project_id: string
+        }
+        Returns: {
+          actor_user_id: string | null
+          allocation_kind: Database["public"]["Enums"]["shared_overhead_allocation_kind"]
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          overhead_entry_id: string
+          project_id: string
+          reverses_allocation_id: string | null
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "shared_overhead_allocations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_and_commit_cash_import_batch: {
         Args: { p_batch_id: string }
         Returns: {
@@ -2833,11 +3136,13 @@ export type Database = {
       }
       create_expense_draft: {
         Args: {
-          p_amount: number
-          p_category_id: string
-          p_description: string
+          p_amount?: number
+          p_category_id?: string
+          p_description?: string
+          p_entry_scope?: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          p_facility_location_id?: string
           p_pool_id: string
-          p_project_id: string
+          p_project_id?: string
           p_reference_number?: string
           p_tenant_id: string
           p_vendor_id?: string
@@ -3095,6 +3400,7 @@ export type Database = {
           p_amount: number
           p_category_id: string
           p_description: string
+          p_facility_location_id?: string
           p_pool_id: string
           p_project_id: string
           p_reference_number?: string
@@ -3108,6 +3414,43 @@ export type Database = {
           description: string
           entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
           entry_scope: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id: string | null
+          id: string
+          import_batch_id: string | null
+          import_row_id: string | null
+          pool_id: string
+          project_id: string | null
+          reference_number: string | null
+          reverses_entry_id: string | null
+          tenant_id: string
+          vendor_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "project_cost_ledger_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_shared_overhead_expense: {
+        Args: {
+          p_amount: number
+          p_category_id: string
+          p_description: string
+          p_facility_location_id?: string
+          p_pool_id: string
+          p_reference_number?: string
+          p_vendor_id?: string
+        }
+        Returns: {
+          actor_user_id: string | null
+          amount: number
+          category_id: string | null
+          created_at: string
+          description: string
+          entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
+          entry_scope: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id: string | null
           id: string
           import_batch_id: string | null
           import_row_id: string | null
@@ -3374,6 +3717,7 @@ export type Database = {
           description: string
           entry_kind: Database["public"]["Enums"]["project_cost_ledger_entry_kind"]
           entry_scope: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          facility_location_id: string | null
           id: string
           import_batch_id: string | null
           import_row_id: string | null
@@ -3387,6 +3731,27 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "project_cost_ledger_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reverse_shared_overhead_allocation: {
+        Args: { p_allocation_id: string; p_reason: string }
+        Returns: {
+          actor_user_id: string | null
+          allocation_kind: Database["public"]["Enums"]["shared_overhead_allocation_kind"]
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          overhead_entry_id: string
+          project_id: string
+          reverses_allocation_id: string | null
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "shared_overhead_allocations"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3431,11 +3796,13 @@ export type Database = {
       }
       revise_expense_draft: {
         Args: {
-          p_amount: number
-          p_category_id: string
-          p_description: string
+          p_amount?: number
+          p_category_id?: string
+          p_description?: string
+          p_entry_scope?: Database["public"]["Enums"]["project_cost_ledger_entry_scope"]
+          p_facility_location_id?: string
           p_pool_id: string
-          p_project_id: string
+          p_project_id?: string
           p_reference_number?: string
           p_submission_id: string
           p_vendor_id?: string
@@ -3762,6 +4129,7 @@ export type Database = {
       project_cost_ledger_entry_kind: "expense" | "reversal" | "refund"
       project_cost_ledger_entry_scope: "project" | "shared_overhead"
       record_status: "active" | "inactive"
+      shared_overhead_allocation_kind: "allocation" | "reversal"
       tenant_role: "owner" | "admin" | "reviewer" | "viewer"
       tenant_status: "active" | "suspended"
       vessel_project_lifecycle_status: "active" | "ready_to_close" | "closed"
@@ -3973,6 +4341,7 @@ export const Constants = {
       project_cost_ledger_entry_kind: ["expense", "reversal", "refund"],
       project_cost_ledger_entry_scope: ["project", "shared_overhead"],
       record_status: ["active", "inactive"],
+      shared_overhead_allocation_kind: ["allocation", "reversal"],
       tenant_role: ["owner", "admin", "reviewer", "viewer"],
       tenant_status: ["active", "suspended"],
       vessel_project_lifecycle_status: ["active", "ready_to_close", "closed"],

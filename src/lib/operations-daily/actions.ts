@@ -124,12 +124,14 @@ export async function createExpenseDraftAction(
       await createExpenseDraftForActiveTenant({
         tenantId: context.tenantId,
         poolId: formData.get("poolId"),
-        projectId: formData.get("projectId"),
+        projectId: optionalField(formData, "projectId"),
         categoryId: formData.get("categoryId"),
         amount: formData.get("amount"),
         description: formData.get("description"),
         vendorId: optionalField(formData, "vendorId"),
         referenceNumber: optionalField(formData, "referenceNumber"),
+        entryScope: optionalField(formData, "entryScope") ?? "project",
+        facilityLocationId: optionalField(formData, "facilityLocationId"),
       }),
       ["projectId", "categoryId", "vendorId", "amount", "description", "referenceNumber"],
     );
@@ -153,12 +155,14 @@ export async function reviseExpenseDraftAction(
       await reviseExpenseDraftForActiveTenant({
         submissionId: formData.get("submissionId"),
         poolId: formData.get("poolId"),
-        projectId: formData.get("projectId"),
+        projectId: optionalField(formData, "projectId"),
         categoryId: formData.get("categoryId"),
         amount: formData.get("amount"),
         description: formData.get("description"),
         vendorId: optionalField(formData, "vendorId"),
         referenceNumber: optionalField(formData, "referenceNumber"),
+        entryScope: optionalField(formData, "entryScope") ?? "project",
+        facilityLocationId: optionalField(formData, "facilityLocationId"),
       }),
       ["projectId", "categoryId", "vendorId", "amount", "description", "referenceNumber"],
     );

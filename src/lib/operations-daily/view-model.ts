@@ -30,6 +30,23 @@ export function buildActiveVesselProjectOptions(
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
+// Shared overhead can be allocated to any project that could still receive
+// it — active or ready_to_close, but never closed (record_project_expense's
+// own closed-project guard has no equivalent here, since allocation isn't a
+// new expense; the closed check lives in allocate_shared_overhead_entry
+// itself). Broader than buildActiveVesselProjectOptions on purpose.
+export function buildAllocatableVesselProjectOptions(
+  projects: VesselProjectRow[],
+  vessels: VesselRow[],
+): VesselProjectOption[] {
+  const vesselNameById = new Map(vessels.map((vessel) => [vessel.id, vessel.vessel_name]));
+
+  return projects
+    .filter((project) => project.lifecycle_status !== "closed")
+    .map((project) => ({ value: project.id, label: getVesselProjectLabel(project, vesselNameById) }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
 // Unfiltered label lookup (draft usable for every lifecycle status) — used
 // to render existing submissions whose project may since have moved to
 // ready_to_close/closed, not just the ones still eligible for a new expense.

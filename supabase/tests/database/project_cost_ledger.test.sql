@@ -166,23 +166,23 @@ select ok(
 );
 
 select ok(
-  (select prosecdef from pg_proc where oid = 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text)'::regprocedure),
+  (select prosecdef from pg_proc where oid = 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text, uuid)'::regprocedure),
   'record_project_expense is SECURITY DEFINER'
 );
 select ok(
   exists (
     select 1 from pg_proc, unnest(proconfig) as cfg
-    where oid = 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text)'::regprocedure
+    where oid = 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text, uuid)'::regprocedure
       and cfg = 'search_path=public, pg_temp'
   ),
   'record_project_expense has a fixed search_path'
 );
 select ok(
-  not has_function_privilege('authenticated', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE'),
+  not has_function_privilege('authenticated', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text, uuid)', 'EXECUTE'),
   'authenticated has no EXECUTE grant on record_project_expense — Gate 1E closes the direct-posting bypass'
 );
 select ok(
-  not has_function_privilege('anon', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE'),
+  not has_function_privilege('anon', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text, uuid)', 'EXECUTE'),
   'anon cannot execute record_project_expense'
 );
 select ok(

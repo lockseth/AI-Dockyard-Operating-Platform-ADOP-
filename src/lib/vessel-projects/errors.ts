@@ -19,6 +19,9 @@ export function mapVesselProjectError(error: PostgrestError | null | undefined):
     case "42501":
       return "Anda tidak memiliki izin untuk melakukan aksi ini.";
     case "P0001":
+      if (error.message === "SHARED_OVERHEAD_ALLOCATION_INCOMPLETE") {
+        return "Project tidak dapat ditutup — masih ada Biaya Bersama/Overhead pada periode project ini yang belum dialokasikan penuh. Selesaikan alokasinya di halaman Biaya Bersama/Overhead terlebih dahulu.";
+      }
       if (error.message?.includes("not authorized")) {
         return "Anda tidak memiliki izin untuk mengubah status project ini.";
       }

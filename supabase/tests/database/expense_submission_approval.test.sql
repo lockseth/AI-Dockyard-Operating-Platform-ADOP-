@@ -132,8 +132,8 @@ select ok(
   exists (
     select 1 from pg_proc
     where oid = any(array[
-      'public.create_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text)'::regprocedure,
-      'public.revise_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text)'::regprocedure,
+      'public.create_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text, project_cost_ledger_entry_scope, uuid)'::regprocedure,
+      'public.revise_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text, project_cost_ledger_entry_scope, uuid)'::regprocedure,
       'public.submit_expense(uuid)'::regprocedure,
       'public.approve_expense_submission(uuid)'::regprocedure,
       'public.reject_expense_submission(uuid, text)'::regprocedure,
@@ -144,8 +144,8 @@ select ok(
   'all six expense-approval RPCs exist'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.create_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE')
-  and has_function_privilege('authenticated', 'public.revise_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE')
+  has_function_privilege('authenticated', 'public.create_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text, project_cost_ledger_entry_scope, uuid)', 'EXECUTE')
+  and has_function_privilege('authenticated', 'public.revise_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text, project_cost_ledger_entry_scope, uuid)', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.submit_expense(uuid)', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.approve_expense_submission(uuid)', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.reject_expense_submission(uuid, text)', 'EXECUTE')
@@ -153,14 +153,14 @@ select ok(
   'authenticated can execute all six RPCs (internal role checks gate them, not the grant)'
 );
 select ok(
-  not has_function_privilege('anon', 'public.create_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE')
+  not has_function_privilege('anon', 'public.create_expense_draft(uuid, uuid, uuid, uuid, numeric, text, uuid, text, project_cost_ledger_entry_scope, uuid)', 'EXECUTE')
   and not has_function_privilege('anon', 'public.approve_expense_submission(uuid)', 'EXECUTE'),
   'anon cannot execute the expense-approval RPCs'
 );
 
 -- #13 — Direct ledger-post RPC ditolak untuk authenticated.
 select ok(
-  not has_function_privilege('authenticated', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text)', 'EXECUTE'),
+  not has_function_privilege('authenticated', 'public.record_project_expense(uuid, uuid, uuid, numeric, text, uuid, text, uuid)', 'EXECUTE'),
   'authenticated has no EXECUTE grant on record_project_expense — approve_expense_submission is the only remaining caller'
 );
 

@@ -42,6 +42,7 @@ export function ExpenseSubmissionRow({
   projectOptions,
   categoryOptions,
   vendorOptions,
+  facilityOptions,
 }: {
   submission: ExpenseSubmissionCurrentRow;
   hasPendingDuplicate: boolean;
@@ -53,6 +54,7 @@ export function ExpenseSubmissionRow({
   projectOptions: VesselProjectOption[];
   categoryOptions: VesselProjectOption[];
   vendorOptions: VesselProjectOption[];
+  facilityOptions: VesselProjectOption[];
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -148,14 +150,18 @@ export function ExpenseSubmissionRow({
         <form action={reviseFormAction} className="mt-4 flex flex-col gap-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
           <input type="hidden" name="submissionId" value={submissionId} />
           <input type="hidden" name="poolId" value={poolId} />
+          <input type="hidden" name="entryScope" value={submission.entry_scope ?? "project"} />
           <ExpenseFormFields
+            entryScope={submission.entry_scope ?? "project"}
             projectOptions={projectOptions}
             categoryOptions={categoryOptions}
             vendorOptions={vendorOptions}
+            facilityOptions={facilityOptions}
             defaultValues={{
               projectId: submission.project_id,
               categoryId: submission.category_id,
               vendorId: submission.vendor_id,
+              facilityLocationId: submission.facility_location_id,
               amount: submission.amount,
               referenceNumber: submission.reference_number,
               description: submission.description,
