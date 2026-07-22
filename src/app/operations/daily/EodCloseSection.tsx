@@ -53,7 +53,7 @@ export function EodCloseSection({
   if (pool?.daily_close_status === "closed") {
     return (
       <Card id="tutup-kas" className="scroll-mt-4">
-        <h2 className="text-[20px] font-extrabold tracking-tight">4. Tutup Kas Hari Ini</h2>
+        <h2 className="text-[20px] font-extrabold tracking-tight">Tutup Kas Hari Ini</h2>
         <Badge tone="success" dot className="mt-3">
           Kas hari ini sudah ditutup.
         </Badge>
@@ -73,7 +73,7 @@ export function EodCloseSection({
   return (
     <Card id="tutup-kas" className="scroll-mt-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-[20px] font-extrabold tracking-tight">4. Tutup Kas Hari Ini</h2>
+        <h2 className="text-[20px] font-extrabold tracking-tight">Tutup Kas Hari Ini</h2>
         {pool ? (
           <Badge tone={RECONCILIATION_STATUS_TONE[reconciliation?.status ?? "draft"] ?? "neutral"} dot>
             {getCashReconciliationStatusLabel(reconciliation?.status ?? null)}

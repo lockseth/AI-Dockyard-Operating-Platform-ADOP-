@@ -3,6 +3,7 @@ import { requireTenantContext } from "@/lib/auth/tenant";
 import { AppShell } from "@/components/shell/AppShell";
 import { Card, StatCard } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Table, TableHead, TableRow, Th, Td } from "@/components/ui/Table";
 import { TEXT_TONE_CLASSES, type Tone } from "@/components/ui/tone";
 import { canAccessDailyOperations } from "@/lib/operations-daily/access";
@@ -18,28 +19,44 @@ import { listPendingExpenseDuplicateCandidatesForActiveTenant } from "@/lib/expe
 import { listCashImportBatchesForActiveTenant } from "@/lib/cash-import-staging/service";
 import { listVesselProjectCostSummaryForActiveTenant, listVesselProjectsForActiveTenant } from "@/lib/vessel-projects/service";
 import { listVesselsForActiveTenant } from "@/lib/master-data/vessels/service";
+import { listClientsForActiveTenant } from "@/lib/master-data/clients/service";
 import { listTrustedTransactionsForActiveTenant } from "@/lib/transaction-history/service";
 import { formatBusinessDateLabel, formatRupiah, getJakartaBusinessDate } from "@/lib/operations-daily/format";
 import { getCashPoolDailyCloseStatusLabel, getCashReconciliationStatusLabel } from "@/lib/operations-daily/labels";
+import { getVesselProjectPriorityLabel } from "@/lib/vessel-projects/labels";
 import {
   buildActiveProjectCostRows,
   buildOwnerControlSummary,
   getExpenseSubmissionsPendingReview,
   getLatestReconciliationIdsByPool,
 } from "@/lib/owner-control/view-model";
-import { labelOrRaw, TRANSACTION_TYPE_LABEL } from "@/lib/transaction-history/labels";
+import { labelOrRaw, TRANSACTION_STATUS_LABEL, TRANSACTION_TYPE_LABEL } from "@/lib/transaction-history/labels";
 import { formatSignedAmount } from "@/lib/transaction-history/present";
 
 // Admin/Owner landing dashboard. Every read here is one of the existing
-// *ForActiveTenant functions Owner Control and /app/reviews already call —
-// no new query, RPC, or schema. Decision actions (approve/reject/commit/
-// reopen/rollback) stay out of this page entirely; those remain Owner
-// Control-only (see src/app/owner/control/page.tsx), reached here only via
-// a read-only pending-count link.
+// *ForActiveTenant functions Owner Control and /app/reviews already call
+// (plus listClientsForActiveTenant, the same master-data read the Clients
+// page itself uses) — no new RPC or schema. Decision actions (approve/
+// reject/commit/reopen/rollback) stay out of this page entirely; those
+// remain Owner Control-only (see src/app/owner/control/page.tsx), reached
+// here only via a read-only pending-count link.
 const DAILY_CLOSE_STATUS_TONE: Record<string, Tone> = {
   open: "info",
   pending_close: "warning",
   closed: "success",
+};
+
+const PRIORITY_TONE: Record<string, Tone> = {
+  emergency: "danger",
+  urgent: "warning",
+  standard: "neutral",
+};
+
+const TRANSACTION_STATUS_TONE: Record<string, Tone> = {
+  active: "success",
+  reversed: "danger",
+  partially_reversed: "danger",
+  reversal: "neutral",
 };
 
 const QUICK_ACTION_LINK_CLASS =
@@ -63,6 +80,7 @@ export default async function AppPage() {
     reconciliations,
     projects,
     vessels,
+    clients,
     costSummaries,
     importBatches,
     recentActivity,
@@ -74,6 +92,7 @@ export default async function AppPage() {
     listCashPoolReconciliationsForActiveTenant(),
     listVesselProjectsForActiveTenant(),
     listVesselsForActiveTenant(),
+    listClientsForActiveTenant(),
     listVesselProjectCostSummaryForActiveTenant(),
     canSeeImportBatches ? listCashImportBatchesForActiveTenant() : Promise.resolve([]),
     canViewHistory
@@ -100,27 +119,79 @@ export default async function AppPage() {
     activeProjectCount: activeProjectCostRows.length,
   });
 
-  const runningCostTotal = activeProjectCostRows.reduce((total, row) => total + row.totalCost, 0);
-  const mostRecentActiveProject = projects
-    .filter((project) => project.lifecycle_status === "active")
-    .sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""))[0];
-  const mostRecentActiveProjectLabel = mostRecentActiveProject
-    ? (activeProjectCostRows.find((row) => row.projectId === mostRecentActiveProject.id)?.label ?? "-")
-    : null;
+  const clientNameById = new Map(clients.map((client) => [client.id, client.display_name]));
+  const projectById = new Map(projects.map((project) => [project.id, project]));
+  // Dashboard shows a bounded preview (highest cost first) — "Lihat Semua
+  // Project" is the path to the full unbounded list on /app/vessel-projects.
+  const DASHBOARD_PROJECT_PREVIEW_LIMIT = 5;
+  const projectTableRows = activeProjectCostRows
+    .map((row) => {
+      const project = projectById.get(row.projectId);
+      return {
+        ...row,
+        clientName: project ? (clientNameById.get(project.client_id) ?? "-") : "-",
+        priority: project?.priority ?? "standard",
+      };
+    })
+    .sort((a, b) => b.totalCost - a.totalCost)
+    .slice(0, DASHBOARD_PROJECT_PREVIEW_LIMIT);
 
-  const actionItems = [
-    { label: "Pengajuan Biaya Menunggu Review", count: pendingSubmissions.length, href: "/app/reviews" },
-    { label: "Kandidat Duplikasi Menunggu Review", count: duplicateCandidates.length, href: "/app/reviews" },
-    { label: "Rekonsiliasi EOD Menunggu Review", count: pendingEodReviewCount, href: "/app/reviews" },
+  const actionItems: Array<{ label: string; count: number; href: string; tone: Tone }> = [
+    {
+      label: "Pengajuan Biaya Menunggu Review",
+      count: pendingSubmissions.length,
+      href: "/app/reviews",
+      tone: "warning" as Tone,
+    },
+    {
+      label: "Kandidat Duplikasi Menunggu Review",
+      count: duplicateCandidates.length,
+      href: "/app/reviews",
+      tone: "danger" as Tone,
+    },
+    {
+      label: "Rekonsiliasi EOD Menunggu Review",
+      count: pendingEodReviewCount,
+      href: "/app/reviews",
+      tone: "info" as Tone,
+    },
     ...(canSeeImportBatches
-      ? [{ label: "Batch Import Perlu Review", count: pendingImportBatchCount, href: "/operations/import" }]
+      ? [{ label: "Batch Import Perlu Review", count: pendingImportBatchCount, href: "/operations/import", tone: "neutral" as Tone }]
       : []),
   ].filter((item) => item.count > 0);
-  const totalPendingActions = actionItems.reduce((total, item) => total + item.count, 0);
 
   return (
-    <AppShell title="Dashboard" operationalDateLabel={formatBusinessDateLabel(businessDate)}>
+    <AppShell title="Dashboard" sectionLabel="Ringkasan" operationalDateLabel={formatBusinessDateLabel(businessDate)} showMobileTitle={false}>
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-10">
+        <section className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              Ringkasan operasional dan keuangan hari ini
+            </p>
+            <p className="mt-1 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+              {formatBusinessDateLabel(businessDate)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href="/app"
+              aria-label="Muat ulang data dashboard"
+              title="Muat ulang data dashboard"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border-[1.5px] border-neutral-300 bg-white text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            >
+              <RefreshIcon />
+            </a>
+            {canDailyOps ? (
+              <Link href="/operations/daily">
+                <Button variant="primary" size="md">
+                  + Tambah Transaksi
+                </Button>
+              </Link>
+            ) : null}
+          </div>
+        </section>
+
         <section className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-medium text-neutral-500">Status Kas Hari Ini</h2>
@@ -134,10 +205,11 @@ export default async function AppPage() {
             </div>
           </div>
           {pool ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard eyebrow="Saldo Awal" value={formatRupiah(cashSummary.openingCash)} />
-              <StatCard eyebrow="Total Pengeluaran" value={formatRupiah(cashSummary.totalCashOutApproved)} />
-              <StatCard eyebrow="Sisa Kas" value={formatRupiah(cashSummary.expectedClosingCash)} />
+              <StatCard eyebrow="Kas Masuk" value={formatRupiah(cashSummary.totalCashIn)} />
+              <StatCard eyebrow="Kas Keluar" value={formatRupiah(cashSummary.totalCashOutApproved)} />
+              <StatCard eyebrow="Saldo Akhir" value={formatRupiah(cashSummary.expectedClosingCash)} note="Terhitung sistem" />
             </div>
           ) : (
             <EmptyState
@@ -148,29 +220,19 @@ export default async function AppPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-neutral-500">Ringkasan Project Kapal Aktif</h2>
-          {activeProjectCostRows.length === 0 ? (
-            <EmptyState text="Belum ada Project Kapal aktif." />
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <StatCard eyebrow="Project Aktif" value={activeProjectCostRows.length} />
-              <StatCard eyebrow="Total Biaya Berjalan" value={formatRupiah(runningCostTotal)} />
-              <StatCard eyebrow="Project Teraktif" value={mostRecentActiveProjectLabel ?? "-"} />
-            </div>
-          )}
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-neutral-500">Pekerjaan yang Memerlukan Tindakan</h2>
-          {totalPendingActions === 0 ? (
+          <h2 className="text-base font-bold">Perlu Tindakan</h2>
+          {actionItems.length === 0 ? (
             <EmptyState text="Tidak ada pekerjaan tertunda saat ini." />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {actionItems.map((item) => (
                 <Link key={item.label} href={item.href} className="block">
-                  <Card className="flex items-center justify-between gap-3 transition-colors hover:border-neutral-300 dark:hover:border-neutral-700">
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">{item.label}</span>
-                    <Badge tone="warning">{item.count}</Badge>
+                  <Card tone={item.tone} className="flex items-start gap-3 transition-colors hover:brightness-[0.98]">
+                    <AlertIcon tone={item.tone} />
+                    <span className="min-w-0 flex-1 text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+                      {item.label}
+                    </span>
+                    <Badge tone={item.tone}>{item.count}</Badge>
                   </Card>
                 </Link>
               ))}
@@ -180,13 +242,60 @@ export default async function AppPage() {
 
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-medium text-neutral-500">Aktivitas/Transaksi Terbaru</h2>
+            <h2 className="text-base font-bold">Project Kapal Aktif</h2>
+            <Link href="/app/vessel-projects" className="text-xs font-semibold text-adop-accent-800 hover:underline dark:text-blue-300">
+              Lihat Semua Project
+            </Link>
+          </div>
+          {projectTableRows.length === 0 ? (
+            <EmptyState text="Belum ada Project Kapal aktif." />
+          ) : (
+            <Table minWidth="560px">
+              <TableHead>
+                <TableRow>
+                  <Th>Project Kapal</Th>
+                  <Th align="right">Biaya Berjalan</Th>
+                  <Th align="center">Prioritas</Th>
+                </TableRow>
+              </TableHead>
+              <tbody>
+                {projectTableRows.map((row) => (
+                  <TableRow key={row.projectId}>
+                    <Td>
+                      <p className="font-semibold text-neutral-900 dark:text-neutral-100">{row.label}</p>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">{row.clientName}</p>
+                    </Td>
+                    <Td align="right">{formatRupiah(row.totalCost)}</Td>
+                    <Td align="center">
+                      <Badge tone={PRIORITY_TONE[row.priority] ?? "neutral"}>
+                        {getVesselProjectPriorityLabel(row.priority)}
+                      </Badge>
+                    </Td>
+                  </TableRow>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </section>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <section className="flex flex-col gap-3">
+            <h2 className="text-base font-bold">Pergerakan Kas 7 Hari</h2>
+            <EmptyState text="Tren kas mingguan belum tersedia — memerlukan riwayat saldo harian lintas tanggal." />
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-base font-bold">Aktivitas Terbaru</h2>
+            <EmptyState text="Log aktivitas belum tersedia." />
+          </section>
+        </div>
+
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-bold">Transaksi Terbaru</h2>
             {canViewHistory ? (
-              <Link
-                href="/operations/history"
-                className="text-xs font-medium text-blue-800 underline underline-offset-4 dark:text-blue-300"
-              >
-                Lihat Semua
+              <Link href="/operations/history" className="text-xs font-semibold text-adop-accent-800 hover:underline dark:text-blue-300">
+                Lihat Semua Transaksi
               </Link>
             ) : null}
           </div>
@@ -195,13 +304,15 @@ export default async function AppPage() {
           ) : recentActivity.transactions.length === 0 ? (
             <EmptyState text="Belum ada transaksi." />
           ) : (
-            <Table minWidth="640px">
+            <Table minWidth="820px">
               <TableHead>
                 <TableRow>
                   <Th>Tanggal</Th>
                   <Th>Jenis</Th>
                   <Th>Project / Overhead</Th>
+                  <Th>Deskripsi</Th>
                   <Th align="right">Efek Kas</Th>
+                  <Th align="center">Status</Th>
                 </TableRow>
               </TableHead>
               <tbody>
@@ -214,8 +325,16 @@ export default async function AppPage() {
                         ? `${row.vessel_name}${row.project_code ? ` (${row.project_code})` : ""}`
                         : "Shared Overhead"}
                     </Td>
+                    <Td className="max-w-[220px] truncate" title={row.description ?? undefined}>
+                      {row.description ?? "-"}
+                    </Td>
                     <Td align="right">
                       <SignedAmount value={row.signed_cash_effect} />
+                    </Td>
+                    <Td align="center">
+                      <Badge tone={row.status ? (TRANSACTION_STATUS_TONE[row.status] ?? "neutral") : "neutral"}>
+                        {labelOrRaw(TRANSACTION_STATUS_LABEL, row.status)}
+                      </Badge>
                     </Td>
                   </TableRow>
                 ))}
@@ -268,5 +387,43 @@ function EmptyState({ text, action }: { text: string; action?: { label: string; 
         </Link>
       ) : null}
     </Card>
+  );
+}
+
+const ALERT_ICON_TONE_CLASSES: Record<Tone, string> = {
+  success: "text-emerald-600 dark:text-emerald-400",
+  warning: "text-amber-600 dark:text-amber-400",
+  danger: "text-red-600 dark:text-red-400",
+  neutral: "text-neutral-400 dark:text-neutral-500",
+  info: "text-blue-600 dark:text-blue-400",
+};
+
+function RefreshIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function AlertIcon({ tone }: { tone: Tone }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={`mt-0.5 shrink-0 ${ALERT_ICON_TONE_CLASSES[tone]}`}
+    >
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 8v5M12 15.9v.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }

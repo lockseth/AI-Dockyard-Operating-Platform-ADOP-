@@ -50,12 +50,15 @@ export default async function ReviewsPage() {
   );
 
   return (
-    <AppShell title="Review & Approval">
+    <AppShell title="Review & Approval" sectionLabel="Operasional" showMobileTitle={false}>
     <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-6 py-10">
-      <p className="text-sm text-neutral-500">
-        Status pengajuan, kandidat duplikasi, dan rekonsiliasi EOD yang sedang berjalan.
-        {canApprove ? " Buka Owner Control untuk mengambil keputusan." : " Tampilan ini bersifat baca saja."}
-      </p>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Review & Approval</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          Status pengajuan, kandidat duplikasi, dan rekonsiliasi EOD yang sedang berjalan.
+          {canApprove ? " Buka Owner Control untuk mengambil keputusan." : " Tampilan ini bersifat baca saja."}
+        </p>
+      </div>
 
       <Section title="Pengajuan Biaya Menunggu Review">
         {pendingSubmissions.length === 0 ? (

@@ -16,7 +16,7 @@ export default async function TransactionDetailPage({
   const context = await requireTenantContext();
   if (!canViewTrustedTransactionHistory(context.roles)) {
     return (
-      <AppShell title="Detail Transaksi">
+      <AppShell title="Detail Transaksi" sectionLabel="Operasional">
         <AccessDenied />
       </AppShell>
     );
@@ -43,7 +43,7 @@ export default async function TransactionDetailPage({
   ]);
 
   return (
-    <AppShell title="Detail Transaksi">
+    <AppShell title="Detail Transaksi" sectionLabel="Operasional">
     <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-8 px-6 py-10">
       <Link
         href="/operations/history"

@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/auth/session";
 import { branding } from "@/lib/branding";
 import { pilotTenantLoginIdentity } from "@/lib/shell/pilot-tenant-identity";
 import { LoginForm } from "./LoginForm";
+import { DockScene } from "./DockScene";
 
 export default async function LoginPage() {
   const user = await getAuthenticatedUser();
@@ -13,26 +14,46 @@ export default async function LoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col md:flex-row">
-      <section className="hidden flex-1 flex-col justify-between bg-brand-navy p-14 text-white md:flex">
-        <div>
-          <p className="text-lg font-extrabold tracking-tight">{branding.productName}</p>
-          <p className="text-xs font-medium text-white/60">{branding.subtitle}</p>
+      <section className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-brand-navy p-14 text-white md:flex">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(115deg, #fff 0px, #fff 1px, transparent 1px, transparent 64px)",
+          }}
+        />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <Image
+            src="/branding/chamelonix-logo.png"
+            alt=""
+            width={38}
+            height={38}
+            className="h-[38px] w-[38px] shrink-0 rounded-lg object-contain"
+          />
+          <div>
+            <p className="text-xl font-extrabold tracking-tight">{branding.productName}</p>
+            <p className="text-[11px] font-medium text-adop-ink-sidebar-muted">{branding.subtitle}</p>
+          </div>
         </div>
-        <div className="max-w-md">
-          <h1 className="mb-3 text-3xl leading-snug font-extrabold">
-            Kendali operasional dan kas galangan, dalam satu platform.
+
+        <div className="relative z-10 max-w-[480px]">
+          <h1 className="mb-3.5 text-[30px] leading-[1.25] font-extrabold">
+            Kendali operasional dan keuangan galangan, dalam satu platform.
           </h1>
-          <p className="text-sm font-medium text-white/70">
-            Kelola proyek kapal, biaya operasional, dan persetujuan owner secara terpusat dan dapat diaudit.
+          <p className="text-[14.5px] font-medium text-white/70">
+            Kelola proyek kapal, penagihan, piutang, dan persetujuan owner secara terpusat dan dapat diaudit.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="relative z-10 flex items-center gap-2.5">
           <Image
             src={pilotTenantLoginIdentity.logoPath}
             alt={pilotTenantLoginIdentity.legalName}
             width={30}
             height={30}
-            className="h-[30px] w-[30px] rounded object-contain"
+            className="h-[30px] w-[30px] shrink-0 rounded-md border border-white/15 object-contain"
           />
           <div>
             <p className="text-[12.5px] font-bold">{pilotTenantLoginIdentity.legalName}</p>
@@ -41,27 +62,37 @@ export default async function LoginPage() {
         </div>
       </section>
 
-      <section className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-10">
+      {/* Fixed off-white surface, not theme-adaptive: the login split is a
+          branded layout, not a themed one, so it must not fall back to the
+          global dark-mode body background. */}
+      <section className="flex flex-1 flex-col items-center justify-center gap-6 bg-[#fbfaf9] px-6 py-10">
         <div className="flex w-full max-w-sm flex-col items-center gap-3 md:hidden">
           <Image
             src={pilotTenantLoginIdentity.logoPath}
             alt={pilotTenantLoginIdentity.legalName}
             width={48}
             height={48}
-            className="h-12 w-12 rounded object-contain"
+            className="h-12 w-12 rounded-md object-contain"
           />
-          <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {pilotTenantLoginIdentity.legalName}
-          </p>
+          <p className="text-sm font-medium text-neutral-700">{pilotTenantLoginIdentity.legalName}</p>
         </div>
-        <div className="flex w-full max-w-sm flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
-            {branding.statusLabel}
-          </span>
-          <h2 className="text-xl font-bold tracking-tight">Selamat Datang Kembali</h2>
+
+        <div className="w-full max-w-sm">
+          <DockScene />
+
+          <div className="mt-6 mb-6">
+            <span className="block text-[11.5px] font-bold tracking-[0.06em] text-adop-accent-700 uppercase">
+              {branding.statusLabel}
+            </span>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">Selamat Datang Kembali</h2>
+          </div>
+
+          <LoginForm />
+
+          <footer className="mt-7 text-center text-xs text-adop-ink-500 md:hidden">
+            {branding.poweredByLabel}
+          </footer>
         </div>
-        <LoginForm />
-        <footer className="text-xs text-neutral-400 md:hidden">{branding.poweredByLabel}</footer>
       </section>
     </main>
   );

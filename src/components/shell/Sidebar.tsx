@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { NavGroup } from "./nav";
 import type { PrimaryIdentity } from "@/lib/shell/identity";
 import { branding } from "@/lib/branding";
+import { NAV_ICON_BY_HREF } from "./nav-icons";
 
 const COLLAPSE_STORAGE_KEY = "adop-sidebar-collapsed";
 const OWNER_GROUP_TITLE = "OWNER";
@@ -30,6 +31,17 @@ function SidebarContent({
 }) {
   const pathname = usePathname();
 
+  // Pick the single longest matching path (exact or prefix) across all items
+  // so a parent route like "/app" never lights up alongside a more specific
+  // sibling route like "/app/vessel-projects". Items whose destination href
+  // covers only part of a wider section (e.g. Master Data's tabs) set
+  // matchPrefix so the whole section stays highlighted.
+  const activeMatch = navGroups
+    .flatMap((group) => group.items)
+    .map((item) => item.matchPrefix ?? item.href)
+    .filter((match) => pathname === match || pathname.startsWith(`${match}/`))
+    .sort((a, b) => b.length - a.length)[0];
+
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-5 text-white">
       <div className="flex items-center gap-3 px-2">
@@ -51,7 +63,7 @@ function SidebarContent({
         )}
         {!collapsed ? (
           <div className="min-w-0">
-            <p className="truncate text-[14.5px] font-bold leading-tight">{identity.legalName}</p>
+            <p className="text-[13px] leading-snug font-bold break-words">{identity.legalName}</p>
             <p className="truncate text-[11px] font-medium text-white/50">
               {branding.productName} {branding.brandedBy}
             </p>
@@ -70,7 +82,8 @@ function SidebarContent({
                 <div className="mx-3.5 mb-1 h-px bg-white/10" aria-hidden />
               )}
               {group.items.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const isActive = (item.matchPrefix ?? item.href) === activeMatch;
+                const Icon = NAV_ICON_BY_HREF[item.href];
                 return (
                   <Link
                     key={item.href}
@@ -78,19 +91,36 @@ function SidebarContent({
                     onClick={onNavigate}
                     aria-current={isActive ? "page" : undefined}
                     title={collapsed ? item.label : undefined}
-                    className={`rounded-md border-l-[3px] py-2.5 text-[14.5px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
-                      collapsed ? "px-2 text-center" : "pr-2 pl-[11px]"
+                    className={`flex items-center gap-3 rounded-md border-l-[3px] py-2.5 text-[14.5px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                      collapsed ? "justify-center px-2" : "pr-2 pl-[11px]"
                     } ${
                       isOwnerGroup
                         ? isActive
                           ? "border-brand-gold bg-brand-gold/20 text-white"
                           : "border-transparent text-brand-gold/85 hover:bg-brand-gold/10 hover:text-white"
                         : isActive
-                          ? "border-blue-400 bg-white/10 text-white"
+                          ? "border-adop-accent bg-adop-accent/30 text-white"
                           : "border-transparent text-white/70 hover:bg-white/5 hover:text-white"
                     }`}
                   >
-                    {collapsed ? item.label.charAt(0) : item.label}
+                    {Icon ? (
+                      <span
+                        className={`shrink-0 ${
+                          isOwnerGroup
+                            ? isActive
+                              ? "text-brand-gold"
+                              : "text-brand-gold/85"
+                            : isActive
+                              ? "text-adop-accent-cyan"
+                              : "text-white/50"
+                        }`}
+                      >
+                        <Icon />
+                      </span>
+                    ) : collapsed ? (
+                      <span aria-hidden>{item.label.charAt(0)}</span>
+                    ) : null}
+                    {!collapsed ? <span className="min-w-0 flex-1 truncate">{item.label}</span> : null}
                   </Link>
                 );
               })}

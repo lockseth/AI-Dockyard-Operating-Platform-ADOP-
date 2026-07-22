@@ -41,7 +41,7 @@ export function OpenCashSection({
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[20px] font-extrabold tracking-tight">1. Buka Kas Hari Ini</h2>
+          <h2 className="text-[20px] font-extrabold tracking-tight">Buka Kas Hari Ini</h2>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{formatBusinessDateLabel(businessDate)}</p>
         </div>
         <Badge tone={statusTone} dot>

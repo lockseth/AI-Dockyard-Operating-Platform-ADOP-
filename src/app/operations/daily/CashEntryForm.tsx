@@ -37,7 +37,7 @@ export function CashEntryForm({
   return <StandardCashEntryForm poolId={poolId} entryType={entryType} label={label} disabled={disabled} />;
 }
 
-function StandardCashEntryForm({
+export function StandardCashEntryForm({
   poolId,
   entryType,
   label,
@@ -91,7 +91,7 @@ function StandardCashEntryForm({
 // amount, review a confirmation summary (date, nominal, append-only
 // warning), then submit. The <form> that actually calls the server action
 // only exists in the confirm step — nothing posts before that.
-function OpeningCashEntryForm({
+export function OpeningCashEntryForm({
   poolId,
   label,
   disabled,

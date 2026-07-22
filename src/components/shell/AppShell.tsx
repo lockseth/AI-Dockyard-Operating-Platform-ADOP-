@@ -19,11 +19,15 @@ function formatRoleLabel(roles: TenantContext["roles"]): string {
 
 export async function AppShell({
   title,
+  sectionLabel,
   operationalDateLabel,
+  showMobileTitle = true,
   children,
 }: {
   title: string;
+  sectionLabel?: string;
   operationalDateLabel?: string;
+  showMobileTitle?: boolean;
   children: React.ReactNode;
 }) {
   const context = await requireTenantContext();
@@ -40,8 +44,16 @@ export async function AppShell({
         logoutAction={logoutAction}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <PageHeader title={title} operationalDateLabel={operationalDateLabel} />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <PageHeader
+          title={title}
+          sectionLabel={sectionLabel}
+          operationalDateLabel={operationalDateLabel}
+          showMobileTitle={showMobileTitle}
+          identity={identity}
+          userLabel={context.email ?? context.userId}
+          roleLabel={formatRoleLabel(context.roles)}
+        />
+        <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

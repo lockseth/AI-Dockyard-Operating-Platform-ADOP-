@@ -20,8 +20,9 @@ export default async function MasterDataLayout({
   const canMutate = context.roles.some((role) => role === "owner" || role === "admin");
 
   return (
-    <AppShell title="Master Data">
+    <AppShell title="Master Data" sectionLabel="Manajemen Data" showMobileTitle={false}>
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-6 py-10">
+      <h1 className="text-2xl font-bold tracking-tight">Master Data</h1>
       <nav className="flex flex-wrap gap-2 text-sm">
         {NAV_ITEMS.map((item) => (
           <Link

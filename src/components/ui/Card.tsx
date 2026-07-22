@@ -2,6 +2,14 @@ const TONE_CLASSES = {
   default: "border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950",
   // Reserved for owner-tier callouts (LOCK: Gold / Owner Action surface).
   owner: "border-[#e6cf94] bg-[#fdf9f0] dark:border-brand-gold/40 dark:bg-neutral-950",
+  // Same success/warning/danger/neutral/info tone set as Badge/Callout
+  // (components/ui/tone.ts), as a full tinted card surface — used for
+  // "needs attention" style panels (e.g. Dashboard's Perlu Tindakan).
+  success: "border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30",
+  warning: "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30",
+  danger: "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30",
+  neutral: "border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/40",
+  info: "border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/30",
 } as const;
 
 export function Card({

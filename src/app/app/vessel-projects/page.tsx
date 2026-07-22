@@ -26,11 +26,14 @@ export default async function VesselProjectsPage() {
   const clientNameById = new Map(clients.map((client) => [client.id, client.display_name]));
 
   return (
-    <AppShell title="Project Kapal">
+    <AppShell title="Project Kapal" sectionLabel="Operasional" showMobileTitle={false}>
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-6 py-10">
-      <p className="text-sm text-neutral-500">
-        Daftar Project Kapal beserta vessel, client, service type, dan status lifecycle.
-      </p>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Project Kapal</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          Daftar Project Kapal beserta vessel, client, service type, dan status lifecycle.
+        </p>
+      </div>
 
       {canMutate ? (
         <CollapsibleCreatePanel label="Tambah Project Kapal">

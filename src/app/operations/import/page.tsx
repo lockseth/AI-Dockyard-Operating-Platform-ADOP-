@@ -18,7 +18,7 @@ export default async function CashImportStagingPage() {
 
   if (!canRead) {
     return (
-      <AppShell title="Import Data — Laporan Kas">
+      <AppShell title="Import Data — Laporan Kas" sectionLabel="Manajemen Data">
         <AccessDenied />
       </AppShell>
     );
@@ -27,13 +27,16 @@ export default async function CashImportStagingPage() {
   const batches = await listCashImportBatchesForActiveTenant();
 
   return (
-    <AppShell title="Import Data — Laporan Kas">
+    <AppShell title="Import Data — Laporan Kas" sectionLabel="Manajemen Data" showMobileTitle={false}>
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 px-6 py-10">
-      <p className="text-sm text-neutral-500">
-        {canWrite
-          ? "Unggah, petakan label kapal, dan siapkan batch untuk review."
-          : "Tampilan baca-saja — hanya Admin yang dapat mengunggah dan mengubah mapping."}
-      </p>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Import Data — Laporan Kas</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          {canWrite
+            ? "Unggah, petakan label kapal, dan siapkan batch untuk review."
+            : "Tampilan baca-saja — hanya Admin yang dapat mengunggah dan mengubah mapping."}
+        </p>
+      </div>
 
       <main className="flex flex-1 flex-col gap-6 pb-16">
         <StagingBanner />

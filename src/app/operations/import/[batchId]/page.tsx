@@ -41,7 +41,7 @@ export default async function CashImportBatchDetailPage({
 
   if (!canRead) {
     return (
-      <AppShell title="Detail Batch Import">
+      <AppShell title="Detail Batch Import" sectionLabel="Manajemen Data">
         <AccessDenied />
       </AppShell>
     );
@@ -80,7 +80,7 @@ export default async function CashImportBatchDetailPage({
   const canonicalPreview = buildCanonicalCommitPreview(detail.batch, detail.rows, detail.hasOpeningBalanceConflict);
 
   return (
-    <AppShell title="Detail Batch Import">
+    <AppShell title="Detail Batch Import" sectionLabel="Manajemen Data">
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-10">
       <Link
         href="/operations/import"

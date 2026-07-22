@@ -36,7 +36,7 @@ export default async function TransactionHistoryPage({
   const context = await requireTenantContext();
   if (!canViewTrustedTransactionHistory(context.roles)) {
     return (
-      <AppShell title="Riwayat Transaksi">
+      <AppShell title="Riwayat Transaksi" sectionLabel="Operasional">
         <AccessDenied />
       </AppShell>
     );
@@ -64,12 +64,15 @@ export default async function TransactionHistoryPage({
   const nextHref = nextCursor ? `/operations/history?${buildQuery(params, { cursor: nextCursor })}` : null;
 
   return (
-    <AppShell title="Riwayat Transaksi">
+    <AppShell title="Riwayat Transaksi" sectionLabel="Operasional" showMobileTitle={false}>
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-10">
-      <p className="max-w-2xl text-sm text-neutral-500">
-        Transaksi ini berasal dari ledger ADOP yang tidak dapat diedit atau dihapus. Koreksi dicatat sebagai
-        transaksi reversal terpisah — data di bawah ini adalah sumber kebenaran keuangan (Trusted).
-      </p>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Riwayat Transaksi</h1>
+        <p className="mt-1 max-w-2xl text-sm text-neutral-500">
+          Transaksi ini berasal dari ledger ADOP yang tidak dapat diedit atau dihapus. Koreksi dicatat sebagai
+          transaksi reversal terpisah — data di bawah ini adalah sumber kebenaran keuangan (Trusted).
+        </p>
+      </div>
 
       <main className="flex flex-1 flex-col gap-6 pb-16">
         <SummaryCards summary={summary} />

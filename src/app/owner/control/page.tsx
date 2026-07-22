@@ -46,7 +46,7 @@ export default async function OwnerControlPage() {
 
   if (!canAccessOwnerControl(context.roles)) {
     return (
-      <AppShell title="Owner Control">
+      <AppShell title="Owner Control" sectionLabel="Owner">
         <AccessDenied />
       </AppShell>
     );
@@ -154,9 +154,21 @@ export default async function OwnerControlPage() {
   });
 
   return (
-    <AppShell title="Owner Control" operationalDateLabel={formatBusinessDateLabel(businessDate)}>
+    <AppShell
+      title="Owner Control"
+      sectionLabel="Owner"
+      operationalDateLabel={formatBusinessDateLabel(businessDate)}
+      showMobileTitle={false}
+    >
     <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-6 py-10">
       <main className="flex flex-1 flex-col gap-6 pb-16">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Owner Control</h1>
+          <p className="mt-1 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+            {formatBusinessDateLabel(businessDate)}
+          </p>
+        </div>
+
         <OwnerSummarySection summary={ownerSummary} activeProjectCostRows={activeProjectCostRows} />
         <CashImportApprovalSection batches={cashImportBatches} />
         <ExpenseReviewSection items={expenseReviewItems} />

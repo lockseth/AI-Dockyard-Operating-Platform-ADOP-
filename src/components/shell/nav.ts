@@ -6,6 +6,10 @@ import type { TenantRole } from "@/lib/auth/tenant";
 export interface NavItem {
   href: string;
   label: string;
+  // Set when the link's destination (href) is only one page within a wider
+  // section (e.g. Master Data's tabs) — the sidebar highlights this item for
+  // any path under matchPrefix, not just the exact href.
+  matchPrefix?: string;
 }
 
 export interface NavGroup {
@@ -35,7 +39,9 @@ export function getNavGroupsForRoles(roles: TenantRole[]): NavGroup[] {
   operasionalItems.push({ href: "/app/reviews", label: "Review & Approval" });
   groups.push({ title: "OPERASIONAL", items: operasionalItems });
 
-  const dataItems: NavItem[] = [{ href: "/app/master-data/clients", label: "Master Data" }];
+  const dataItems: NavItem[] = [
+    { href: "/app/master-data/clients", label: "Master Data", matchPrefix: "/app/master-data" },
+  ];
   if (canReadCashImportStaging(roles)) {
     dataItems.push({ href: "/operations/import", label: "Import Data" });
   }
