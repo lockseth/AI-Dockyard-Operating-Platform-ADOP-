@@ -1680,18 +1680,21 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
+          email: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           display_name?: string | null
+          email?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           display_name?: string | null
+          email?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1996,6 +1999,56 @@ export type Database = {
           },
           {
             foreignKeyName: "shared_overhead_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["tenant_role"]
+          status: Database["public"]["Enums"]["tenant_invitation_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role: Database["public"]["Enums"]["tenant_role"]
+          status?: Database["public"]["Enums"]["tenant_invitation_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["tenant_role"]
+          status?: Database["public"]["Enums"]["tenant_invitation_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_invitations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2864,6 +2917,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_tenant_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: string
+      }
       allocate_shared_overhead_entry: {
         Args: {
           p_amount: number
@@ -3167,6 +3224,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_tenant_invitation: {
+        Args: {
+          p_email: string
+          p_role: Database["public"]["Enums"]["tenant_role"]
+          p_tenant_id: string
+        }
+        Returns: {
+          invitation_id: string
+          target_user_exists: boolean
+        }[]
+      }
       fail_notification_event: {
         Args: { p_error: string; p_event_id: string; p_worker_id: string }
         Returns: {
@@ -3322,6 +3390,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_own_password_reset_completed: { Args: never; Returns: undefined }
       mark_cash_import_batch_ready_for_review: {
         Args: { p_batch_id: string }
         Returns: {
@@ -3921,6 +3990,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_membership_role: {
+        Args: {
+          p_membership_id: string
+          p_role: Database["public"]["Enums"]["tenant_role"]
+        }
+        Returns: undefined
+      }
+      set_membership_status: {
+        Args: {
+          p_membership_id: string
+          p_status: Database["public"]["Enums"]["membership_status"]
+        }
+        Returns: undefined
+      }
       set_vessel_project_priority: {
         Args: {
           p_priority: Database["public"]["Enums"]["vessel_project_priority"]
@@ -4130,6 +4213,7 @@ export type Database = {
       project_cost_ledger_entry_scope: "project" | "shared_overhead"
       record_status: "active" | "inactive"
       shared_overhead_allocation_kind: "allocation" | "reversal"
+      tenant_invitation_status: "pending" | "accepted" | "expired"
       tenant_role: "owner" | "admin" | "reviewer" | "viewer"
       tenant_status: "active" | "suspended"
       vessel_project_lifecycle_status: "active" | "ready_to_close" | "closed"
@@ -4342,6 +4426,7 @@ export const Constants = {
       project_cost_ledger_entry_scope: ["project", "shared_overhead"],
       record_status: ["active", "inactive"],
       shared_overhead_allocation_kind: ["allocation", "reversal"],
+      tenant_invitation_status: ["pending", "accepted", "expired"],
       tenant_role: ["owner", "admin", "reviewer", "viewer"],
       tenant_status: ["active", "suspended"],
       vessel_project_lifecycle_status: ["active", "ready_to_close", "closed"],

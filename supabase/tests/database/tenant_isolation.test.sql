@@ -364,11 +364,14 @@ select set_config('request.jwt.claims', '', true);
 
 -- No function in this schema accepts a caller-supplied user_id — identity is
 -- always auth.uid(). Structural proof: only tenant_id/roles parameters exist.
+-- current_user_can_view_profile and current_user_email were added by
+-- 20260722030000_user_management.sql (profiles cross-member visibility +
+-- invitation-acceptance email matching) — additive, expected here.
 select is(
   (select array_agg(p.proname::text order by p.proname) from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'private' and p.proname like 'current_user_%'),
-  array['current_user_has_tenant_role', 'current_user_is_active_tenant_member'],
+  array['current_user_can_view_profile', 'current_user_email', 'current_user_has_tenant_role', 'current_user_is_active_tenant_member'],
   'only the expected private RLS helpers exist'
 );
 select ok(
@@ -387,10 +390,16 @@ select ok(
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-aaaa-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 select set_config('role', 'authenticated', true);
 
+-- Scoped to entity_type = 'tenant' (this file's own manually-seeded audit
+-- row) rather than every row for the tenant: 20260722030000_user_
+-- management.sql's automatic membership_audit_log trigger also fires on
+-- this file's own tenant_memberships/membership_roles fixture inserts
+-- above, which is expected and covered by user_management.test.sql — not
+-- what this assertion is proving (tenant-scoped RLS visibility).
 select results_eq(
-  $$ select tenant_id from public.access_audit_events $$,
+  $$ select tenant_id from public.access_audit_events where entity_type = 'tenant' $$,
   $$ values ('11111111-1111-1111-1111-111111111111'::uuid) $$,
-  'owner A sees only Tenant A audit events'
+  'owner A sees only Tenant A''s own seeded audit event'
 );
 
 select throws_ok(

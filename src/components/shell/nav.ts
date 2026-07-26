@@ -1,6 +1,7 @@
 import { canAccessDailyOperations } from "@/lib/operations-daily/access";
 import { canAccessOwnerControl } from "@/lib/owner-control/access";
 import { canReadCashImportStaging } from "@/lib/cash-import-staging/access";
+import { canViewUserManagement } from "@/lib/user-management/access";
 import type { TenantRole } from "@/lib/auth/tenant";
 
 export interface NavItem {
@@ -49,6 +50,10 @@ export function getNavGroupsForRoles(roles: TenantRole[]): NavGroup[] {
 
   if (canAccessOwnerControl(roles)) {
     groups.push({ title: "OWNER", items: [{ href: "/owner/control", label: "Owner Control" }] });
+  }
+
+  if (canViewUserManagement(roles)) {
+    groups.push({ title: "AKSES", items: [{ href: "/app/users", label: "User & Hak Akses" }] });
   }
 
   return groups;

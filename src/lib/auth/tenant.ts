@@ -148,6 +148,28 @@ export async function clearActiveTenantCookie(): Promise<void> {
   });
 }
 
+// A user with zero active memberships may still have one or more pending
+// tenant invitations waiting on them (see 20260722030000_user_management.sql
+// — accepting an invitation is what creates the membership, never the
+// invite step itself). RLS (tenant_invitations_select_own_email) already
+// scopes this to the caller's own verified email; this just checks whether
+// there is anything to show on /invite/accept before routing someone to the
+// dead-end /no-access page.
+export async function hasPendingInvitations(): Promise<boolean> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("tenant_invitations")
+    .select("id")
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .limit(1);
+
+  if (error) {
+    return false;
+  }
+  return (data ?? []).length > 0;
+}
+
 // Server Component-safe: never mutates cookies. When the active-tenant
 // cookie is missing, forged, or points at a tenant the caller no longer has
 // active access to, this redirects to a route that CAN set cookies
@@ -158,7 +180,7 @@ export async function requireTenantContext(): Promise<TenantContext> {
   const memberships = await listActiveMemberships(user.userId);
 
   if (memberships.length === 0) {
-    redirect("/no-access");
+    redirect((await hasPendingInvitations()) ? "/invite/accept" : "/no-access");
   }
 
   const cookieStore = await cookies();

@@ -246,10 +246,19 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Custom templates linking to /auth/confirm (token_hash + type), not the
+# default GoTrue-hosted /auth/v1/verify redirect — see src/app/auth/confirm/
+# route.ts for why (PKCE code/code_verifier only works when the same
+# browser starts and finishes the flow, which invite/recovery emails can't
+# guarantee). A hosted/staging Supabase project's dashboard Email Templates
+# need the same change made separately — this config only applies locally.
+[auth.email.template.invite]
+subject = "Anda diundang ke ADOP"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.recovery]
+subject = "Atur ulang kata sandi ADOP Anda"
+content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

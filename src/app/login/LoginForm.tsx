@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { loginAction, type LoginActionState } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/Button";
@@ -31,15 +32,12 @@ export function LoginForm() {
           <label htmlFor="password" className="text-[12.5px] font-semibold text-adop-ink-700">
             Kata Sandi
           </label>
-          {/* No password-reset flow exists yet — shown per prototype for
-              visual completeness, but kept non-interactive rather than
-              linking to a page that doesn't exist. */}
-          <span
-            className="cursor-not-allowed text-xs font-semibold text-adop-accent-800/50"
-            title="Fitur reset kata sandi belum tersedia"
+          <Link
+            href="/forgot-password"
+            className="text-xs font-semibold text-adop-accent-800 underline-offset-4 hover:underline"
           >
             Lupa kata sandi?
-          </span>
+          </Link>
         </div>
         <div className="flex h-11 items-center overflow-hidden rounded-lg border-[1.5px] border-neutral-300 bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30">
           <input
