@@ -1512,6 +1512,80 @@ export type Database = {
           },
         ]
       }
+      invoice_delivery_events: {
+        Row: {
+          acknowledgment_note: string | null
+          channel: Database["public"]["Enums"]["invoice_delivery_event_channel"]
+          created_at: string
+          event_seq: number
+          event_type: Database["public"]["Enums"]["invoice_delivery_event_type"]
+          failure_reason: string | null
+          id: string
+          invoice_id: string
+          provider_reference: string | null
+          recipient_snapshot: string
+          recorded_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          acknowledgment_note?: string | null
+          channel: Database["public"]["Enums"]["invoice_delivery_event_channel"]
+          created_at?: string
+          event_seq?: number
+          event_type: Database["public"]["Enums"]["invoice_delivery_event_type"]
+          failure_reason?: string | null
+          id?: string
+          invoice_id: string
+          provider_reference?: string | null
+          recipient_snapshot: string
+          recorded_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          acknowledgment_note?: string | null
+          channel?: Database["public"]["Enums"]["invoice_delivery_event_channel"]
+          created_at?: string
+          event_seq?: number
+          event_type?: Database["public"]["Enums"]["invoice_delivery_event_type"]
+          failure_reason?: string | null
+          id?: string
+          invoice_id?: string
+          provider_reference?: string | null
+          recipient_snapshot?: string
+          recorded_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_delivery_events_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_events_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["successor_invoice_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_events_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_evidence: {
         Row: {
           created_at: string
@@ -4506,6 +4580,37 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_invoice_delivery_event: {
+        Args: {
+          p_acknowledgment_note?: string
+          p_channel: Database["public"]["Enums"]["invoice_delivery_event_channel"]
+          p_event_type: Database["public"]["Enums"]["invoice_delivery_event_type"]
+          p_failure_reason?: string
+          p_invoice_id: string
+          p_provider_reference?: string
+          p_recipient_snapshot: string
+        }
+        Returns: {
+          acknowledgment_note: string | null
+          channel: Database["public"]["Enums"]["invoice_delivery_event_channel"]
+          created_at: string
+          event_seq: number
+          event_type: Database["public"]["Enums"]["invoice_delivery_event_type"]
+          failure_reason: string | null
+          id: string
+          invoice_id: string
+          provider_reference: string | null
+          recipient_snapshot: string
+          recorded_by: string | null
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoice_delivery_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_invoice_evidence_access: {
         Args: { p_version_id: string }
         Returns: {
@@ -5524,6 +5629,12 @@ export type Database = {
         | "VOID"
         | "LEGACY_RECORDED"
       invoice_delivery_channel: "whatsapp" | "email" | "both"
+      invoice_delivery_event_channel: "email" | "whatsapp" | "manual"
+      invoice_delivery_event_type:
+        | "sent"
+        | "delivered"
+        | "acknowledged"
+        | "failed"
       invoice_evidence_kind: "signed_invoice"
       invoice_evidence_version_status: "pending" | "verified" | "rejected"
       invoice_legacy_coverage_status: "full" | "partial" | "unknown"
@@ -5750,6 +5861,13 @@ export const Constants = {
         "LEGACY_RECORDED",
       ],
       invoice_delivery_channel: ["whatsapp", "email", "both"],
+      invoice_delivery_event_channel: ["email", "whatsapp", "manual"],
+      invoice_delivery_event_type: [
+        "sent",
+        "delivered",
+        "acknowledged",
+        "failed",
+      ],
       invoice_evidence_kind: ["signed_invoice"],
       invoice_evidence_version_status: ["pending", "verified", "rejected"],
       invoice_legacy_coverage_status: ["full", "partial", "unknown"],
@@ -5771,3 +5889,4 @@ export const Constants = {
     },
   },
 } as const
+

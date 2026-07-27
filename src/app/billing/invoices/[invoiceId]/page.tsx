@@ -4,12 +4,15 @@ import { requireTenantContext } from "@/lib/auth/tenant";
 import { AppShell } from "@/components/shell/AppShell";
 import { canAccessInvoiceEvidence } from "@/lib/invoice-evidence/access";
 import { getInvoiceDetailForActiveTenant, listInvoiceEligibleTransactionsForActiveTenant } from "@/lib/invoice-evidence/service";
+import { listInvoiceDeliveryEventsForActiveTenant } from "@/lib/invoice-delivery/service";
+import type { InvoiceDeliveryEventRow } from "@/lib/invoice-delivery/types";
 import { formatRupiah } from "@/lib/operations-daily/format";
 import { AccessDenied } from "../AccessDenied";
 import { InvoiceStatusBadge } from "../InvoiceStatusBadge";
 import { BindingSection } from "./BindingSection";
 import { LifecycleControls } from "./LifecycleControls";
 import { EvidenceSection } from "./EvidenceSection";
+import { DeliverySection } from "./DeliverySection";
 import { ExportCostRecapButton } from "./ExportCostRecapButton";
 import { MetadataSection } from "./MetadataSection";
 
@@ -31,6 +34,18 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
   const { invoice, lines, versions } = detail;
   const eligibleTransactions = invoice.status === "draft" ? await listInvoiceEligibleTransactionsForActiveTenant() : [];
+
+  // Isolated from the rest of the page — a delivery-history read failure
+  // should not take down invoice details/binding/evidence, it only degrades
+  // this one section to its own error state (task instruction: error state
+  // required for this section specifically).
+  let deliveryEvents: InvoiceDeliveryEventRow[] = [];
+  let deliveryLoadError = false;
+  try {
+    deliveryEvents = await listInvoiceDeliveryEventsForActiveTenant({ invoiceId });
+  } catch {
+    deliveryLoadError = true;
+  }
   const legalEntityName = context.legalEntities.find((entity) => entity.id === invoice.legal_entity_id)?.displayName;
   const metadataComplete = Boolean(invoice.legal_entity_id && invoice.invoice_number && invoice.invoice_date && invoice.due_date);
 
@@ -159,6 +174,13 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             tenantId={context.tenantId}
             invoiceStatus={invoice.status}
             versions={versions}
+          />
+
+          <DeliverySection
+            invoiceId={invoiceId}
+            invoiceStatus={invoice.status}
+            events={deliveryEvents}
+            loadError={deliveryLoadError}
           />
         </main>
       </div>
