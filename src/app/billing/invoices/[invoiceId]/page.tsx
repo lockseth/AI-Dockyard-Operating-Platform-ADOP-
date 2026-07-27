@@ -10,6 +10,7 @@ import { InvoiceStatusBadge } from "../InvoiceStatusBadge";
 import { BindingSection } from "./BindingSection";
 import { LifecycleControls } from "./LifecycleControls";
 import { EvidenceSection } from "./EvidenceSection";
+import { ExportCostRecapButton } from "./ExportCostRecapButton";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ invoiceId: string }> }) {
   const context = await requireTenantContext();
@@ -44,7 +45,10 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h1 className="font-mono text-lg font-semibold">{invoice.id}</h1>
-              {invoice.status ? <InvoiceStatusBadge status={invoice.status} /> : null}
+              <div className="flex items-center gap-3">
+                {invoice.status ? <InvoiceStatusBadge status={invoice.status} /> : null}
+                {(invoice.line_count ?? 0) > 0 ? <ExportCostRecapButton invoiceId={invoiceId} /> : null}
+              </div>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
               <div>

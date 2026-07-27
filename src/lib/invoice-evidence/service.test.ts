@@ -37,6 +37,15 @@ vi.mock("./repository", () => ({
   createInvoiceEvidenceSignedUrl,
 }));
 
+const listVesselProjects = vi.fn();
+vi.mock("@/lib/vessel-projects/repository", () => ({ listVesselProjects }));
+
+const listVessels = vi.fn();
+vi.mock("@/lib/master-data/vessels/repository", () => ({ listVessels }));
+
+const listClients = vi.fn();
+vi.mock("@/lib/master-data/clients/repository", () => ({ listClients }));
+
 const OWNER_CONTEXT = {
   userId: "owner-1",
   email: "owner@example.com",
@@ -112,6 +121,59 @@ describe("getInvoiceDetailForActiveTenant", () => {
       lines: [{ id: "line-1" }],
       versions: [{ id: "version-1" }],
     });
+  });
+});
+
+describe("getInvoiceCostRecapForActiveTenant", () => {
+  it("rejects reviewer before ever calling the repository", async () => {
+    requireTenantContext.mockResolvedValue(REVIEWER_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { getInvoiceCostRecapForActiveTenant } = await import("./service");
+
+    await expect(getInvoiceCostRecapForActiveTenant(VALID_INVOICE_ID)).rejects.toThrow(UnauthorizedTenantRoleError);
+    expect(getInvoiceSummary).not.toHaveBeenCalled();
+    expect(listInvoiceTransactionLines).not.toHaveBeenCalled();
+  });
+
+  it("returns null when the invoice is not found or belongs to another tenant, without leaking a line/project read", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    getInvoiceSummary.mockResolvedValue({ data: null, error: { message: "invoice not found" } });
+    const { getInvoiceCostRecapForActiveTenant } = await import("./service");
+
+    const result = await getInvoiceCostRecapForActiveTenant(VALID_INVOICE_ID);
+
+    expect(result).toBeNull();
+    expect(listInvoiceTransactionLines).not.toHaveBeenCalled();
+    expect(listVesselProjects).not.toHaveBeenCalled();
+  });
+
+  it("composes canonical lines with tenant-scoped project/vessel/client lookups — never recomputes the total independently", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    getInvoiceSummary.mockResolvedValue({
+      data: { id: VALID_INVOICE_ID, tenant_id: "tenant-1", status: "issued", total_amount: 150_000, line_count: 2 },
+      error: null,
+    });
+    listInvoiceTransactionLines.mockResolvedValue([
+      { id: "line-1", project_id: "project-1", amount: 100_000, description: "Biaya A" },
+      { id: "line-2", project_id: "project-1", amount: 50_000, description: "Biaya B" },
+    ]);
+    listVesselProjects.mockResolvedValue([{ id: "project-1", project_code: "PRJ-1", vessel_id: "vessel-1", client_id: "client-1" }]);
+    listVessels.mockResolvedValue([{ id: "vessel-1", vessel_name: "MV Uji" }]);
+    listClients.mockResolvedValue([{ id: "client-1", display_name: "PT Uji" }]);
+    const { getInvoiceCostRecapForActiveTenant } = await import("./service");
+
+    const result = await getInvoiceCostRecapForActiveTenant(VALID_INVOICE_ID);
+
+    expect(listVesselProjects).toHaveBeenCalledWith("tenant-1");
+    expect(listVessels).toHaveBeenCalledWith("tenant-1");
+    expect(listClients).toHaveBeenCalledWith("tenant-1");
+    expect(result?.tenantDisplayName).toBe("Tenant One");
+    expect(result?.rows).toEqual([
+      { lineId: "line-1", projectCode: "PRJ-1", vesselName: "MV Uji", clientName: "PT Uji", description: "Biaya A", amount: 100_000 },
+      { lineId: "line-2", projectCode: "PRJ-1", vesselName: "MV Uji", clientName: "PT Uji", description: "Biaya B", amount: 50_000 },
+    ]);
+    const total = result!.rows.reduce((sum, row) => sum + row.amount, 0);
+    expect(total).toBe(result!.invoice.total_amount);
   });
 });
 

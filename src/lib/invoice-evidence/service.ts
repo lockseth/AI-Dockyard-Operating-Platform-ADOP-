@@ -1,5 +1,9 @@
 import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
+import { listClients } from "@/lib/master-data/clients/repository";
+import { listVessels } from "@/lib/master-data/vessels/repository";
+import { listVesselProjects } from "@/lib/vessel-projects/repository";
+import { buildInvoiceCostRecapRows, type InvoiceCostRecap } from "./cost-recap";
 import { mapInvoiceEvidenceError } from "./errors";
 import {
   bindInvoiceTransaction,
@@ -84,6 +88,40 @@ export async function getInvoiceDetailForActiveTenant(invoiceId: string): Promis
   ]);
 
   return { invoice, lines, versions };
+}
+
+// Read-only composition over already-authorized reads (get_invoice_summary,
+// invoice_transaction_lines, and the same master-data tables the vessel
+// project picker already reads) — no new RPC/RLS surface, no writes. Powers
+// the "export cost recap XLSX" step of PRD.md §7.12's locked workflow; see
+// cost-recap.ts for why this is a working recap, not the final invoice.
+export async function getInvoiceCostRecapForActiveTenant(invoiceId: string): Promise<InvoiceCostRecap | null> {
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner", "admin"]);
+
+  const { data: invoice, error } = await getInvoiceSummary(invoiceId);
+  if (error) {
+    if (INVOICE_NOT_FOUND_MESSAGES.some((message) => error.message?.includes(message))) {
+      return null;
+    }
+    throw error;
+  }
+  if (!invoice || !invoice.id) {
+    return null;
+  }
+
+  const [lines, projects, vessels, clients] = await Promise.all([
+    listInvoiceTransactionLines(context.tenantId, invoiceId),
+    listVesselProjects(context.tenantId),
+    listVessels(context.tenantId),
+    listClients(context.tenantId),
+  ]);
+
+  return {
+    invoice,
+    tenantDisplayName: context.tenantDisplayName,
+    rows: buildInvoiceCostRecapRows(lines, projects, vessels, clients),
+  };
 }
 
 export async function listInvoiceEligibleTransactionsForActiveTenant(projectId?: string): Promise<InvoiceEligibleTransactionRow[]> {
