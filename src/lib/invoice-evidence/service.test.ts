@@ -12,6 +12,7 @@ const listInvoiceTransactionLines = vi.fn();
 const listInvoiceEvidenceVersions = vi.fn();
 const listInvoiceEligibleTransactions = vi.fn();
 const listTransactionInvoiceBindings = vi.fn();
+const listUnbilledVesselProjects = vi.fn();
 const createDraftInvoice = vi.fn();
 const bindInvoiceTransaction = vi.fn();
 const finalizeInvoiceEvidenceVersion = vi.fn();
@@ -24,6 +25,7 @@ vi.mock("./repository", () => ({
   listInvoiceEvidenceVersions,
   listInvoiceEligibleTransactions,
   listTransactionInvoiceBindings,
+  listUnbilledVesselProjects,
   createDraftInvoice,
   bindInvoiceTransaction,
   unbindInvoiceTransaction: vi.fn(),
@@ -186,6 +188,28 @@ describe("listTransactionInvoiceBindingsForActiveTenant", () => {
 
     expect(result).toEqual([]);
     expect(listTransactionInvoiceBindings).not.toHaveBeenCalled();
+  });
+});
+
+describe("listUnbilledVesselProjectsForActiveTenant", () => {
+  it("rejects reviewer before ever calling the repository", async () => {
+    requireTenantContext.mockResolvedValue(REVIEWER_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { listUnbilledVesselProjectsForActiveTenant } = await import("./service");
+
+    await expect(listUnbilledVesselProjectsForActiveTenant()).rejects.toThrow(UnauthorizedTenantRoleError);
+    expect(listUnbilledVesselProjects).not.toHaveBeenCalled();
+  });
+
+  it("passes the active tenant id to the repository for owner", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    listUnbilledVesselProjects.mockResolvedValue([{ project_id: "project-1" }]);
+    const { listUnbilledVesselProjectsForActiveTenant } = await import("./service");
+
+    const result = await listUnbilledVesselProjectsForActiveTenant();
+
+    expect(listUnbilledVesselProjects).toHaveBeenCalledWith("tenant-1");
+    expect(result).toEqual([{ project_id: "project-1" }]);
   });
 });
 

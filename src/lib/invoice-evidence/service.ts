@@ -18,6 +18,7 @@ import {
   listInvoiceTransactionLines,
   listInvoices,
   listTransactionInvoiceBindings,
+  listUnbilledVesselProjects,
   rejectInvoiceEvidenceVersion,
   reissueInvoice,
   unbindInvoiceTransaction,
@@ -31,6 +32,7 @@ import type {
   InvoiceStatus,
   InvoiceTransactionLineRow,
   TransactionInvoiceBindingRow,
+  UnbilledVesselProjectRow,
 } from "./types";
 import {
   bindInvoiceTransactionInputSchema,
@@ -137,6 +139,14 @@ export async function listTransactionInvoiceBindingsForActiveTenant(transactionE
     return [];
   }
   return listTransactionInvoiceBindings(context.tenantId, transactionEntryId);
+}
+
+// Phase 2A Contract §13 — Unbilled Vessel Alert. Same owner/admin gate as
+// every other invoice read; the RPC itself re-checks role independently.
+export async function listUnbilledVesselProjectsForActiveTenant(): Promise<UnbilledVesselProjectRow[]> {
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner", "admin"]);
+  return listUnbilledVesselProjects(context.tenantId);
 }
 
 export interface CreateDraftInvoiceResult extends InvoiceEvidenceActionResult {

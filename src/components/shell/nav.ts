@@ -50,7 +50,13 @@ export function getNavGroupsForRoles(roles: TenantRole[]): NavGroup[] {
   groups.push({ title: "MANAJEMEN DATA", items: dataItems });
 
   if (canAccessInvoiceEvidence(roles)) {
-    groups.push({ title: "BILLING", items: [{ href: "/billing/invoices", label: "Invoice & Evidence" }] });
+    groups.push({
+      title: "BILLING",
+      items: [
+        { href: "/billing/workspace", label: "Ringkasan Billing" },
+        { href: "/billing/invoices", label: "Invoice & Evidence" },
+      ],
+    });
   }
 
   if (canAccessOwnerControl(roles)) {

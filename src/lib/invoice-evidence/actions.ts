@@ -44,6 +44,7 @@ export async function createDraftInvoiceAction(
   }
   if (result.invoiceId) {
     revalidatePath("/billing/invoices");
+    revalidatePath("/billing/workspace");
     redirect(`/billing/invoices/${result.invoiceId}`);
   }
   return result;
@@ -65,6 +66,7 @@ export async function bindInvoiceTransactionAction(
   }
   if (!result.error && !result.fieldErrors && typeof invoiceId === "string") {
     revalidatePath(`/billing/invoices/${invoiceId}`);
+    revalidatePath("/billing/workspace");
   }
   return result;
 }
@@ -82,6 +84,7 @@ export async function unbindInvoiceTransactionAction(
   }
   if (!result.error && !result.fieldErrors && typeof invoiceId === "string") {
     revalidatePath(`/billing/invoices/${invoiceId}`);
+    revalidatePath("/billing/workspace");
   }
   return result;
 }
@@ -100,6 +103,7 @@ export async function issueInvoiceAction(
   if (!result.error && !result.fieldErrors && typeof invoiceId === "string") {
     revalidatePath(`/billing/invoices/${invoiceId}`);
     revalidatePath("/billing/invoices");
+    revalidatePath("/billing/workspace");
   }
   return result;
 }
@@ -118,6 +122,7 @@ export async function voidInvoiceAction(
   if (!result.error && !result.fieldErrors && typeof invoiceId === "string") {
     revalidatePath(`/billing/invoices/${invoiceId}`);
     revalidatePath("/billing/invoices");
+    revalidatePath("/billing/workspace");
   }
   return result;
 }
@@ -134,6 +139,7 @@ export async function reissueInvoiceAction(
   }
   if (result.invoiceId) {
     revalidatePath("/billing/invoices");
+    revalidatePath("/billing/workspace");
     redirect(`/billing/invoices/${result.invoiceId}`);
   }
   return result;
@@ -175,6 +181,7 @@ export async function verifyInvoiceEvidenceVersionAction(
   }
   if (!result.error && !result.fieldErrors && typeof invoiceId === "string") {
     revalidatePath(`/billing/invoices/${invoiceId}`);
+    revalidatePath("/billing/workspace");
   }
   return result;
 }
@@ -195,6 +202,7 @@ export async function rejectInvoiceEvidenceVersionAction(
   }
   if (!result.error && !result.fieldErrors && typeof invoiceId === "string") {
     revalidatePath(`/billing/invoices/${invoiceId}`);
+    revalidatePath("/billing/workspace");
   }
   return result;
 }
