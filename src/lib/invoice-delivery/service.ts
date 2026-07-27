@@ -1,7 +1,7 @@
 import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
 import { mapInvoiceDeliveryError } from "./errors";
-import { listInvoiceDeliveryEvents, recordInvoiceDeliveryEvent } from "./repository";
+import { getLatestInvoiceDeliveryEvent, listInvoiceDeliveryEvents, recordInvoiceDeliveryEvent } from "./repository";
 import type { InvoiceDeliveryEventRow } from "./types";
 import {
   listInvoiceDeliveryEventsInputSchema,
@@ -25,6 +25,19 @@ export async function listInvoiceDeliveryEventsForActiveTenant(rawInput: unknown
   const context = await requireTenantContext();
   requireTenantRole(context, ["owner", "admin"]);
   return listInvoiceDeliveryEvents(context.tenantId, parsed.data.invoiceId);
+}
+
+// Same owner/admin gate and input shape as listInvoiceDeliveryEventsForActiveTenant
+// above — used by the executive report, which only needs the single most
+// recent event per issued invoice, not the full history.
+export async function getLatestInvoiceDeliveryEventForActiveTenant(rawInput: unknown): Promise<InvoiceDeliveryEventRow | null> {
+  const parsed = listInvoiceDeliveryEventsInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return null;
+  }
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner", "admin"]);
+  return getLatestInvoiceDeliveryEvent(context.tenantId, parsed.data.invoiceId);
 }
 
 export async function recordInvoiceDeliveryForActiveTenant(rawInput: unknown): Promise<InvoiceDeliveryActionResult> {

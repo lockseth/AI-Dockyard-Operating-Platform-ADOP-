@@ -7,9 +7,11 @@ vi.mock("@/lib/auth/tenant", async (importOriginal) => {
 });
 
 const listInvoiceDeliveryEvents = vi.fn();
+const getLatestInvoiceDeliveryEvent = vi.fn();
 const recordInvoiceDeliveryEvent = vi.fn();
 vi.mock("./repository", () => ({
   listInvoiceDeliveryEvents,
+  getLatestInvoiceDeliveryEvent,
   recordInvoiceDeliveryEvent,
 }));
 
@@ -61,6 +63,40 @@ describe("listInvoiceDeliveryEventsForActiveTenant", () => {
     expect(result).toEqual([]);
     expect(requireTenantContext).not.toHaveBeenCalled();
     expect(listInvoiceDeliveryEvents).not.toHaveBeenCalled();
+  });
+});
+
+describe("getLatestInvoiceDeliveryEventForActiveTenant", () => {
+  it("rejects reviewer before ever calling the repository", async () => {
+    requireTenantContext.mockResolvedValue(REVIEWER_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { getLatestInvoiceDeliveryEventForActiveTenant } = await import("./service");
+
+    await expect(getLatestInvoiceDeliveryEventForActiveTenant({ invoiceId: VALID_INVOICE_ID })).rejects.toThrow(
+      UnauthorizedTenantRoleError,
+    );
+    expect(getLatestInvoiceDeliveryEvent).not.toHaveBeenCalled();
+  });
+
+  it("passes the active tenant id to the repository and returns its single-row result", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    getLatestInvoiceDeliveryEvent.mockResolvedValue({ id: "event-9", event_type: "delivered", event_seq: 3 });
+    const { getLatestInvoiceDeliveryEventForActiveTenant } = await import("./service");
+
+    const result = await getLatestInvoiceDeliveryEventForActiveTenant({ invoiceId: VALID_INVOICE_ID });
+
+    expect(getLatestInvoiceDeliveryEvent).toHaveBeenCalledWith("tenant-1", VALID_INVOICE_ID);
+    expect(result).toEqual({ id: "event-9", event_type: "delivered", event_seq: 3 });
+  });
+
+  it("returns null (never throws) for an invalid invoiceId, before any auth/repository call", async () => {
+    const { getLatestInvoiceDeliveryEventForActiveTenant } = await import("./service");
+
+    const result = await getLatestInvoiceDeliveryEventForActiveTenant({ invoiceId: "not-a-uuid" });
+
+    expect(result).toBeNull();
+    expect(requireTenantContext).not.toHaveBeenCalled();
+    expect(getLatestInvoiceDeliveryEvent).not.toHaveBeenCalled();
   });
 });
 

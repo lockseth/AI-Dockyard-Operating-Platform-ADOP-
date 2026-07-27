@@ -3,6 +3,7 @@ import { canAccessOwnerControl } from "@/lib/owner-control/access";
 import { canReadCashImportStaging } from "@/lib/cash-import-staging/access";
 import { canViewUserManagement } from "@/lib/user-management/access";
 import { canAccessInvoiceEvidence } from "@/lib/invoice-evidence/access";
+import { canAccessExecutiveReport } from "@/lib/executive-report/access";
 import type { TenantRole } from "@/lib/auth/tenant";
 
 export interface NavItem {
@@ -59,8 +60,15 @@ export function getNavGroupsForRoles(roles: TenantRole[]): NavGroup[] {
     });
   }
 
+  const ownerItems: NavItem[] = [];
+  if (canAccessExecutiveReport(roles)) {
+    ownerItems.push({ href: "/app/executive-report", label: "Laporan Eksekutif" });
+  }
   if (canAccessOwnerControl(roles)) {
-    groups.push({ title: "OWNER", items: [{ href: "/owner/control", label: "Owner Control" }] });
+    ownerItems.push({ href: "/owner/control", label: "Owner Control" });
+  }
+  if (ownerItems.length > 0) {
+    groups.push({ title: "OWNER", items: ownerItems });
   }
 
   if (canViewUserManagement(roles)) {

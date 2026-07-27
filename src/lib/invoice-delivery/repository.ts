@@ -15,6 +15,29 @@ export async function listInvoiceDeliveryEvents(tenantId: string, invoiceId: str
   return data ?? [];
 }
 
+// Lean single-row read for callers that only need the most recent event per
+// invoice (e.g. the executive report's attention derivation) rather than the
+// full history listInvoiceDeliveryEvents returns. event_seq is the
+// authoritative per-invoice ordering column — created_at is not used since
+// two events can share a created_at at insert granularity.
+export async function getLatestInvoiceDeliveryEvent(
+  tenantId: string,
+  invoiceId: string,
+): Promise<InvoiceDeliveryEventRow | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("invoice_delivery_events")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("invoice_id", invoiceId)
+    .order("event_seq", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function recordInvoiceDeliveryEvent(params: {
   invoiceId: string;
   channel: InvoiceDeliveryEventChannel;
