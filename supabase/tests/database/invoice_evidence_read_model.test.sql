@@ -51,6 +51,10 @@ insert into public.membership_roles (membership_id, role) values
   ('a0000000-4444-0000-0000-000000000004', 'viewer'),
   ('b0000000-4444-0000-0000-000000000001', 'owner');
 
+-- Phase 2A: a legal entity is now required to issue an invoice.
+insert into public.legal_entities (id, tenant_id, display_name, status) values
+  ('a0000000-0000-0000-0000-0000000000a9', 'a4a4a4a4-a4a4-a4a4-a4a4-a4a4a4a4a4a4', 'Anchor Legal Entity K', 'active');
+
 insert into public.clients (id, tenant_id, client_code, display_name, created_by) values
   ('a0000000-0000-0000-0000-0000000000c1', 'a4a4a4a4-a4a4-a4a4-a4a4-a4a4a4a4a4a4', 'CL-K-ANCHOR', 'Anchor Client K', '00000000-a4a4-4444-0000-000000000001');
 
@@ -149,7 +153,10 @@ select set_config('request.jwt.claims', '', true);
 -- =============================================================================
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-a4a4-4444-0000-000000000001', 'role', 'authenticated')::text, true);
-select lives_ok($$ select public.create_draft_invoice('a4a4a4a4-a4a4-a4a4-a4a4-a4a4a4a4a4a4') $$, 'owner K creates draft invoice 1');
+select lives_ok(
+  $$ select public.create_draft_invoice('a4a4a4a4-a4a4-a4a4-a4a4-a4a4a4a4a4a4', 'a0000000-0000-0000-0000-0000000000a2') $$,
+  'owner K creates draft invoice 1'
+);
 reset role;
 select set_config('request.jwt.claims', '', true);
 
@@ -206,6 +213,18 @@ select set_config('request.jwt.claims', '', true);
 -- --- Issue, upload+verify evidence, check is_final_document ----------------
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-a4a4-4444-0000-000000000001', 'role', 'authenticated')::text, true);
+-- Phase 2A: billing metadata must be registered before issuance.
+select lives_ok(
+  format(
+    $$ select public.update_invoice_billing_metadata(%L, 'a0000000-0000-0000-0000-0000000000a9', '2033-01-10', '2033-02-10') $$,
+    (select id from pgtap_rm_invoice_1)
+  ),
+  'owner K sets billing metadata on invoice 1'
+);
+select lives_ok(
+  format($$ select public.register_invoice_number(%L, 'INV-K-0001') $$, (select id from pgtap_rm_invoice_1)),
+  'owner K registers invoice number for invoice 1'
+);
 select lives_ok(format($$ select public.issue_invoice(%L) $$, (select id from pgtap_rm_invoice_1)), 'owner K issues invoice 1');
 reset role;
 

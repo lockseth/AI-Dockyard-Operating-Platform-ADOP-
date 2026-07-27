@@ -4,10 +4,12 @@ import type {
   InvoiceBillingSummaryRow,
   InvoiceEligibleTransactionRow,
   InvoiceEvidenceVersionRow,
+  InvoiceLegacyCoverageStatus,
   InvoiceRow,
   InvoiceStatus,
   InvoiceTransactionLineRow,
   TransactionInvoiceBindingRow,
+  UnbilledVesselProjectRow,
 } from "./types";
 
 const EVIDENCE_BUCKET = "invoice-evidence";
@@ -140,10 +142,12 @@ export async function listTransactionInvoiceBindings(
 
 // tenant_id is re-derived by the RPC from the caller's own membership, never
 // accepted here from a form field — matches record_project_expense's
-// posture (see cost-ledger/repository.ts).
-export async function createDraftInvoice(tenantId: string) {
+// posture (see cost-ledger/repository.ts). project_id is mandatory (Phase
+// 2A Contract §5.1) — the RPC rejects a null project_id itself, this is not
+// re-validated here.
+export async function createDraftInvoice(tenantId: string, projectId: string) {
   const supabase = await createSupabaseServerClient();
-  return supabase.rpc("create_draft_invoice", { p_tenant_id: tenantId });
+  return supabase.rpc("create_draft_invoice", { p_tenant_id: tenantId, p_project_id: projectId });
 }
 
 export async function bindInvoiceTransaction(invoiceId: string, transactionEntryId: string) {
@@ -169,9 +173,88 @@ export async function voidInvoice(invoiceId: string, reason: string) {
   return supabase.rpc("void_invoice", { p_invoice_id: invoiceId, p_reason: reason });
 }
 
-export async function reissueInvoice(predecessorInvoiceId: string) {
+// projectId is optional — the RPC derives it from the predecessor invoice
+// when the predecessor already has one (every invoice created after Phase
+// 2A does); only a predecessor with no project_id (pre-Phase 2A) requires
+// it explicitly (Contract §5.1/VR-04).
+export async function reissueInvoice(predecessorInvoiceId: string, projectId?: string) {
   const supabase = await createSupabaseServerClient();
-  return supabase.rpc("reissue_invoice", { p_predecessor_invoice_id: predecessorInvoiceId });
+  return supabase.rpc("reissue_invoice", {
+    p_predecessor_invoice_id: predecessorInvoiceId,
+    p_project_id: projectId,
+  });
+}
+
+// Phase 2A — ADOP_PHASE_2A_BILLING_METADATA_UNBILLED_CONTROL_CONTRACT_v1.0.md
+// §7 manual invoice number registration, separate from other metadata edits
+// (own audit action `invoice.number_registered`).
+export async function registerInvoiceNumber(invoiceId: string, invoiceNumber: string) {
+  const supabase = await createSupabaseServerClient();
+  return supabase.rpc("register_invoice_number", { p_invoice_id: invoiceId, p_invoice_number: invoiceNumber });
+}
+
+// §6.1/§10.1 — legal_entity_id/invoice_date/due_date only; project_id/
+// client_id are locked at creation and never accepted here.
+export async function updateInvoiceBillingMetadata(params: {
+  invoiceId: string;
+  legalEntityId: string | null;
+  invoiceDate: string | null;
+  dueDate: string | null;
+}) {
+  const supabase = await createSupabaseServerClient();
+  // The RPC's SQL parameters accept null at runtime (no NOT NULL on the
+  // underlying columns) to let a field be explicitly cleared while draft —
+  // the generated Args type does not model that nullability, hence the cast.
+  return supabase.rpc("update_invoice_billing_metadata", {
+    p_invoice_id: params.invoiceId,
+    p_legal_entity_id: params.legalEntityId as unknown as string,
+    p_invoice_date: params.invoiceDate as unknown as string,
+    p_due_date: params.dueDate as unknown as string,
+  });
+}
+
+// §15 — retroactive registration of an invoice issued/voided physically
+// before it existed in ADOP. Never creates fabricated coverage: pass
+// transactionEntryIds only for transactions that can actually be mapped
+// (§15.7).
+export async function registerLegacyInvoice(params: {
+  tenantId: string;
+  legalEntityId: string;
+  projectId: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string | null;
+  status: Extract<InvoiceStatus, "issued" | "void">;
+  legacyCoverageStatus?: InvoiceLegacyCoverageStatus;
+  voidReason?: string | null;
+  transactionEntryIds?: string[] | null;
+}) {
+  const supabase = await createSupabaseServerClient();
+  // p_due_date/p_void_reason/p_transaction_entry_ids accept null/omitted at
+  // runtime (§15.2/§15.4 — unknown due_date, only-if-void reason, coverage
+  // mapping optional); the generated Args type does not model that, hence
+  // the casts.
+  return supabase.rpc("register_legacy_invoice", {
+    p_tenant_id: params.tenantId,
+    p_legal_entity_id: params.legalEntityId,
+    p_project_id: params.projectId,
+    p_invoice_number: params.invoiceNumber,
+    p_invoice_date: params.invoiceDate,
+    p_due_date: params.dueDate as unknown as string,
+    p_status: params.status,
+    p_legacy_coverage_status: params.legacyCoverageStatus ?? "unknown",
+    p_void_reason: (params.voidReason ?? null) as unknown as string,
+    p_transaction_entry_ids: (params.transactionEntryIds ?? null) as unknown as string[],
+  });
+}
+
+// §13 — Unbilled Vessel Alert, owner/admin only, tenant-isolated.
+export async function listUnbilledVesselProjects(tenantId: string): Promise<UnbilledVesselProjectRow[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("list_unbilled_vessel_projects", { p_tenant_id: tenantId });
+
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function finalizeInvoiceEvidenceVersion(params: {

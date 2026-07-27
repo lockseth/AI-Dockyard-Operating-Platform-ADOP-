@@ -47,6 +47,10 @@ insert into public.membership_roles (membership_id, role) values
   ('f0000000-4444-0000-0000-000000000001', 'owner');
 
 -- Anchor master-data rows, inserted as the unrestricted fixture-setup role.
+-- Phase 2A: a legal entity is now required to issue an invoice.
+insert into public.legal_entities (id, tenant_id, display_name, status) values
+  ('e0000000-0000-0000-0000-0000000000a9', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Anchor Legal Entity I', 'active');
+
 insert into public.clients (id, tenant_id, client_code, display_name, created_by) values
   ('e0000000-0000-0000-0000-0000000000c1', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'CL-I-ANCHOR', 'Anchor Client I', '00000000-eeee-4444-0000-000000000001'),
   ('f0000000-0000-0000-0000-0000000000c1', 'ffffffff-ffff-ffff-ffff-ffffffffffff', 'CL-J-ANCHOR', 'Anchor Client J', '00000000-ffff-4444-0000-000000000001');
@@ -149,9 +153,9 @@ select ok(not has_table_privilege('authenticated', 'public.invoice_transaction_l
 select ok(not has_table_privilege('authenticated', 'public.invoice_evidence', 'INSERT'), 'authenticated has no INSERT grant on invoice_evidence');
 select ok(not has_table_privilege('authenticated', 'public.invoice_evidence_versions', 'UPDATE'), 'authenticated has no UPDATE grant on invoice_evidence_versions');
 
-select ok(not has_function_privilege('anon', 'public.create_draft_invoice(uuid)', 'EXECUTE'), 'anon cannot execute create_draft_invoice');
+select ok(not has_function_privilege('anon', 'public.create_draft_invoice(uuid, uuid)', 'EXECUTE'), 'anon cannot execute create_draft_invoice');
 select ok(not has_function_privilege('anon', 'public.finalize_invoice_evidence_version(uuid, text, text, bigint, text)', 'EXECUTE'), 'anon cannot execute finalize_invoice_evidence_version');
-select ok(has_function_privilege('authenticated', 'public.create_draft_invoice(uuid)', 'EXECUTE'), 'authenticated can execute create_draft_invoice');
+select ok(has_function_privilege('authenticated', 'public.create_draft_invoice(uuid, uuid)', 'EXECUTE'), 'authenticated can execute create_draft_invoice');
 select ok(has_function_privilege('authenticated', 'public.bind_invoice_transaction(uuid, uuid)', 'EXECUTE'), 'authenticated can execute bind_invoice_transaction');
 
 -- =============================================================================
@@ -160,36 +164,36 @@ select ok(has_function_privilege('authenticated', 'public.bind_invoice_transacti
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-eeee-4444-0000-000000000003', 'role', 'authenticated')::text, true);
 select throws_ok(
-  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee') $$,
+  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'e0000000-0000-0000-0000-0000000000a2') $$,
   'not authorized to create invoice',
   'reviewer I cannot create a draft invoice'
 );
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-eeee-4444-0000-000000000004', 'role', 'authenticated')::text, true);
 select throws_ok(
-  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee') $$,
+  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'e0000000-0000-0000-0000-0000000000a2') $$,
   'not authorized to create invoice',
   'viewer I cannot create a draft invoice'
 );
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-ffff-4444-0000-000000000001', 'role', 'authenticated')::text, true);
 select throws_ok(
-  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee') $$,
+  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'e0000000-0000-0000-0000-0000000000a2') $$,
   'not authorized to create invoice',
   'owner J cannot create a draft invoice for tenant I'
 );
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-eeee-4444-0000-000000000001', 'role', 'authenticated')::text, true);
 select lives_ok(
-  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee') $$,
+  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'e0000000-0000-0000-0000-0000000000a2') $$,
   'owner I can create a draft invoice (invoice 1)'
 );
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-eeee-4444-0000-000000000002', 'role', 'authenticated')::text, true);
 select lives_ok(
-  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee') $$,
+  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'e0000000-0000-0000-0000-0000000000a2') $$,
   'admin I can create a second draft invoice (invoice 2)'
 );
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-ffff-4444-0000-000000000001', 'role', 'authenticated')::text, true);
 select lives_ok(
-  $$ select public.create_draft_invoice('ffffffff-ffff-ffff-ffff-ffffffffffff') $$,
+  $$ select public.create_draft_invoice('ffffffff-ffff-ffff-ffff-ffffffffffff', 'f0000000-0000-0000-0000-0000000000a2') $$,
   'owner J can create their own draft invoice (invoice J1)'
 );
 reset role;
@@ -229,10 +233,27 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-eeee-4444-0000-000000000002', 'role', 'authenticated')::text, true);
+-- Phase 2A: invoice_1 is now locked to project a2, so an entry from the
+-- still-active project a3 is rejected for project mismatch before the
+-- closed-project guard is even reached — tested separately below. To still
+-- prove the closed-project guard in isolation (B-02), bind entry 004
+-- (project a3) to a draft invoice locked to that same not-yet-closed a3.
+select lives_ok(
+  $$ select public.create_draft_invoice('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'e0000000-0000-0000-0000-0000000000a3') $$,
+  'admin I creates a draft invoice locked to the still-active project a3'
+);
 select throws_ok(
-  $$ select public.bind_invoice_transaction((select id from pgtap_invev_invoice_1), 'e1000000-0000-0000-0000-000000000004') $$,
+  $$ select public.bind_invoice_transaction(
+       (select id from public.invoices where project_id = 'e0000000-0000-0000-0000-0000000000a3'),
+       'e1000000-0000-0000-0000-000000000004'
+     ) $$,
   'vessel project must be closed before billing its transactions',
   'B-02: binding a not-closed-project transaction is rejected'
+);
+select throws_ok(
+  $$ select public.bind_invoice_transaction((select id from pgtap_invev_invoice_1), 'e1000000-0000-0000-0000-000000000004') $$,
+  'transaction entry belongs to a different Project Kapal than this invoice',
+  'K-04/K-05: binding a transaction from a different project than the invoice''s locked project is rejected'
 );
 select throws_ok(
   $$ select public.bind_invoice_transaction((select id from pgtap_invev_invoice_1), 'e1000000-0000-0000-0000-000000000005') $$,
@@ -303,6 +324,18 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-eeee-4444-0000-000000000001', 'role', 'authenticated')::text, true);
+-- Phase 2A: billing metadata (legal entity, number, dates) must be
+-- registered before issuance (Contract §6.1/§27 acceptance #4).
+select lives_ok(
+  $$ select public.update_invoice_billing_metadata(
+       (select id from pgtap_invev_invoice_1), 'e0000000-0000-0000-0000-0000000000a9', '2033-01-10', '2033-02-10'
+     ) $$,
+  'owner I sets billing metadata on invoice 1'
+);
+select lives_ok(
+  $$ select public.register_invoice_number((select id from pgtap_invev_invoice_1), 'INV-I-0001') $$,
+  'owner I registers invoice number for invoice 1'
+);
 select lives_ok(
   $$ select public.issue_invoice((select id from pgtap_invev_invoice_1)) $$,
   'L-01: owner I issues invoice 1'
@@ -446,6 +479,16 @@ select set_config('request.jwt.claims', json_build_object('sub', '00000000-eeee-
 select lives_ok(
   $$ select public.bind_invoice_transaction((select id from pgtap_invev_invoice_3), 'e1000000-0000-0000-0000-000000000001') $$,
   'B-05: the transaction freed by voiding invoice 1 can be bound to reissued invoice 3'
+);
+select lives_ok(
+  $$ select public.update_invoice_billing_metadata(
+       (select id from pgtap_invev_invoice_3), 'e0000000-0000-0000-0000-0000000000a9', '2033-01-15', '2033-02-15'
+     ) $$,
+  'admin I sets billing metadata on invoice 3'
+);
+select lives_ok(
+  $$ select public.register_invoice_number((select id from pgtap_invev_invoice_3), 'INV-I-0002') $$,
+  'admin I registers invoice number for invoice 3'
 );
 select lives_ok(
   $$ select public.issue_invoice((select id from pgtap_invev_invoice_3)) $$,

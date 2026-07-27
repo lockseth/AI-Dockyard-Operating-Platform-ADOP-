@@ -7,9 +7,14 @@ export type InvoiceEvidenceRow = Tables<"invoice_evidence">;
 export type InvoiceEvidenceVersionRow = Tables<"invoice_evidence_versions">;
 export type InvoiceEligibleTransactionRow = Tables<"invoice_eligible_transactions">;
 export type TransactionInvoiceBindingRow = Tables<"transaction_invoice_bindings">;
+export type UnbilledVesselProjectRow = Tables<"unbilled_vessel_projects">;
 
 export type InvoiceStatus = Enums<"invoice_status">;
 export type InvoiceEvidenceVersionStatus = Enums<"invoice_evidence_version_status">;
+// Phase 2A — ADOP_PHASE_2A_BILLING_METADATA_UNBILLED_CONTROL_CONTRACT_v1.0.md
+export type InvoiceOrigin = Enums<"invoice_origin">;
+export type InvoiceLegacyCoverageStatus = Enums<"invoice_legacy_coverage_status">;
+export type InvoiceBillingCompletenessStatus = Enums<"invoice_billing_completeness_status">;
 
 // Mirrors the bucket-level and finalize_invoice_evidence_version RPC
 // constraints in 20260723000000_invoice_evidence_documents.sql — kept here

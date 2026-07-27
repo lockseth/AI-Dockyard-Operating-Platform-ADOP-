@@ -34,6 +34,7 @@ import type {
 } from "./types";
 import {
   bindInvoiceTransactionInputSchema,
+  createDraftInvoiceInputSchema,
   finalizeInvoiceEvidenceVersionInputSchema,
   getInvoiceEvidenceSignedUrlInputSchema,
   issueInvoiceInputSchema,
@@ -142,15 +143,50 @@ export interface CreateDraftInvoiceResult extends InvoiceEvidenceActionResult {
   invoiceId?: string;
 }
 
-export async function createDraftInvoiceForActiveTenant(): Promise<CreateDraftInvoiceResult> {
+// Phase 2A Contract §5.1: project_id must be chosen explicitly by the admin
+// when a Billing Record is created — never inferred later from whichever
+// transaction happens to be bound first.
+export async function createDraftInvoiceForActiveTenant(rawInput: unknown): Promise<CreateDraftInvoiceResult> {
+  const parsed = createDraftInvoiceInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
   const context = await requireTenantContext();
   requireTenantRole(context, ["owner", "admin"]);
 
-  const { data, error } = await createDraftInvoice(context.tenantId);
+  const { data, error } = await createDraftInvoice(context.tenantId, parsed.data.projectId);
   if (error || !data) {
     return { error: mapInvoiceEvidenceError(error) };
   }
   return { invoiceId: data.id };
+}
+
+export interface BillableProjectOption {
+  id: string;
+  label: string;
+}
+
+// Backs the project picker on "Buat Draft Invoice" — closed Project Kapal
+// only (Contract §8.2 eligibility), the same closed-project source
+// invoice_eligible_transactions already restricts to.
+export async function listBillableClosedProjectsForActiveTenant(): Promise<BillableProjectOption[]> {
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner", "admin"]);
+
+  const [projects, vessels] = await Promise.all([
+    listVesselProjects(context.tenantId),
+    listVessels(context.tenantId),
+  ]);
+  const vesselNameById = new Map(vessels.map((vessel) => [vessel.id, vessel.vessel_name]));
+
+  return projects
+    .filter((project) => project.lifecycle_status === "closed")
+    .map((project) => ({
+      id: project.id,
+      label: [vesselNameById.get(project.vessel_id) ?? "Kapal tidak dikenal", project.project_code]
+        .filter(Boolean)
+        .join(" — "),
+    }));
 }
 
 export async function bindInvoiceTransactionForActiveTenant(rawInput: unknown): Promise<InvoiceEvidenceActionResult> {

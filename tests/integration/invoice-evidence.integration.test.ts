@@ -28,6 +28,7 @@ if (!SUPABASE_URL || !ANON_KEY || !SERVICE_ROLE_KEY) {
 // Seeded by supabase/seed.sql.
 const TENANT_A_ID = "a1111111-1111-4111-8111-111111111111";
 const TENANT_B_ID = "b2222222-2222-4222-8222-222222222222";
+const LEGAL_ENTITY_A_ID = "a1111111-e1e1-e1e1-e1e1-e1e1e1e1e1e1";
 
 const admin: SupabaseClient = createAdminClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -183,12 +184,31 @@ describe("invoice evidence & signed document foundation — real local Supabase"
     return { projectId, entryIds };
   }
 
+  // Phase 2A Contract §6.1/§27: issue_invoice now requires legal_entity_id/
+  // invoice_number/invoice_date/due_date to be registered first.
+  async function registerBillingMetadata(client: SupabaseClient, invoiceId: string): Promise<void> {
+    const { error: metadataError } = await client.rpc("update_invoice_billing_metadata", {
+      p_invoice_id: invoiceId,
+      p_legal_entity_id: LEGAL_ENTITY_A_ID,
+      p_invoice_date: "2033-01-05",
+      p_due_date: "2033-02-04",
+    });
+    if (metadataError) throw metadataError;
+
+    const { error: numberError } = await client.rpc("register_invoice_number", {
+      p_invoice_id: invoiceId,
+      p_invoice_number: `IE-${crypto.randomUUID()}`,
+    });
+    if (numberError) throw numberError;
+  }
+
   async function createIssuedInvoice(entryCount: number): Promise<string> {
     const ownerAClient = await signInAsMember(ownerA.email);
-    const { entryIds } = await createClosedProjectWithEntries(entryCount);
+    const { projectId, entryIds } = await createClosedProjectWithEntries(entryCount);
 
     const { data: invoice, error: createError } = await ownerAClient.rpc("create_draft_invoice", {
       p_tenant_id: TENANT_A_ID,
+      p_project_id: projectId,
     });
     if (createError) throw createError;
 
@@ -200,6 +220,8 @@ describe("invoice evidence & signed document foundation — real local Supabase"
       if (bindError) throw bindError;
     }
 
+    await registerBillingMetadata(ownerAClient, invoice.id);
+
     const { error: issueError } = await ownerAClient.rpc("issue_invoice", { p_invoice_id: invoice.id });
     if (issueError) throw issueError;
 
@@ -208,13 +230,17 @@ describe("invoice evidence & signed document foundation — real local Supabase"
 
   it("concurrent issue_invoice calls on the same draft invoice: exactly one succeeds, one audit event is recorded", async () => {
     const ownerAClient = await signInAsMember(ownerA.email);
-    const { entryIds } = await createClosedProjectWithEntries(1);
+    const { projectId, entryIds } = await createClosedProjectWithEntries(1);
 
-    const { data: invoice } = await ownerAClient.rpc("create_draft_invoice", { p_tenant_id: TENANT_A_ID });
+    const { data: invoice } = await ownerAClient.rpc("create_draft_invoice", {
+      p_tenant_id: TENANT_A_ID,
+      p_project_id: projectId,
+    });
     await ownerAClient.rpc("bind_invoice_transaction", {
       p_invoice_id: invoice.id,
       p_transaction_entry_id: entryIds[0],
     });
+    await registerBillingMetadata(ownerAClient, invoice.id);
 
     const [first, second] = await Promise.all([
       ownerAClient.rpc("issue_invoice", { p_invoice_id: invoice.id }),
@@ -237,10 +263,16 @@ describe("invoice evidence & signed document foundation — real local Supabase"
 
   it("concurrent bind_invoice_transaction calls from two different draft invoices for the same transaction: exactly one succeeds", async () => {
     const ownerAClient = await signInAsMember(ownerA.email);
-    const { entryIds } = await createClosedProjectWithEntries(1);
+    const { projectId, entryIds } = await createClosedProjectWithEntries(1);
 
-    const { data: invoiceOne } = await ownerAClient.rpc("create_draft_invoice", { p_tenant_id: TENANT_A_ID });
-    const { data: invoiceTwo } = await ownerAClient.rpc("create_draft_invoice", { p_tenant_id: TENANT_A_ID });
+    const { data: invoiceOne } = await ownerAClient.rpc("create_draft_invoice", {
+      p_tenant_id: TENANT_A_ID,
+      p_project_id: projectId,
+    });
+    const { data: invoiceTwo } = await ownerAClient.rpc("create_draft_invoice", {
+      p_tenant_id: TENANT_A_ID,
+      p_project_id: projectId,
+    });
 
     const [first, second] = await Promise.all([
       ownerAClient.rpc("bind_invoice_transaction", {
@@ -312,8 +344,11 @@ describe("invoice evidence & signed document foundation — real local Supabase"
   it("rejects a real upload under a draft (not-issued) invoice's path, and a cross-tenant path forgery", async () => {
     const ownerAClient = await signInAsMember(ownerA.email);
     const ownerBClient = await signInAsMember(ownerB.email);
-    const { entryIds } = await createClosedProjectWithEntries(1);
-    const { data: draftInvoice } = await ownerAClient.rpc("create_draft_invoice", { p_tenant_id: TENANT_A_ID });
+    const { projectId, entryIds } = await createClosedProjectWithEntries(1);
+    const { data: draftInvoice } = await ownerAClient.rpc("create_draft_invoice", {
+      p_tenant_id: TENANT_A_ID,
+      p_project_id: projectId,
+    });
     await ownerAClient.rpc("bind_invoice_transaction", {
       p_invoice_id: draftInvoice.id,
       p_transaction_entry_id: entryIds[0],
@@ -347,7 +382,10 @@ describe("invoice evidence & signed document foundation — real local Supabase"
     expect(invoicesError).not.toBeNull();
     expect(invoices).toBeNull();
 
-    const { error: rpcError } = await anonClient.rpc("create_draft_invoice", { p_tenant_id: TENANT_A_ID });
+    const { error: rpcError } = await anonClient.rpc("create_draft_invoice", {
+      p_tenant_id: TENANT_A_ID,
+      p_project_id: crypto.randomUUID(),
+    });
     expect(rpcError).not.toBeNull();
 
     const { error: uploadError } = await anonClient.storage

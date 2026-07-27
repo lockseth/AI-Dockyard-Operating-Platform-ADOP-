@@ -2,6 +2,11 @@ import { z } from "zod";
 import { idSchema, requiredText } from "@/lib/master-data/shared/validation";
 import { EVIDENCE_ALLOWED_MIME_TYPES, EVIDENCE_MAX_SIZE_BYTES } from "./types";
 
+export const createDraftInvoiceInputSchema = z.object({
+  projectId: idSchema,
+});
+export type CreateDraftInvoiceInput = z.infer<typeof createDraftInvoiceInputSchema>;
+
 export const bindInvoiceTransactionInputSchema = z.object({
   invoiceId: idSchema,
   transactionEntryId: idSchema,

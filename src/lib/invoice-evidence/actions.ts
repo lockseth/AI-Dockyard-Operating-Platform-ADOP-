@@ -34,11 +34,11 @@ function mapThrown<T extends { error?: string }>(error: unknown): T {
 
 export async function createDraftInvoiceAction(
   _prevState: CreateDraftInvoiceResult,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<CreateDraftInvoiceResult> {
   let result: CreateDraftInvoiceResult;
   try {
-    result = await createDraftInvoiceForActiveTenant();
+    result = await createDraftInvoiceForActiveTenant({ projectId: formData.get("projectId") });
   } catch (error) {
     return mapThrown(error);
   }

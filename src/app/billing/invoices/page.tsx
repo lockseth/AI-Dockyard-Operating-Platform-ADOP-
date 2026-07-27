@@ -1,7 +1,7 @@
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { AppShell } from "@/components/shell/AppShell";
 import { canAccessInvoiceEvidence } from "@/lib/invoice-evidence/access";
-import { listInvoicesForActiveTenant } from "@/lib/invoice-evidence/service";
+import { listBillableClosedProjectsForActiveTenant, listInvoicesForActiveTenant } from "@/lib/invoice-evidence/service";
 import { AccessDenied } from "./AccessDenied";
 import { CreateDraftButton } from "./CreateDraftButton";
 import { InvoiceTable } from "./InvoiceTable";
@@ -16,7 +16,10 @@ export default async function InvoiceListPage() {
     );
   }
 
-  const invoices = await listInvoicesForActiveTenant();
+  const [invoices, billableProjects] = await Promise.all([
+    listInvoicesForActiveTenant(),
+    listBillableClosedProjectsForActiveTenant(),
+  ]);
 
   return (
     <AppShell title="Invoice & Evidence" sectionLabel="Billing" showMobileTitle={false}>
@@ -29,7 +32,7 @@ export default async function InvoiceListPage() {
               tangan/cap sebagai evidence final.
             </p>
           </div>
-          <CreateDraftButton />
+          <CreateDraftButton projects={billableProjects} />
         </div>
 
         <main className="flex flex-1 flex-col gap-6 pb-16">

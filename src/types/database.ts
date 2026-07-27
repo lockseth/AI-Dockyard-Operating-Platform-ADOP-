@@ -336,6 +336,13 @@ export type Database = {
             foreignKeyName: "cash_import_rows_mapped_vessel_project_id_tenant_id_fkey"
             columns: ["mapped_vessel_project_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_rows_mapped_vessel_project_id_tenant_id_fkey"
+            columns: ["mapped_vessel_project_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "vessel_project_cost_summary"
             referencedColumns: ["project_id", "tenant_id"]
           },
@@ -1226,6 +1233,13 @@ export type Database = {
             foreignKeyName: "expense_submission_revisions_project_id_tenant_id_fkey"
             columns: ["project_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "expense_submission_revisions_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "vessel_project_cost_summary"
             referencedColumns: ["project_id", "tenant_id"]
           },
@@ -1639,6 +1653,8 @@ export type Database = {
           invoice_id: string
           project_id: string
           tenant_id: string
+          transaction_category: string | null
+          transaction_date: string | null
           transaction_entry_id: string
         }
         Insert: {
@@ -1649,6 +1665,8 @@ export type Database = {
           invoice_id: string
           project_id: string
           tenant_id: string
+          transaction_category?: string | null
+          transaction_date?: string | null
           transaction_entry_id: string
         }
         Update: {
@@ -1659,6 +1677,8 @@ export type Database = {
           invoice_id?: string
           project_id?: string
           tenant_id?: string
+          transaction_category?: string | null
+          transaction_date?: string | null
           transaction_entry_id?: string
         }
         Relationships: [
@@ -1682,6 +1702,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "invoice_transaction_lines_project_id_tenant_id_fkey"
@@ -1743,12 +1770,24 @@ export type Database = {
       }
       invoices: {
         Row: {
+          client_id: string | null
           created_at: string
           created_by: string | null
+          due_date: string | null
           id: string
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
           issued_at: string | null
           issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
+          origin: Database["public"]["Enums"]["invoice_origin"]
           predecessor_invoice_id: string | null
+          project_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           tenant_id: string
           updated_at: string
@@ -1757,12 +1796,24 @@ export type Database = {
           void_reason: string | null
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           created_by?: string | null
+          due_date?: string | null
           id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          invoice_date?: string | null
+          invoice_number?: string | null
           issued_at?: string | null
           issued_by?: string | null
+          legacy_coverage_status?:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id?: string | null
+          origin?: Database["public"]["Enums"]["invoice_origin"]
           predecessor_invoice_id?: string | null
+          project_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           tenant_id: string
           updated_at?: string
@@ -1771,12 +1822,24 @@ export type Database = {
           void_reason?: string | null
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           created_by?: string | null
+          due_date?: string | null
           id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          invoice_date?: string | null
+          invoice_number?: string | null
           issued_at?: string | null
           issued_by?: string | null
+          legacy_coverage_status?:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id?: string | null
+          origin?: Database["public"]["Enums"]["invoice_origin"]
           predecessor_invoice_id?: string | null
+          project_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           tenant_id?: string
           updated_at?: string
@@ -1785,6 +1848,20 @@ export type Database = {
           void_reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_legal_entity_id_fkey"
+            columns: ["legal_entity_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "legal_entities"
+            referencedColumns: ["id", "tenant_id"]
+          },
           {
             foreignKeyName: "invoices_predecessor_invoice_id_tenant_id_fkey"
             columns: ["predecessor_invoice_id", "tenant_id"]
@@ -1804,6 +1881,27 @@ export type Database = {
             columns: ["predecessor_invoice_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -2129,6 +2227,13 @@ export type Database = {
             foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
             columns: ["project_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "vessel_project_cost_summary"
             referencedColumns: ["project_id", "tenant_id"]
           },
@@ -2306,6 +2411,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shared_overhead_ledger_current"
             referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "shared_overhead_allocations_project_id_tenant_id_fkey"
@@ -2547,6 +2659,13 @@ export type Database = {
           to_status?: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "vessel_project_lifecycle_events_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
           {
             foreignKeyName: "vessel_project_lifecycle_events_project_id_tenant_id_fkey"
             columns: ["project_id", "tenant_id"]
@@ -2971,6 +3090,10 @@ export type Database = {
       }
       invoice_billing_summary: {
         Row: {
+          billing_completeness_status:
+            | Database["public"]["Enums"]["invoice_billing_completeness_status"]
+            | null
+          client_id: string | null
           created_at: string | null
           created_by: string | null
           current_version_id: string | null
@@ -2978,13 +3101,24 @@ export type Database = {
           current_version_status:
             | Database["public"]["Enums"]["invoice_evidence_version_status"]
             | null
+          due_date: string | null
           evidence_id: string | null
           id: string | null
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
           is_final_document: boolean | null
           issued_at: string | null
           issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
           line_count: number | null
+          origin: Database["public"]["Enums"]["invoice_origin"] | null
           predecessor_invoice_id: string | null
+          project_id: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           successor_invoice_id: string | null
           tenant_id: string | null
@@ -2995,6 +3129,20 @@ export type Database = {
           void_reason: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_legal_entity_id_fkey"
+            columns: ["legal_entity_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "legal_entities"
+            referencedColumns: ["id", "tenant_id"]
+          },
           {
             foreignKeyName: "invoices_predecessor_invoice_id_tenant_id_fkey"
             columns: ["predecessor_invoice_id", "tenant_id"]
@@ -3014,6 +3162,27 @@ export type Database = {
             columns: ["predecessor_invoice_id", "tenant_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
             referencedColumns: ["id", "tenant_id"]
           },
           {
@@ -3037,6 +3206,13 @@ export type Database = {
           vessel_name: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
           {
             foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
             columns: ["project_id", "tenant_id"]
@@ -3102,6 +3278,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cash_pools"
             referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
@@ -3235,6 +3418,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shared_overhead_ledger_current"
             referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
           },
           {
             foreignKeyName: "shared_overhead_allocations_project_id_tenant_id_fkey"
@@ -3426,6 +3616,43 @@ export type Database = {
         }
         Relationships: []
       }
+      unbilled_vessel_projects: {
+        Row: {
+          client_id: string | null
+          closed_at: string | null
+          last_void_reason: string | null
+          last_voided_invoice_id: string | null
+          project_id: string | null
+          tenant_id: string | null
+          unbilled_amount_total: number | null
+          unbilled_transaction_count: number | null
+          vessel_id: string | null
+          vessel_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vessel_projects_client_id_tenant_id_fkey"
+            columns: ["client_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "vessel_projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vessel_projects_vessel_id_tenant_id_fkey"
+            columns: ["vessel_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessels"
+            referencedColumns: ["id", "tenant_id"]
+          },
+        ]
+      }
       vessel_project_cost_summary: {
         Row: {
           project_id: string | null
@@ -3585,6 +3812,8 @@ export type Database = {
           invoice_id: string
           project_id: string
           tenant_id: string
+          transaction_category: string | null
+          transaction_date: string | null
           transaction_entry_id: string
         }
         SetofOptions: {
@@ -3738,14 +3967,26 @@ export type Database = {
         }
       }
       create_draft_invoice: {
-        Args: { p_tenant_id: string }
+        Args: { p_project_id: string; p_tenant_id: string }
         Returns: {
+          client_id: string | null
           created_at: string
           created_by: string | null
+          due_date: string | null
           id: string
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
           issued_at: string | null
           issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
+          origin: Database["public"]["Enums"]["invoice_origin"]
           predecessor_invoice_id: string | null
+          project_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           tenant_id: string
           updated_at: string
@@ -3868,6 +4109,10 @@ export type Database = {
       get_invoice_summary: {
         Args: { p_invoice_id: string }
         Returns: {
+          billing_completeness_status:
+            | Database["public"]["Enums"]["invoice_billing_completeness_status"]
+            | null
+          client_id: string | null
           created_at: string | null
           created_by: string | null
           current_version_id: string | null
@@ -3875,13 +4120,24 @@ export type Database = {
           current_version_status:
             | Database["public"]["Enums"]["invoice_evidence_version_status"]
             | null
+          due_date: string | null
           evidence_id: string | null
           id: string | null
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
           is_final_document: boolean | null
           issued_at: string | null
           issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
           line_count: number | null
+          origin: Database["public"]["Enums"]["invoice_origin"] | null
           predecessor_invoice_id: string | null
+          project_id: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           successor_invoice_id: string | null
           tenant_id: string | null
@@ -3962,12 +4218,24 @@ export type Database = {
       issue_invoice: {
         Args: { p_invoice_id: string }
         Returns: {
+          client_id: string | null
           created_at: string
           created_by: string | null
+          due_date: string | null
           id: string
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
           issued_at: string | null
           issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
+          origin: Database["public"]["Enums"]["invoice_origin"]
           predecessor_invoice_id: string | null
+          project_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           tenant_id: string
           updated_at: string
@@ -4008,6 +4276,10 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: {
+          billing_completeness_status:
+            | Database["public"]["Enums"]["invoice_billing_completeness_status"]
+            | null
+          client_id: string | null
           created_at: string | null
           created_by: string | null
           current_version_id: string | null
@@ -4015,13 +4287,24 @@ export type Database = {
           current_version_status:
             | Database["public"]["Enums"]["invoice_evidence_version_status"]
             | null
+          due_date: string | null
           evidence_id: string | null
           id: string | null
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
           is_final_document: boolean | null
           issued_at: string | null
           issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
           line_count: number | null
+          origin: Database["public"]["Enums"]["invoice_origin"] | null
           predecessor_invoice_id: string | null
+          project_id: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           successor_invoice_id: string | null
           tenant_id: string | null
@@ -4113,6 +4396,27 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "trusted_transaction_history"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_unbilled_vessel_projects: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          client_id: string | null
+          closed_at: string | null
+          last_void_reason: string | null
+          last_voided_invoice_id: string | null
+          project_id: string | null
+          tenant_id: string | null
+          unbilled_amount_total: number | null
+          unbilled_transaction_count: number | null
+          vessel_id: string | null
+          vessel_name: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "unbilled_vessel_projects"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -4300,15 +4604,108 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      reissue_invoice: {
-        Args: { p_predecessor_invoice_id: string }
+      register_invoice_number: {
+        Args: { p_invoice_id: string; p_invoice_number: string }
         Returns: {
+          client_id: string | null
           created_at: string
           created_by: string | null
+          due_date: string | null
           id: string
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
           issued_at: string | null
           issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
+          origin: Database["public"]["Enums"]["invoice_origin"]
           predecessor_invoice_id: string | null
+          project_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at: string
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      register_legacy_invoice: {
+        Args: {
+          p_due_date: string
+          p_invoice_date: string
+          p_invoice_number: string
+          p_legacy_coverage_status?: Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+          p_legal_entity_id: string
+          p_project_id: string
+          p_status: Database["public"]["Enums"]["invoice_status"]
+          p_tenant_id: string
+          p_transaction_entry_ids?: string[]
+          p_void_reason?: string
+        }
+        Returns: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
+          origin: Database["public"]["Enums"]["invoice_origin"]
+          predecessor_invoice_id: string | null
+          project_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at: string
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reissue_invoice: {
+        Args: { p_predecessor_invoice_id: string; p_project_id?: string }
+        Returns: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
+          origin: Database["public"]["Enums"]["invoice_origin"]
+          predecessor_invoice_id: string | null
+          project_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           tenant_id: string
           updated_at: string
@@ -4960,6 +5357,46 @@ export type Database = {
         Args: { p_line_id: string }
         Returns: undefined
       }
+      update_invoice_billing_metadata: {
+        Args: {
+          p_due_date: string
+          p_invoice_date: string
+          p_invoice_id: string
+          p_legal_entity_id: string
+        }
+        Returns: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
+          origin: Database["public"]["Enums"]["invoice_origin"]
+          predecessor_invoice_id: string | null
+          project_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at: string
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       verify_invoice_evidence_version: {
         Args: { p_version_id: string }
         Returns: {
@@ -4988,12 +5425,24 @@ export type Database = {
       void_invoice: {
         Args: { p_invoice_id: string; p_reason: string }
         Returns: {
+          client_id: string | null
           created_at: string
           created_by: string | null
+          due_date: string | null
           id: string
+          imported_at: string | null
+          imported_by: string | null
+          invoice_date: string | null
+          invoice_number: string | null
           issued_at: string | null
           issued_by: string | null
+          legacy_coverage_status:
+            | Database["public"]["Enums"]["invoice_legacy_coverage_status"]
+            | null
+          legal_entity_id: string | null
+          origin: Database["public"]["Enums"]["invoice_origin"]
           predecessor_invoice_id: string | null
+          project_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           tenant_id: string
           updated_at: string
@@ -5067,9 +5516,18 @@ export type Database = {
         | "rejected"
         | "needs_correction"
         | "cancelled"
+      invoice_billing_completeness_status:
+        | "DRAFT_INCOMPLETE"
+        | "DRAFT_READY_TO_ISSUE"
+        | "ISSUED_EVIDENCE_PENDING"
+        | "READY_TO_SEND"
+        | "VOID"
+        | "LEGACY_RECORDED"
       invoice_delivery_channel: "whatsapp" | "email" | "both"
       invoice_evidence_kind: "signed_invoice"
       invoice_evidence_version_status: "pending" | "verified" | "rejected"
+      invoice_legacy_coverage_status: "full" | "partial" | "unknown"
+      invoice_origin: "native" | "legacy_import"
       invoice_status: "draft" | "issued" | "void"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
@@ -5283,9 +5741,19 @@ export const Constants = {
         "needs_correction",
         "cancelled",
       ],
+      invoice_billing_completeness_status: [
+        "DRAFT_INCOMPLETE",
+        "DRAFT_READY_TO_ISSUE",
+        "ISSUED_EVIDENCE_PENDING",
+        "READY_TO_SEND",
+        "VOID",
+        "LEGACY_RECORDED",
+      ],
       invoice_delivery_channel: ["whatsapp", "email", "both"],
       invoice_evidence_kind: ["signed_invoice"],
       invoice_evidence_version_status: ["pending", "verified", "rejected"],
+      invoice_legacy_coverage_status: ["full", "partial", "unknown"],
+      invoice_origin: ["native", "legacy_import"],
       invoice_status: ["draft", "issued", "void"],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
@@ -5303,4 +5771,3 @@ export const Constants = {
     },
   },
 } as const
-
