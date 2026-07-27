@@ -5,7 +5,7 @@ import { createVesselAction } from "@/lib/master-data/vessels/actions";
 import type { MasterDataActionResult } from "@/lib/master-data/clients/service";
 import { TextField } from "@/components/master-data/fields";
 import { FormError } from "@/components/master-data/FormError";
-import { Disclosure } from "@/components/ui/Disclosure";
+import { CollapsibleCreatePanel } from "@/components/master-data/CollapsibleCreatePanel";
 
 const initialState: MasterDataActionResult = {};
 
@@ -14,7 +14,7 @@ export function VesselCreateForm({ clientId }: { clientId: string }) {
   const hasError = Boolean(state.error) || Object.keys(state.fieldErrors ?? {}).length > 0;
 
   return (
-    <Disclosure title="Tambah Kapal" defaultOpen={false} forceOpen={hasError} hasError={hasError}>
+    <CollapsibleCreatePanel label="Tambah Kapal" forceOpen={hasError} hasError={hasError}>
       <form action={formAction} className="flex flex-col gap-3">
         <input type="hidden" name="clientId" value={clientId} />
         <div className="grid gap-3 sm:grid-cols-2">
@@ -38,6 +38,6 @@ export function VesselCreateForm({ clientId }: { clientId: string }) {
           </button>
         </div>
       </form>
-    </Disclosure>
+    </CollapsibleCreatePanel>
   );
 }

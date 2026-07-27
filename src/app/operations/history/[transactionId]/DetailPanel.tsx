@@ -12,8 +12,10 @@ import type { TrustedTransactionRow } from "@/lib/transaction-history/types";
 import { buildEffectClauses } from "@/lib/transaction-history/present";
 import type { CashImportBatchRow } from "@/lib/cash-import-staging/repository";
 import type { TenantRole } from "@/lib/auth/tenant";
+import type { TransactionInvoiceBindingRow } from "@/lib/invoice-evidence/types";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ReversalControl } from "./ReversalControl";
+import { InvoiceBindingsDisclosure } from "./InvoiceBindingsDisclosure";
 
 function projectDescriptor(transaction: TrustedTransactionRow): string {
   if (transaction.vessel_name) {
@@ -65,12 +67,14 @@ export function DetailPanel({
   originalTransaction,
   reversalTransaction,
   importBatch,
+  invoiceBindings,
   viewerRoles,
 }: {
   transaction: TrustedTransactionRow;
   originalTransaction: TrustedTransactionRow | null;
   reversalTransaction: TrustedTransactionRow | null;
   importBatch: CashImportBatchRow | null;
+  invoiceBindings: TransactionInvoiceBindingRow[];
   viewerRoles: TenantRole[];
 }) {
   const effectClauses = buildEffectClauses(transaction);
@@ -150,6 +154,8 @@ export function DetailPanel({
           </div>
         ) : null}
       </Disclosure>
+
+      <InvoiceBindingsDisclosure bindings={invoiceBindings} />
 
       {originalTransaction || reversalTransaction ? (
         <Disclosure title="Hubungan Reversal" defaultOpen>

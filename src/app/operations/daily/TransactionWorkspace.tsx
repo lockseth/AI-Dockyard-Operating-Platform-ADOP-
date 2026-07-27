@@ -194,7 +194,8 @@ function ExpenseWorkspaceForm({
     <form action={formAction} className="flex flex-col gap-3" key={state.submission?.id}>
       <input type="hidden" name="poolId" value={poolId} />
       <input type="hidden" name="entryScope" value={entryScope} />
-      <Disclosure title="Informasi Utama" defaultOpen hasError={hasInfoError}>
+      <StepGuidance />
+      <Disclosure title="Informasi Utama" defaultOpen hasError={hasInfoError} forceOpen={hasInfoError}>
         <ExpenseFormFieldsInfo fieldErrors={state.fieldErrors} />
       </Disclosure>
       <Disclosure title={allocationTitle} defaultOpen hasError={hasAllocationError} forceOpen={hasAllocationError}>
@@ -208,11 +209,32 @@ function ExpenseWorkspaceForm({
         />
       </Disclosure>
       <FormError error={state.error} />
-      <div>
-        <Button type="submit" variant="primary" loading={isPending}>
+      <div className="flex flex-col gap-1.5">
+        <Button type="submit" variant="primary" loading={isPending} className="self-start">
           {isPending ? "Menyimpan..." : "Simpan Transaksi"}
         </Button>
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          Pastikan Informasi Utama dan {allocationTitle} sudah terisi sebelum menyimpan.
+        </p>
       </div>
     </form>
+  );
+}
+
+// Static step map for the expense/shared-overhead flow — purely informative,
+// doesn't gate or duplicate the server-side validation in createExpenseDraftAction.
+function StepGuidance() {
+  const steps = ["Pilih Jenis Transaksi", "Isi Informasi Utama", "Tentukan Alokasi Project", "Periksa dan Simpan"];
+  return (
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+      {steps.map((step, index) => (
+        <li key={step} className="flex items-center gap-2">
+          <span>
+            <span className="font-semibold text-neutral-700 dark:text-neutral-300">{index + 1}.</span> {step}
+          </span>
+          {index < steps.length - 1 ? <span aria-hidden="true">&rarr;</span> : null}
+        </li>
+      ))}
+    </ol>
   );
 }

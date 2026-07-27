@@ -2,6 +2,7 @@ import { canAccessDailyOperations } from "@/lib/operations-daily/access";
 import { canAccessOwnerControl } from "@/lib/owner-control/access";
 import { canReadCashImportStaging } from "@/lib/cash-import-staging/access";
 import { canViewUserManagement } from "@/lib/user-management/access";
+import { canAccessInvoiceEvidence } from "@/lib/invoice-evidence/access";
 import type { TenantRole } from "@/lib/auth/tenant";
 
 export interface NavItem {
@@ -47,6 +48,10 @@ export function getNavGroupsForRoles(roles: TenantRole[]): NavGroup[] {
     dataItems.push({ href: "/operations/import", label: "Import Data" });
   }
   groups.push({ title: "MANAJEMEN DATA", items: dataItems });
+
+  if (canAccessInvoiceEvidence(roles)) {
+    groups.push({ title: "BILLING", items: [{ href: "/billing/invoices", label: "Invoice & Evidence" }] });
+  }
 
   if (canAccessOwnerControl(roles)) {
     groups.push({ title: "OWNER", items: [{ href: "/owner/control", label: "Owner Control" }] });

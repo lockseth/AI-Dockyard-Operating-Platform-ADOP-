@@ -4,6 +4,13 @@ import { listVesselsForActiveTenant } from "@/lib/master-data/vessels/service";
 import { listClientsForActiveTenant } from "@/lib/master-data/clients/service";
 import { SearchForm } from "@/components/master-data/SearchForm";
 import { VesselRow } from "@/components/master-data/VesselRow";
+import { TextLink } from "@/components/ui/TextLink";
+
+// Matches Button's variant="secondary" size="sm" look — Button itself only
+// renders a native <button>, so a real navigable <Link> is styled to match
+// rather than nesting an <a> inside a <button>.
+const SECONDARY_SM_LINK_CLASSNAME =
+  "inline-flex h-8 items-center justify-center gap-1.5 rounded-[7px] border-[1.5px] border-neutral-300 bg-white px-3 text-[12.5px] font-semibold text-brand-navy outline-none transition-colors hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 active:bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:hover:bg-neutral-800";
 
 export default async function VesselsPage({
   searchParams,
@@ -29,16 +36,25 @@ export default async function VesselsPage({
 
       <p className="text-xs text-neutral-500">
         Kapal ditambahkan dari halaman detail client pemiliknya —{" "}
-        <Link href="/app/master-data/clients" className="underline underline-offset-4">
+        <TextLink href="/app/master-data/clients" className="text-xs">
           buka daftar client
-        </Link>
+        </TextLink>
         .
       </p>
 
       {vessels.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
-          {q ? "Tidak ada kapal yang cocok dengan pencarian." : "Belum ada kapal terdaftar."}
-        </p>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+          <p>
+            {q
+              ? "Tidak ada kapal yang cocok dengan pencarian."
+              : "Belum ada kapal terdaftar. Buka client pemiliknya lalu tambahkan kapal dari sana."}
+          </p>
+          {!q ? (
+            <Link href="/app/master-data/clients" className={SECONDARY_SM_LINK_CLASSNAME}>
+              Buka Daftar Client
+            </Link>
+          ) : null}
+        </div>
       ) : (
         <ul className="flex flex-col gap-2">
           {vessels.map((vessel) => (

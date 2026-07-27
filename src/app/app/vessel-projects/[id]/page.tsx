@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { getVesselProjectForActiveTenant } from "@/lib/vessel-projects/service";
 import { listVesselsForActiveTenant } from "@/lib/master-data/vessels/service";
@@ -11,6 +10,7 @@ import { listSharedOverheadAllocationsForProjectForActiveTenant } from "@/lib/sh
 import { formatRupiah } from "@/lib/operations-daily/format";
 import { AppShell } from "@/components/shell/AppShell";
 import { Card } from "@/components/ui/Card";
+import { TextLink } from "@/components/ui/TextLink";
 import { LifecycleTransitionControl } from "./LifecycleTransitionControl";
 import { PriorityControl } from "./PriorityControl";
 
@@ -48,12 +48,9 @@ export default async function VesselProjectDetailPage({
     <AppShell title={vesselName} sectionLabel="Operasional">
     <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-6 py-10">
       <div>
-        <Link
-          href="/app/vessel-projects"
-          className="text-xs text-neutral-500 underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"
-        >
+        <TextLink href="/app/vessel-projects" className="text-xs">
           &larr; Kembali ke Project Kapal
-        </Link>
+        </TextLink>
         <h1 className="mt-2 text-xl font-semibold tracking-tight">
           {vesselName} {project.project_code ? `— ${project.project_code}` : ""}
         </h1>
@@ -78,12 +75,9 @@ export default async function VesselProjectDetailPage({
       <Card>
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base font-bold">Alokasi Biaya Bersama/Overhead</h2>
-          <Link
-            href="/operations/overhead"
-            className="text-xs font-medium text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400"
-          >
+          <TextLink href="/operations/overhead" tone="brand" className="text-xs font-medium">
             Kelola Alokasi &rarr;
-          </Link>
+          </TextLink>
         </div>
         {overheadAllocations.length === 0 ? (
           <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">

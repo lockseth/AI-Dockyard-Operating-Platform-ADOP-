@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { AppShell } from "@/components/shell/AppShell";
+import { MasterDataNav } from "@/components/master-data/MasterDataNav";
 
 const NAV_ITEMS = [
   { href: "/app/master-data/clients", label: "Clients" },
@@ -23,17 +23,7 @@ export default async function MasterDataLayout({
     <AppShell title="Master Data" sectionLabel="Manajemen Data" showMobileTitle={false}>
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-6 py-10">
       <h1 className="text-2xl font-bold tracking-tight">Master Data</h1>
-      <nav className="flex flex-wrap gap-2 text-sm">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="rounded-md border border-neutral-200 px-3 py-1.5 hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <MasterDataNav items={NAV_ITEMS} />
 
       {!canMutate ? (
         <p className="text-xs text-neutral-500">

@@ -100,4 +100,29 @@ describe("Disclosure", () => {
     await user.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
+
+  it("swaps to openTitle while expanded and back to title when collapsed", async () => {
+    const user = userEvent.setup();
+    render(
+      <Disclosure title="Tambah Client" openTitle="Tutup Form Client">
+        <p>isi</p>
+      </Disclosure>,
+    );
+
+    expect(screen.getByRole("button", { name: "Tambah Client" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Tambah Client" }));
+    expect(screen.getByRole("button", { name: "Tutup Form Client" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Tutup Form Client" }));
+    expect(screen.getByRole("button", { name: "Tambah Client" })).toBeInTheDocument();
+  });
+
+  it("renders a leading icon when provided, hidden from assistive tech", () => {
+    render(
+      <Disclosure title="Tambah Vendor" icon={<svg data-testid="plus-icon" />}>
+        <p>isi</p>
+      </Disclosure>,
+    );
+    const icon = screen.getByTestId("plus-icon");
+    expect(icon.parentElement).toHaveAttribute("aria-hidden", "true");
+  });
 });

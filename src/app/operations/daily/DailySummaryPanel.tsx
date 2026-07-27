@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { TextLink } from "@/components/ui/TextLink";
 import { formatRupiah } from "@/lib/operations-daily/format";
 
 // Every figure here is derived straight from data the page already loads
@@ -21,12 +21,9 @@ export function DailySummaryPanel({
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-bold">Ringkasan Hari Ini</h2>
-        <Link
-          href="/operations/history"
-          className="text-xs font-medium text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-        >
+        <TextLink href="/operations/history" tone="brand" className="text-xs font-medium">
           Buka Riwayat Transaksi &rarr;
-        </Link>
+        </TextLink>
       </div>
 
       <dl className="flex flex-col gap-2.5 text-sm">

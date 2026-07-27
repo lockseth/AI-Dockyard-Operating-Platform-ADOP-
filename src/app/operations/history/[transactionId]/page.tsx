@@ -5,6 +5,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { canViewTrustedTransactionHistory } from "@/lib/transaction-history/access";
 import { getTrustedTransactionDetailForActiveTenant } from "@/lib/transaction-history/service";
 import { getCashImportBatchDetailForActiveTenant } from "@/lib/cash-import-staging/service";
+import { listTransactionInvoiceBindingsForActiveTenant } from "@/lib/invoice-evidence/service";
 import { AccessDenied } from "../AccessDenied";
 import { DetailPanel } from "./DetailPanel";
 
@@ -30,7 +31,7 @@ export default async function TransactionDetailPage({
     notFound();
   }
 
-  const [originalTransaction, reversalTransaction, importBatchDetail] = await Promise.all([
+  const [originalTransaction, reversalTransaction, importBatchDetail, invoiceBindings] = await Promise.all([
     transaction.reversal_of_logical_id
       ? getTrustedTransactionDetailForActiveTenant({ logicalTransactionId: transaction.reversal_of_logical_id })
       : Promise.resolve(null),
@@ -40,6 +41,11 @@ export default async function TransactionDetailPage({
     transaction.import_batch_id
       ? getCashImportBatchDetailForActiveTenant({ batchId: transaction.import_batch_id })
       : Promise.resolve(null),
+    // Only a project_cost_ledger_entries row (cost_entry_id) can ever be
+    // bound to an invoice — a cash-only transaction never has one.
+    transaction.cost_entry_id
+      ? listTransactionInvoiceBindingsForActiveTenant(transaction.cost_entry_id)
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -58,6 +64,7 @@ export default async function TransactionDetailPage({
           originalTransaction={originalTransaction}
           reversalTransaction={reversalTransaction}
           importBatch={importBatchDetail?.batch ?? null}
+          invoiceBindings={invoiceBindings}
           viewerRoles={context.roles}
         />
       </main>

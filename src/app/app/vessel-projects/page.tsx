@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { listVesselProjectsForActiveTenant } from "@/lib/vessel-projects/service";
 import { listVesselsForActiveTenant } from "@/lib/master-data/vessels/service";
@@ -6,6 +5,7 @@ import { listClientsForActiveTenant } from "@/lib/master-data/clients/service";
 import { listServiceTypesForActiveTenant } from "@/lib/master-data/service-types/service";
 import { listFacilityLocationsForActiveTenant } from "@/lib/master-data/facility-locations/service";
 import { CollapsibleCreatePanel } from "@/components/master-data/CollapsibleCreatePanel";
+import { TextLink } from "@/components/ui/TextLink";
 import { AppShell } from "@/components/shell/AppShell";
 import { VesselProjectCreateForm } from "./VesselProjectCreateForm";
 import { getVesselProjectLifecycleStatusLabel, getVesselProjectPriorityLabel } from "@/lib/vessel-projects/labels";
@@ -80,12 +80,9 @@ export default async function VesselProjectsPage() {
                   <td className="px-4 py-3 text-neutral-500">{getVesselProjectPriorityLabel(project.priority)}</td>
                   <td className="px-4 py-3">{getVesselProjectLifecycleStatusLabel(project.lifecycle_status)}</td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/app/vessel-projects/${project.id}`}
-                      className="text-xs font-medium text-neutral-600 underline underline-offset-4 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
-                    >
+                    <TextLink href={`/app/vessel-projects/${project.id}`} className="text-xs font-medium">
                       Lihat detail
-                    </Link>
+                    </TextLink>
                   </td>
                 </tr>
               ))}

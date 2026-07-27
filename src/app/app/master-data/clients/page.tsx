@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { listClientsForActiveTenant } from "@/lib/master-data/clients/service";
 import { StatusBadge } from "@/components/master-data/StatusBadge";
 import { SearchForm } from "@/components/master-data/SearchForm";
 import { CollapsibleCreatePanel } from "@/components/master-data/CollapsibleCreatePanel";
+import { TextLink } from "@/components/ui/TextLink";
 import { ClientCreateForm } from "./ClientCreateForm";
 
 export default async function ClientsPage({
@@ -53,12 +53,9 @@ export default async function ClientsPage({
                     <StatusBadge status={client.status} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/app/master-data/clients/${client.id}`}
-                      className="text-xs font-medium text-neutral-600 underline underline-offset-4 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
-                    >
+                    <TextLink href={`/app/master-data/clients/${client.id}`} className="text-xs font-medium">
                       Lihat detail
-                    </Link>
+                    </TextLink>
                   </td>
                 </tr>
               ))}

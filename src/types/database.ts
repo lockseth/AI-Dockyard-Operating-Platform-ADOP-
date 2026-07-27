@@ -1403,6 +1403,13 @@ export type Database = {
             foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
             columns: ["ledger_entry_id"]
             isOneToOne: false
+            referencedRelation: "invoice_eligible_transactions"
+            referencedColumns: ["transaction_entry_id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
             referencedRelation: "project_cost_ledger_entries"
             referencedColumns: ["id"]
           },
@@ -1484,6 +1491,323 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "facility_locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_evidence: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_version_id: string | null
+          id: string
+          invoice_id: string
+          kind: Database["public"]["Enums"]["invoice_evidence_kind"]
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_version_id?: string | null
+          id?: string
+          invoice_id: string
+          kind?: Database["public"]["Enums"]["invoice_evidence_kind"]
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_version_id?: string | null
+          id?: string
+          invoice_id?: string
+          kind?: Database["public"]["Enums"]["invoice_evidence_kind"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_evidence_current_version_id_fkey"
+            columns: ["current_version_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_evidence_versions"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_evidence_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_evidence_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["successor_invoice_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_evidence_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_evidence_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_evidence_versions: {
+        Row: {
+          evidence_id: string
+          id: string
+          mime_type: string
+          rejected_reason: string | null
+          sha256: string
+          size_bytes: number
+          status: Database["public"]["Enums"]["invoice_evidence_version_status"]
+          storage_path: string
+          tenant_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          verified_at: string | null
+          verified_by: string | null
+          version_number: number
+        }
+        Insert: {
+          evidence_id: string
+          id?: string
+          mime_type: string
+          rejected_reason?: string | null
+          sha256: string
+          size_bytes: number
+          status?: Database["public"]["Enums"]["invoice_evidence_version_status"]
+          storage_path: string
+          tenant_id: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          version_number: number
+        }
+        Update: {
+          evidence_id?: string
+          id?: string
+          mime_type?: string
+          rejected_reason?: string | null
+          sha256?: string
+          size_bytes?: number
+          status?: Database["public"]["Enums"]["invoice_evidence_version_status"]
+          storage_path?: string
+          tenant_id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_evidence_versions_evidence_id_tenant_id_fkey"
+            columns: ["evidence_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_evidence"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_evidence_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_transaction_lines: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          project_id: string
+          tenant_id: string
+          transaction_entry_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          project_id: string
+          tenant_id: string
+          transaction_entry_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          project_id?: string
+          tenant_id?: string
+          transaction_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_transaction_lines_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["successor_invoice_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_eligible_transactions"
+            referencedColumns: ["transaction_entry_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_ledger_entries"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_refund_ledger_current"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_allocation_status"
+            referencedColumns: ["overhead_entry_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_ledger_current"
+            referencedColumns: ["id", "tenant_id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          predecessor_invoice_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at: string
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          predecessor_invoice_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at?: string
+          void_at?: string | null
+          void_by?: string | null
+          void_reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          predecessor_invoice_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          tenant_id?: string
+          updated_at?: string
+          void_at?: string | null
+          void_by?: string | null
+          void_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_predecessor_invoice_id_tenant_id_fkey"
+            columns: ["predecessor_invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_predecessor_invoice_id_tenant_id_fkey"
+            columns: ["predecessor_invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["successor_invoice_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_predecessor_invoice_id_tenant_id_fkey"
+            columns: ["predecessor_invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1819,6 +2143,13 @@ export type Database = {
             foreignKeyName: "project_cost_ledger_entries_reverses_entry_id_fkey"
             columns: ["reverses_entry_id"]
             isOneToOne: false
+            referencedRelation: "invoice_eligible_transactions"
+            referencedColumns: ["transaction_entry_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
             referencedRelation: "project_cost_ledger_entries"
             referencedColumns: ["id"]
           },
@@ -1941,6 +2272,13 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_eligible_transactions"
+            referencedColumns: ["transaction_entry_id", "tenant_id"]
+          },
           {
             foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
             columns: ["overhead_entry_id", "tenant_id"]
@@ -2591,6 +2929,13 @@ export type Database = {
             foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
             columns: ["ledger_entry_id"]
             isOneToOne: false
+            referencedRelation: "invoice_eligible_transactions"
+            referencedColumns: ["transaction_entry_id"]
+          },
+          {
+            foreignKeyName: "expense_submissions_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
             referencedRelation: "project_cost_ledger_entries"
             referencedColumns: ["id"]
           },
@@ -2617,6 +2962,97 @@ export type Database = {
           },
           {
             foreignKeyName: "expense_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_billing_summary: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          current_version_id: string | null
+          current_version_number: number | null
+          current_version_status:
+            | Database["public"]["Enums"]["invoice_evidence_version_status"]
+            | null
+          evidence_id: string | null
+          id: string | null
+          is_final_document: boolean | null
+          issued_at: string | null
+          issued_by: string | null
+          line_count: number | null
+          predecessor_invoice_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"] | null
+          successor_invoice_id: string | null
+          tenant_id: string | null
+          total_amount: number | null
+          updated_at: string | null
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_predecessor_invoice_id_tenant_id_fkey"
+            columns: ["predecessor_invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_predecessor_invoice_id_tenant_id_fkey"
+            columns: ["predecessor_invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["successor_invoice_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_predecessor_invoice_id_tenant_id_fkey"
+            columns: ["predecessor_invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_eligible_transactions: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          description: string | null
+          project_code: string | null
+          project_id: string | null
+          tenant_id: string | null
+          transaction_entry_id: string | null
+          vessel_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_project_id_tenant_id_fkey"
+            columns: ["project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "project_cost_ledger_entries_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2769,6 +3205,13 @@ export type Database = {
             foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
             columns: ["overhead_entry_id", "tenant_id"]
             isOneToOne: false
+            referencedRelation: "invoice_eligible_transactions"
+            referencedColumns: ["transaction_entry_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "shared_overhead_allocations_overhead_entry_id_tenant_id_fkey"
+            columns: ["overhead_entry_id", "tenant_id"]
+            isOneToOne: false
             referencedRelation: "project_cost_ledger_entries"
             referencedColumns: ["id", "tenant_id"]
           },
@@ -2864,6 +3307,90 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_invoice_bindings: {
+        Row: {
+          amount: number | null
+          binding_id: string | null
+          bound_at: string | null
+          current_version_id: string | null
+          current_version_status:
+            | Database["public"]["Enums"]["invoice_evidence_version_status"]
+            | null
+          description: string | null
+          invoice_id: string | null
+          invoice_status: Database["public"]["Enums"]["invoice_status"] | null
+          is_final_document: boolean | null
+          predecessor_invoice_id: string | null
+          tenant_id: string | null
+          transaction_entry_id: string | null
+          void_reason: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_transaction_lines_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_billing_summary"
+            referencedColumns: ["successor_invoice_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_invoice_id_tenant_id_fkey"
+            columns: ["invoice_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_eligible_transactions"
+            referencedColumns: ["transaction_entry_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_ledger_entries"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "project_refund_ledger_current"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_allocation_status"
+            referencedColumns: ["overhead_entry_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_transaction_lines_transaction_entry_id_tenant_id_fkey"
+            columns: ["transaction_entry_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "shared_overhead_ledger_current"
+            referencedColumns: ["id", "tenant_id"]
           },
         ]
       }
@@ -3048,6 +3575,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      bind_invoice_transaction: {
+        Args: { p_invoice_id: string; p_transaction_entry_id: string }
+        Returns: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          project_id: string
+          tenant_id: string
+          transaction_entry_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoice_transaction_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       cancel_expense_submission: {
         Args: { p_reason: string; p_submission_id: string }
         Returns: {
@@ -3191,6 +3737,29 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_draft_invoice: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          predecessor_invoice_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at: string
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_expense_draft: {
         Args: {
           p_amount?: number
@@ -3265,6 +3834,70 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      finalize_invoice_evidence_version: {
+        Args: {
+          p_invoice_id: string
+          p_mime_type: string
+          p_sha256: string
+          p_size_bytes: number
+          p_storage_path: string
+        }
+        Returns: {
+          evidence_id: string
+          id: string
+          mime_type: string
+          rejected_reason: string | null
+          sha256: string
+          size_bytes: number
+          status: Database["public"]["Enums"]["invoice_evidence_version_status"]
+          storage_path: string
+          tenant_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          verified_at: string | null
+          verified_by: string | null
+          version_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoice_evidence_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_invoice_summary: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          current_version_id: string | null
+          current_version_number: number | null
+          current_version_status:
+            | Database["public"]["Enums"]["invoice_evidence_version_status"]
+            | null
+          evidence_id: string | null
+          id: string | null
+          is_final_document: boolean | null
+          issued_at: string | null
+          issued_by: string | null
+          line_count: number | null
+          predecessor_invoice_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"] | null
+          successor_invoice_id: string | null
+          tenant_id: string | null
+          total_amount: number | null
+          updated_at: string | null
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoice_billing_summary"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_or_create_daily_cash_pool: {
         Args: { p_business_date: string; p_tenant_id: string }
         Returns: {
@@ -3325,6 +3958,111 @@ export type Database = {
       get_unresolved_expense_count: {
         Args: { p_pool_id: string }
         Returns: number
+      }
+      issue_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          predecessor_invoice_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at: string
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      list_invoice_eligible_transactions: {
+        Args: { p_project_id?: string; p_tenant_id: string }
+        Returns: {
+          amount: number | null
+          created_at: string | null
+          description: string | null
+          project_code: string | null
+          project_id: string | null
+          tenant_id: string | null
+          transaction_entry_id: string | null
+          vessel_name: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "invoice_eligible_transactions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_invoices: {
+        Args: {
+          p_limit?: number
+          p_status?: Database["public"]["Enums"]["invoice_status"]
+          p_tenant_id: string
+        }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          current_version_id: string | null
+          current_version_number: number | null
+          current_version_status:
+            | Database["public"]["Enums"]["invoice_evidence_version_status"]
+            | null
+          evidence_id: string | null
+          id: string | null
+          is_final_document: boolean | null
+          issued_at: string | null
+          issued_by: string | null
+          line_count: number | null
+          predecessor_invoice_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"] | null
+          successor_invoice_id: string | null
+          tenant_id: string | null
+          total_amount: number | null
+          updated_at: string | null
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "invoice_billing_summary"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_transaction_invoice_bindings: {
+        Args: { p_tenant_id: string; p_transaction_entry_id: string }
+        Returns: {
+          amount: number | null
+          binding_id: string | null
+          bound_at: string | null
+          current_version_id: string | null
+          current_version_status:
+            | Database["public"]["Enums"]["invoice_evidence_version_status"]
+            | null
+          description: string | null
+          invoice_id: string | null
+          invoice_status: Database["public"]["Enums"]["invoice_status"] | null
+          is_final_document: boolean | null
+          predecessor_invoice_id: string | null
+          tenant_id: string | null
+          transaction_entry_id: string | null
+          void_reason: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "transaction_invoice_bindings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       list_trusted_transactions: {
         Args: {
@@ -3464,6 +4202,31 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_invoice_evidence_access: {
+        Args: { p_version_id: string }
+        Returns: {
+          evidence_id: string
+          id: string
+          mime_type: string
+          rejected_reason: string | null
+          sha256: string
+          size_bytes: number
+          status: Database["public"]["Enums"]["invoice_evidence_version_status"]
+          storage_path: string
+          tenant_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          verified_at: string | null
+          verified_by: string | null
+          version_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoice_evidence_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_project_expense: {
         Args: {
           p_amount: number
@@ -3533,6 +4296,29 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "project_cost_ledger_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reissue_invoice: {
+        Args: { p_predecessor_invoice_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          predecessor_invoice_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at: string
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3634,6 +4420,31 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "expense_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reject_invoice_evidence_version: {
+        Args: { p_reason: string; p_version_id: string }
+        Returns: {
+          evidence_id: string
+          id: string
+          mime_type: string
+          rejected_reason: string | null
+          sha256: string
+          size_bytes: number
+          status: Database["public"]["Enums"]["invoice_evidence_version_status"]
+          storage_path: string
+          tenant_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          verified_at: string | null
+          verified_by: string | null
+          version_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoice_evidence_versions"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -4145,6 +4956,58 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      unbind_invoice_transaction: {
+        Args: { p_line_id: string }
+        Returns: undefined
+      }
+      verify_invoice_evidence_version: {
+        Args: { p_version_id: string }
+        Returns: {
+          evidence_id: string
+          id: string
+          mime_type: string
+          rejected_reason: string | null
+          sha256: string
+          size_bytes: number
+          status: Database["public"]["Enums"]["invoice_evidence_version_status"]
+          storage_path: string
+          tenant_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          verified_at: string | null
+          verified_by: string | null
+          version_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoice_evidence_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      void_invoice: {
+        Args: { p_invoice_id: string; p_reason: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          predecessor_invoice_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          tenant_id: string
+          updated_at: string
+          void_at: string | null
+          void_by: string | null
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       cash_import_batch_status:
@@ -4205,6 +5068,9 @@ export type Database = {
         | "needs_correction"
         | "cancelled"
       invoice_delivery_channel: "whatsapp" | "email" | "both"
+      invoice_evidence_kind: "signed_invoice"
+      invoice_evidence_version_status: "pending" | "verified" | "rejected"
+      invoice_status: "draft" | "issued" | "void"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
       notification_event_type: "import_review_requested" | "import_approved"
@@ -4418,6 +5284,9 @@ export const Constants = {
         "cancelled",
       ],
       invoice_delivery_channel: ["whatsapp", "email", "both"],
+      invoice_evidence_kind: ["signed_invoice"],
+      invoice_evidence_version_status: ["pending", "verified", "rejected"],
+      invoice_status: ["draft", "issued", "void"],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
       notification_event_type: ["import_review_requested", "import_approved"],

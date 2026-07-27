@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { formatBusinessDateLabel } from "@/lib/operations-daily/format";
 import { labelOrRaw, TRANSACTION_SOURCE_LABEL, TRANSACTION_STATUS_LABEL, TRANSACTION_TYPE_LABEL } from "@/lib/transaction-history/labels";
 import { formatSignedAmount } from "@/lib/transaction-history/present";
 import type { TrustedTransactionRow } from "@/lib/transaction-history/types";
 import { Table, TableHead, TableRow, Th, Td } from "@/components/ui/Table";
+import { TextLink } from "@/components/ui/TextLink";
 
 function SignedAmount({ value }: { value: number | null }) {
   const presentation = formatSignedAmount(value);
@@ -62,12 +62,9 @@ export function TransactionTable({ transactions }: { transactions: TrustedTransa
             <Td>{labelOrRaw(TRANSACTION_STATUS_LABEL, row.status)}</Td>
             <Td align="right">
               {row.logical_transaction_id ? (
-                <Link
-                  href={`/operations/history/${encodeURIComponent(row.logical_transaction_id)}`}
-                  className="text-neutral-500 underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"
-                >
+                <TextLink href={`/operations/history/${encodeURIComponent(row.logical_transaction_id)}`}>
                   Lihat Detail
-                </Link>
+                </TextLink>
               ) : null}
             </Td>
           </TableRow>
