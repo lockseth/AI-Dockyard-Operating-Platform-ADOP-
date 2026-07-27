@@ -34,6 +34,31 @@ export const reissueInvoiceInputSchema = z.object({
 });
 export type ReissueInvoiceInput = z.infer<typeof reissueInvoiceInputSchema>;
 
+const isoDateSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD).");
+
+// Phase 2A Contract §6.1/§7/§10.2 — legal entity, manual invoice number, and
+// invoice/due date are collected as one form (Gate 4E golden path) even
+// though they map to two separate RPCs (register_invoice_number,
+// update_invoice_billing_metadata) in service.ts. due_date >= invoice_date
+// is re-checked here (client+server, ahead of the database's own check
+// constraint) purely for a fast, field-attributed error message.
+export const updateInvoiceBillingMetadataInputSchema = z
+  .object({
+    invoiceId: idSchema,
+    legalEntityId: idSchema,
+    invoiceNumber: requiredText(100, "Nomor invoice wajib diisi."),
+    invoiceDate: isoDateSchema,
+    dueDate: isoDateSchema,
+  })
+  .refine((data) => data.dueDate >= data.invoiceDate, {
+    message: "Tanggal jatuh tempo tidak boleh sebelum tanggal invoice.",
+    path: ["dueDate"],
+  });
+export type UpdateInvoiceBillingMetadataInput = z.infer<typeof updateInvoiceBillingMetadataInputSchema>;
+
 // storagePath is produced server-side-adjacent (the browser upload step
 // writes it, using the tenant/invoice ids the server already gave it — see
 // EvidenceUploadForm) never freely typed by the user; still validated here

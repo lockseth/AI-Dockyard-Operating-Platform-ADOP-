@@ -15,23 +15,32 @@ export function LifecycleControls({
   invoiceId,
   invoiceStatus,
   lineCount,
+  metadataComplete,
   hasSuccessor,
 }: {
   invoiceId: string;
   invoiceStatus: InvoiceStatus | null;
   lineCount: number;
+  metadataComplete: boolean;
   hasSuccessor: boolean;
 }) {
   if (invoiceStatus === "draft") {
+    const hasNoLines = lineCount === 0;
     return (
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-neutral-500">Lifecycle</h2>
         <div className="flex flex-wrap items-start gap-3">
-          <IssueButton invoiceId={invoiceId} disabled={lineCount === 0} />
+          <IssueButton invoiceId={invoiceId} disabled={hasNoLines || !metadataComplete} />
           <VoidControl invoiceId={invoiceId} triggerLabel="Batalkan Draft" />
         </div>
-        {lineCount === 0 ? (
+        {hasNoLines ? (
           <p className="text-xs text-neutral-500">Ikat minimal satu transaksi sebelum invoice dapat diterbitkan.</p>
+        ) : null}
+        {!hasNoLines && !metadataComplete ? (
+          <p className="text-xs text-neutral-500">
+            Lengkapi legal entity, nomor invoice, tanggal invoice, dan tanggal jatuh tempo sebelum invoice dapat
+            diterbitkan.
+          </p>
         ) : null}
       </section>
     );

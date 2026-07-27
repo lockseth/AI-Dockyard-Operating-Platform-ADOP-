@@ -11,6 +11,7 @@ import { BindingSection } from "./BindingSection";
 import { LifecycleControls } from "./LifecycleControls";
 import { EvidenceSection } from "./EvidenceSection";
 import { ExportCostRecapButton } from "./ExportCostRecapButton";
+import { MetadataSection } from "./MetadataSection";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ invoiceId: string }> }) {
   const context = await requireTenantContext();
@@ -30,6 +31,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
   const { invoice, lines, versions } = detail;
   const eligibleTransactions = invoice.status === "draft" ? await listInvoiceEligibleTransactionsForActiveTenant() : [];
+  const legalEntityName = context.legalEntities.find((entity) => entity.id === invoice.legal_entity_id)?.displayName;
+  const metadataComplete = Boolean(invoice.legal_entity_id && invoice.invoice_number && invoice.invoice_date && invoice.due_date);
 
   return (
     <AppShell title="Detail Invoice" sectionLabel="Billing">
@@ -63,6 +66,30 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 <dt className="text-xs text-neutral-500">Dibuat</dt>
                 <dd className="font-medium">{invoice.created_at ? new Date(invoice.created_at).toLocaleString("id-ID") : "-"}</dd>
               </div>
+              {legalEntityName ? (
+                <div>
+                  <dt className="text-xs text-neutral-500">Legal Entity</dt>
+                  <dd className="font-medium">{legalEntityName}</dd>
+                </div>
+              ) : null}
+              {invoice.invoice_number ? (
+                <div>
+                  <dt className="text-xs text-neutral-500">Nomor Invoice</dt>
+                  <dd className="font-medium">{invoice.invoice_number}</dd>
+                </div>
+              ) : null}
+              {invoice.invoice_date ? (
+                <div>
+                  <dt className="text-xs text-neutral-500">Tanggal Invoice</dt>
+                  <dd className="font-medium">{new Date(invoice.invoice_date).toLocaleDateString("id-ID")}</dd>
+                </div>
+              ) : null}
+              {invoice.due_date ? (
+                <div>
+                  <dt className="text-xs text-neutral-500">Jatuh Tempo</dt>
+                  <dd className="font-medium">{new Date(invoice.due_date).toLocaleDateString("id-ID")}</dd>
+                </div>
+              ) : null}
               {invoice.issued_at ? (
                 <div>
                   <dt className="text-xs text-neutral-500">Diterbitkan</dt>
@@ -109,7 +136,23 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
           <BindingSection invoiceId={invoiceId} invoiceStatus={invoice.status} lines={lines} eligibleTransactions={eligibleTransactions} />
 
-          <LifecycleControls invoiceId={invoiceId} invoiceStatus={invoice.status} lineCount={invoice.line_count ?? 0} hasSuccessor={!!invoice.successor_invoice_id} />
+          <MetadataSection
+            invoiceId={invoiceId}
+            invoiceStatus={invoice.status}
+            legalEntityId={invoice.legal_entity_id}
+            invoiceNumber={invoice.invoice_number}
+            invoiceDate={invoice.invoice_date}
+            dueDate={invoice.due_date}
+            legalEntityOptions={context.legalEntities.map((entity) => ({ id: entity.id, displayName: entity.displayName }))}
+          />
+
+          <LifecycleControls
+            invoiceId={invoiceId}
+            invoiceStatus={invoice.status}
+            lineCount={invoice.line_count ?? 0}
+            metadataComplete={metadataComplete}
+            hasSuccessor={!!invoice.successor_invoice_id}
+          />
 
           <EvidenceSection
             invoiceId={invoiceId}

@@ -19,9 +19,11 @@ import {
   listInvoices,
   listTransactionInvoiceBindings,
   listUnbilledVesselProjects,
+  registerInvoiceNumber,
   rejectInvoiceEvidenceVersion,
   reissueInvoice,
   unbindInvoiceTransaction,
+  updateInvoiceBillingMetadata,
   verifyInvoiceEvidenceVersion,
   voidInvoice,
 } from "./repository";
@@ -43,6 +45,7 @@ import {
   reissueInvoiceInputSchema,
   rejectInvoiceEvidenceVersionInputSchema,
   unbindInvoiceTransactionInputSchema,
+  updateInvoiceBillingMetadataInputSchema,
   verifyInvoiceEvidenceVersionInputSchema,
   voidInvoiceInputSchema,
 } from "./validation";
@@ -276,6 +279,40 @@ export async function reissueInvoiceForActiveTenant(rawInput: unknown): Promise<
     return { error: mapInvoiceEvidenceError(error) };
   }
   return { invoiceId: data.id };
+}
+
+// Phase 2A Contract §6.1/§7/§10.2 (Gate 4E) — a single form submit closes
+// the golden path's metadata step, but it still maps to the two separately
+// audited RPCs (invoice.metadata_updated vs invoice.number_registered): the
+// legal_entity_id/date pair is written first, then the number. If the
+// number registration fails (e.g. duplicate for this legal entity) the
+// already-written legal_entity_id/dates are not rolled back — the invoice
+// is still `draft`, so the admin corrects the number and resubmits the same
+// form; nothing is lost.
+export async function updateInvoiceBillingMetadataForActiveTenant(rawInput: unknown): Promise<InvoiceEvidenceActionResult> {
+  const parsed = updateInvoiceBillingMetadataInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner", "admin"]);
+
+  const { error: metadataError } = await updateInvoiceBillingMetadata({
+    invoiceId: parsed.data.invoiceId,
+    legalEntityId: parsed.data.legalEntityId,
+    invoiceDate: parsed.data.invoiceDate,
+    dueDate: parsed.data.dueDate,
+  });
+  if (metadataError) {
+    return { error: mapInvoiceEvidenceError(metadataError) };
+  }
+
+  const { error: numberError } = await registerInvoiceNumber(parsed.data.invoiceId, parsed.data.invoiceNumber);
+  if (numberError) {
+    return { error: mapInvoiceEvidenceError(numberError) };
+  }
+
+  return {};
 }
 
 export interface FinalizeEvidenceResult extends InvoiceEvidenceActionResult {

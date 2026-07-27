@@ -18,6 +18,9 @@ const bindInvoiceTransaction = vi.fn();
 const finalizeInvoiceEvidenceVersion = vi.fn();
 const getCurrentInvoiceEvidenceVersion = vi.fn();
 const createInvoiceEvidenceSignedUrl = vi.fn();
+const registerInvoiceNumber = vi.fn();
+const updateInvoiceBillingMetadata = vi.fn();
+const issueInvoice = vi.fn();
 vi.mock("./repository", () => ({
   listInvoices,
   getInvoiceSummary,
@@ -29,11 +32,13 @@ vi.mock("./repository", () => ({
   createDraftInvoice,
   bindInvoiceTransaction,
   unbindInvoiceTransaction: vi.fn(),
-  issueInvoice: vi.fn(),
+  issueInvoice,
   voidInvoice: vi.fn(),
   reissueInvoice: vi.fn(),
   finalizeInvoiceEvidenceVersion,
   getCurrentInvoiceEvidenceVersion,
+  registerInvoiceNumber,
+  updateInvoiceBillingMetadata,
   verifyInvoiceEvidenceVersion: vi.fn(),
   rejectInvoiceEvidenceVersion: vi.fn(),
   createInvoiceEvidenceSignedUrl,
@@ -265,6 +270,116 @@ describe("finalizeInvoiceEvidenceVersionForActiveTenant — E-10 retry idempoten
 
     expect(finalizeInvoiceEvidenceVersion).toHaveBeenCalledWith(input);
     expect(result).toEqual({ versionId: "version-new" });
+  });
+});
+
+describe("updateInvoiceBillingMetadataForActiveTenant — Gate 4E golden path", () => {
+  const VALID_LEGAL_ENTITY_ID = "33333333-3333-4333-8333-333333333333";
+  const validInput = {
+    invoiceId: VALID_INVOICE_ID,
+    legalEntityId: VALID_LEGAL_ENTITY_ID,
+    invoiceNumber: "INV-2029-001",
+    invoiceDate: "2029-01-01",
+    dueDate: "2029-01-31",
+  };
+
+  it("rejects due_date < invoice_date client/server-side before ever calling requireTenantContext or the repository", async () => {
+    const { updateInvoiceBillingMetadataForActiveTenant } = await import("./service");
+
+    const result = await updateInvoiceBillingMetadataForActiveTenant({ ...validInput, dueDate: "2028-12-31" });
+
+    expect(result.fieldErrors?.dueDate).toBeTruthy();
+    expect(requireTenantContext).not.toHaveBeenCalled();
+    expect(updateInvoiceBillingMetadata).not.toHaveBeenCalled();
+    expect(registerInvoiceNumber).not.toHaveBeenCalled();
+  });
+
+  it("rejects a reviewer server-side before calling the repository", async () => {
+    requireTenantContext.mockResolvedValue(REVIEWER_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { updateInvoiceBillingMetadataForActiveTenant } = await import("./service");
+
+    await expect(updateInvoiceBillingMetadataForActiveTenant(validInput)).rejects.toThrow(UnauthorizedTenantRoleError);
+    expect(updateInvoiceBillingMetadata).not.toHaveBeenCalled();
+    expect(registerInvoiceNumber).not.toHaveBeenCalled();
+  });
+
+  it("never forwards a client-supplied tenantId to the repository — tenant is always re-derived server-side", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    updateInvoiceBillingMetadata.mockResolvedValue({ data: { id: VALID_INVOICE_ID }, error: null });
+    registerInvoiceNumber.mockResolvedValue({ data: { id: VALID_INVOICE_ID }, error: null });
+    const { updateInvoiceBillingMetadataForActiveTenant } = await import("./service");
+
+    await updateInvoiceBillingMetadataForActiveTenant({ ...validInput, tenantId: "attacker-tenant" });
+
+    expect(updateInvoiceBillingMetadata).toHaveBeenCalledWith({
+      invoiceId: VALID_INVOICE_ID,
+      legalEntityId: VALID_LEGAL_ENTITY_ID,
+      invoiceDate: "2029-01-01",
+      dueDate: "2029-01-31",
+    });
+  });
+
+  it("updates legal entity + dates, then registers the invoice number, on success", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    updateInvoiceBillingMetadata.mockResolvedValue({ data: { id: VALID_INVOICE_ID }, error: null });
+    registerInvoiceNumber.mockResolvedValue({ data: { id: VALID_INVOICE_ID }, error: null });
+    const { updateInvoiceBillingMetadataForActiveTenant } = await import("./service");
+
+    const result = await updateInvoiceBillingMetadataForActiveTenant(validInput);
+
+    expect(updateInvoiceBillingMetadata).toHaveBeenCalledWith({
+      invoiceId: VALID_INVOICE_ID,
+      legalEntityId: VALID_LEGAL_ENTITY_ID,
+      invoiceDate: "2029-01-01",
+      dueDate: "2029-01-31",
+    });
+    expect(registerInvoiceNumber).toHaveBeenCalledWith(VALID_INVOICE_ID, "INV-2029-001");
+    expect(result).toEqual({});
+  });
+
+  it("maps a duplicate invoice-number-per-legal-entity conflict to an Indonesian message without leaking the constraint name", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    updateInvoiceBillingMetadata.mockResolvedValue({ data: { id: VALID_INVOICE_ID }, error: null });
+    registerInvoiceNumber.mockResolvedValue({
+      data: null,
+      error: { code: "23505", message: 'duplicate key value violates unique constraint "invoices_legal_entity_invoice_number_uidx"' },
+    });
+    const { updateInvoiceBillingMetadataForActiveTenant } = await import("./service");
+
+    const result = await updateInvoiceBillingMetadataForActiveTenant(validInput);
+
+    expect(result.error).toMatch(/sudah terdaftar untuk legal entity/);
+    expect(result.error).not.toMatch(/uidx|constraint/);
+  });
+
+  it("does not register the invoice number when the metadata update itself fails", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    updateInvoiceBillingMetadata.mockResolvedValue({
+      data: null,
+      error: { code: "P0001", message: "due_date must not be before invoice_date" },
+    });
+    const { updateInvoiceBillingMetadataForActiveTenant } = await import("./service");
+
+    const result = await updateInvoiceBillingMetadataForActiveTenant(validInput);
+
+    expect(result.error).toMatch(/jatuh tempo tidak boleh sebelum/);
+    expect(registerInvoiceNumber).not.toHaveBeenCalled();
+  });
+
+  it("golden path: complete metadata then issue — both service calls succeed", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    updateInvoiceBillingMetadata.mockResolvedValue({ data: { id: VALID_INVOICE_ID }, error: null });
+    registerInvoiceNumber.mockResolvedValue({ data: { id: VALID_INVOICE_ID }, error: null });
+    issueInvoice.mockResolvedValue({ data: { id: VALID_INVOICE_ID, status: "issued" }, error: null });
+    const { updateInvoiceBillingMetadataForActiveTenant, issueInvoiceForActiveTenant } = await import("./service");
+
+    const metadataResult = await updateInvoiceBillingMetadataForActiveTenant(validInput);
+    const issueResult = await issueInvoiceForActiveTenant({ invoiceId: VALID_INVOICE_ID });
+
+    expect(metadataResult).toEqual({});
+    expect(issueResult).toEqual({});
+    expect(issueInvoice).toHaveBeenCalledWith(VALID_INVOICE_ID);
   });
 });
 

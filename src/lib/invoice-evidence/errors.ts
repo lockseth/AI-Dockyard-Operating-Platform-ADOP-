@@ -14,8 +14,13 @@ export function mapInvoiceEvidenceError(error: PostgrestError | null | undefined
   switch (error.code) {
     case "23503":
       return "Invoice, transaksi, atau evidence tidak ditemukan atau bukan milik tenant Anda.";
-    case "23505":
+    case "23505": {
+      const message = error.message ?? "";
+      if (message.includes("invoices_legal_entity_invoice_number_uidx")) {
+        return "Nomor invoice ini sudah terdaftar untuk legal entity ini.";
+      }
       return "Versi dokumen ini sudah pernah diunggah sebelumnya.";
+    }
     case "23514":
       return "Data tidak memenuhi aturan validasi (nominal, hash, atau ukuran file).";
     case "42501":
@@ -57,6 +62,24 @@ export function mapInvoiceEvidenceError(error: PostgrestError | null | undefined
       }
       if (message.includes("already been reissued")) {
         return "Invoice void ini sudah pernah di-reissue sebelumnya.";
+      }
+      if (message.includes("before issuance")) {
+        return "Lengkapi legal entity, nomor invoice, tanggal invoice, dan tanggal jatuh tempo sebelum menerbitkan invoice.";
+      }
+      if (message.includes("invoice number can only be registered while draft")) {
+        return "Nomor invoice hanya dapat didaftarkan selama invoice berstatus draft.";
+      }
+      if (message.includes("invoice number is required")) {
+        return "Nomor invoice wajib diisi.";
+      }
+      if (message.includes("invoice billing metadata is locked outside draft status")) {
+        return "Metadata invoice terkunci — invoice ini sudah tidak berstatus draft.";
+      }
+      if (message.includes("legal entity not found for this tenant")) {
+        return "Legal entity tidak ditemukan untuk tenant Anda.";
+      }
+      if (message.includes("due_date must not be before invoice_date")) {
+        return "Tanggal jatuh tempo tidak boleh sebelum tanggal invoice.";
       }
       if (message.includes("evidence can only be uploaded for an issued invoice")) {
         return "Dokumen evidence hanya dapat diunggah untuk invoice yang sudah issued.";

@@ -18,6 +18,7 @@ const finalizeInvoiceEvidenceVersionForActiveTenant = vi.fn();
 const verifyInvoiceEvidenceVersionForActiveTenant = vi.fn();
 const rejectInvoiceEvidenceVersionForActiveTenant = vi.fn();
 const getInvoiceEvidenceSignedUrlForActiveTenant = vi.fn();
+const updateInvoiceBillingMetadataForActiveTenant = vi.fn();
 vi.mock("./service", () => ({
   createDraftInvoiceForActiveTenant,
   bindInvoiceTransactionForActiveTenant,
@@ -29,6 +30,7 @@ vi.mock("./service", () => ({
   verifyInvoiceEvidenceVersionForActiveTenant,
   rejectInvoiceEvidenceVersionForActiveTenant,
   getInvoiceEvidenceSignedUrlForActiveTenant,
+  updateInvoiceBillingMetadataForActiveTenant,
 }));
 
 const INVOICE_ID = "11111111-1111-4111-8111-111111111111";
@@ -93,6 +95,56 @@ describe("bindInvoiceTransactionAction", () => {
 
     expect(result.error).toBeTruthy();
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateInvoiceBillingMetadataAction", () => {
+  it("revalidates the detail, list, and workspace pages after a successful save", async () => {
+    updateInvoiceBillingMetadataForActiveTenant.mockResolvedValue({});
+    const { updateInvoiceBillingMetadataAction } = await import("./actions");
+    const formData = new FormData();
+    formData.set("invoiceId", INVOICE_ID);
+    formData.set("legalEntityId", "22222222-2222-4222-8222-222222222222");
+    formData.set("invoiceNumber", "INV-001");
+    formData.set("invoiceDate", "2029-01-01");
+    formData.set("dueDate", "2029-01-31");
+
+    await updateInvoiceBillingMetadataAction({}, formData);
+
+    expect(updateInvoiceBillingMetadataForActiveTenant).toHaveBeenCalledWith({
+      invoiceId: INVOICE_ID,
+      legalEntityId: "22222222-2222-4222-8222-222222222222",
+      invoiceNumber: "INV-001",
+      invoiceDate: "2029-01-01",
+      dueDate: "2029-01-31",
+    });
+    expect(revalidatePath).toHaveBeenCalledWith(`/billing/invoices/${INVOICE_ID}`);
+    expect(revalidatePath).toHaveBeenCalledWith("/billing/invoices");
+    expect(revalidatePath).toHaveBeenCalledWith("/billing/workspace");
+  });
+
+  it("does not revalidate when the save fails", async () => {
+    updateInvoiceBillingMetadataForActiveTenant.mockResolvedValue({ error: "Nomor invoice ini sudah terdaftar untuk legal entity ini." });
+    const { updateInvoiceBillingMetadataAction } = await import("./actions");
+    const formData = new FormData();
+    formData.set("invoiceId", INVOICE_ID);
+
+    const result = await updateInvoiceBillingMetadataAction({}, formData);
+
+    expect(result.error).toBeTruthy();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("maps a thrown UnauthorizedTenantRoleError to an Indonesian permission message", async () => {
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    updateInvoiceBillingMetadataForActiveTenant.mockRejectedValueOnce(new UnauthorizedTenantRoleError());
+    const { updateInvoiceBillingMetadataAction } = await import("./actions");
+    const formData = new FormData();
+    formData.set("invoiceId", INVOICE_ID);
+
+    const result = await updateInvoiceBillingMetadataAction({}, formData);
+
+    expect(result).toEqual({ error: "Anda tidak memiliki izin untuk melakukan aksi ini." });
   });
 });
 

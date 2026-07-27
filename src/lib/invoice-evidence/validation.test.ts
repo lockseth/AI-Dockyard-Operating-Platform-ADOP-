@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   finalizeInvoiceEvidenceVersionInputSchema,
   rejectInvoiceEvidenceVersionInputSchema,
+  updateInvoiceBillingMetadataInputSchema,
   voidInvoiceInputSchema,
 } from "./validation";
 import { EVIDENCE_MAX_SIZE_BYTES } from "./types";
@@ -70,5 +71,46 @@ describe("rejectInvoiceEvidenceVersionInputSchema", () => {
     expect(
       rejectInvoiceEvidenceVersionInputSchema.safeParse({ versionId: VALID_INVOICE_ID, reason: "" }).success,
     ).toBe(false);
+  });
+});
+
+describe("updateInvoiceBillingMetadataInputSchema — Gate 4E", () => {
+  const VALID_LEGAL_ENTITY_ID = "22222222-2222-4222-8222-222222222222";
+  const base = {
+    invoiceId: VALID_INVOICE_ID,
+    legalEntityId: VALID_LEGAL_ENTITY_ID,
+    invoiceNumber: "INV-2029-001",
+    invoiceDate: "2029-01-01",
+    dueDate: "2029-01-31",
+  };
+
+  it("accepts a complete, valid payload", () => {
+    expect(updateInvoiceBillingMetadataInputSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("accepts due_date equal to invoice_date (boundary, not strictly after)", () => {
+    expect(
+      updateInvoiceBillingMetadataInputSchema.safeParse({ ...base, dueDate: base.invoiceDate }).success,
+    ).toBe(true);
+  });
+
+  it("rejects due_date before invoice_date with a field-attributed error", () => {
+    const result = updateInvoiceBillingMetadataInputSchema.safeParse({ ...base, dueDate: "2028-12-31" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.dueDate).toBeTruthy();
+    }
+  });
+
+  it("rejects a blank invoice number", () => {
+    expect(updateInvoiceBillingMetadataInputSchema.safeParse({ ...base, invoiceNumber: "   " }).success).toBe(false);
+  });
+
+  it("rejects a malformed date", () => {
+    expect(updateInvoiceBillingMetadataInputSchema.safeParse({ ...base, invoiceDate: "01/01/2029" }).success).toBe(false);
+  });
+
+  it("rejects a non-uuid legal entity id", () => {
+    expect(updateInvoiceBillingMetadataInputSchema.safeParse({ ...base, legalEntityId: "not-a-uuid" }).success).toBe(false);
   });
 });

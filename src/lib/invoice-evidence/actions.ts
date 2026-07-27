@@ -12,6 +12,7 @@ import {
   reissueInvoiceForActiveTenant,
   rejectInvoiceEvidenceVersionForActiveTenant,
   unbindInvoiceTransactionForActiveTenant,
+  updateInvoiceBillingMetadataForActiveTenant,
   verifyInvoiceEvidenceVersionForActiveTenant,
   voidInvoiceForActiveTenant,
   type CreateDraftInvoiceResult,
@@ -84,6 +85,31 @@ export async function unbindInvoiceTransactionAction(
   }
   if (!result.error && !result.fieldErrors && typeof invoiceId === "string") {
     revalidatePath(`/billing/invoices/${invoiceId}`);
+    revalidatePath("/billing/workspace");
+  }
+  return result;
+}
+
+export async function updateInvoiceBillingMetadataAction(
+  _prevState: InvoiceEvidenceActionResult,
+  formData: FormData,
+): Promise<InvoiceEvidenceActionResult> {
+  const invoiceId = formData.get("invoiceId");
+  let result: InvoiceEvidenceActionResult;
+  try {
+    result = await updateInvoiceBillingMetadataForActiveTenant({
+      invoiceId,
+      legalEntityId: formData.get("legalEntityId"),
+      invoiceNumber: formData.get("invoiceNumber"),
+      invoiceDate: formData.get("invoiceDate"),
+      dueDate: formData.get("dueDate"),
+    });
+  } catch (error) {
+    return mapThrown(error);
+  }
+  if (!result.error && !result.fieldErrors && typeof invoiceId === "string") {
+    revalidatePath(`/billing/invoices/${invoiceId}`);
+    revalidatePath("/billing/invoices");
     revalidatePath("/billing/workspace");
   }
   return result;

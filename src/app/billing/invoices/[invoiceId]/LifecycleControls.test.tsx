@@ -25,15 +25,29 @@ afterEach(() => {
 describe("LifecycleControls", () => {
   it("disables 'Terbitkan Invoice' when the draft has no bound transactions", async () => {
     const { LifecycleControls } = await import("./LifecycleControls");
-    render(<LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="draft" lineCount={0} hasSuccessor={false} />);
+    render(
+      <LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="draft" lineCount={0} metadataComplete={true} hasSuccessor={false} />,
+    );
 
     expect(screen.getByRole("button", { name: /terbitkan invoice/i })).toBeDisabled();
     expect(screen.getByText(/ikat minimal satu transaksi/i)).toBeInTheDocument();
   });
 
-  it("enables 'Terbitkan Invoice' once at least one transaction is bound, and shows a void trigger", async () => {
+  it("disables 'Terbitkan Invoice' when transactions are bound but billing metadata is incomplete", async () => {
     const { LifecycleControls } = await import("./LifecycleControls");
-    render(<LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="draft" lineCount={2} hasSuccessor={false} />);
+    render(
+      <LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="draft" lineCount={2} metadataComplete={false} hasSuccessor={false} />,
+    );
+
+    expect(screen.getByRole("button", { name: /terbitkan invoice/i })).toBeDisabled();
+    expect(screen.getByText(/lengkapi legal entity/i)).toBeInTheDocument();
+  });
+
+  it("enables 'Terbitkan Invoice' once at least one transaction is bound and metadata is complete, and shows a void trigger", async () => {
+    const { LifecycleControls } = await import("./LifecycleControls");
+    render(
+      <LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="draft" lineCount={2} metadataComplete={true} hasSuccessor={false} />,
+    );
 
     expect(screen.getByRole("button", { name: /terbitkan invoice/i })).toBeEnabled();
     expect(screen.getByRole("button", { name: /batalkan draft/i })).toBeInTheDocument();
@@ -42,7 +56,9 @@ describe("LifecycleControls", () => {
   it("requires a non-empty reason before the void confirmation can be submitted", async () => {
     const user = userEvent.setup();
     const { LifecycleControls } = await import("./LifecycleControls");
-    render(<LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="issued" lineCount={1} hasSuccessor={false} />);
+    render(
+      <LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="issued" lineCount={1} metadataComplete={true} hasSuccessor={false} />,
+    );
 
     await user.click(screen.getByRole("button", { name: /void invoice/i }));
     const confirmButton = screen.getByRole("button", { name: /konfirmasi void/i });
@@ -54,7 +70,9 @@ describe("LifecycleControls", () => {
 
   it("shows a Reissue action for a void invoice with no successor yet", async () => {
     const { LifecycleControls } = await import("./LifecycleControls");
-    render(<LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="void" lineCount={0} hasSuccessor={false} />);
+    render(
+      <LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="void" lineCount={0} metadataComplete={false} hasSuccessor={false} />,
+    );
 
     expect(screen.getByRole("button", { name: /reissue invoice/i })).toBeInTheDocument();
   });
@@ -62,7 +80,7 @@ describe("LifecycleControls", () => {
   it("renders nothing for a void invoice that has already been reissued", async () => {
     const { LifecycleControls } = await import("./LifecycleControls");
     const { container } = render(
-      <LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="void" lineCount={0} hasSuccessor={true} />,
+      <LifecycleControls invoiceId={INVOICE_ID} invoiceStatus="void" lineCount={0} metadataComplete={false} hasSuccessor={true} />,
     );
 
     expect(container).toBeEmptyDOMElement();
