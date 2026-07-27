@@ -3,9 +3,11 @@ import {
   buildActiveProjectCostRows,
   buildCashPoolBusinessDateMap,
   buildOwnerControlSummary,
+  buildUnbilledVesselIndicator,
   getExpenseSubmissionsPendingReview,
   getLatestReconciliationIdsByPool,
 } from "./view-model";
+import type { BillingWorkspaceRow } from "@/lib/billing-workspace/types";
 import type { CashPoolRow } from "@/lib/cash-pool/repository";
 import type { CashPoolReconciliationCurrentRow } from "@/lib/cash-reconciliation/repository";
 import type { ExpenseSubmissionCurrentRow } from "@/lib/expense-approvals/repository";
@@ -203,6 +205,83 @@ describe("buildActiveProjectCostRows", () => {
   it("defaults total cost to zero when no cost row exists", () => {
     const rows = buildActiveProjectCostRows([project({ id: "p-1" })], [vessel({})], []);
     expect(rows[0].totalCost).toBe(0);
+  });
+});
+
+function billingRow(overrides: Partial<BillingWorkspaceRow> = {}): BillingWorkspaceRow {
+  return {
+    projectId: "project-1",
+    vesselName: "MV Contoh",
+    projectCode: "DOCK-01",
+    clientId: "client-1",
+    clientName: "PT Client",
+    lifecycleStatus: "closed",
+    closedAt: "2026-07-01T00:00:00Z",
+    status: "NO_INVOICE",
+    activeInvoice: null,
+    isUnbilledAlert: true,
+    unbilledTransactionCount: 3,
+    unbilledAmountTotal: 1_500_000,
+    lastVoidedInvoiceId: null,
+    lastVoidReason: null,
+    ...overrides,
+  };
+}
+
+describe("buildUnbilledVesselIndicator — Gate 3B unbilled vessel attention indicator", () => {
+  it("counts and sums only rows flagged isUnbilledAlert by the canonical billing workspace read", () => {
+    const result = buildUnbilledVesselIndicator(["owner"], [
+      billingRow({ projectId: "p-1", isUnbilledAlert: true, unbilledAmountTotal: 1_000_000 }),
+      billingRow({ projectId: "p-2", isUnbilledAlert: true, unbilledAmountTotal: 2_500_000 }),
+    ]);
+    expect(result).toEqual({ count: 2, amountTotal: 3_500_000 });
+  });
+
+  it("never treats a closed project with an issued invoice as unbilled", () => {
+    // isUnbilledAlert is read verbatim from the canonical row — a project
+    // with an active issued invoice always resolves isUnbilledAlert: false
+    // upstream, so this must not recompute status from activeInvoice itself.
+    const result = buildUnbilledVesselIndicator(["owner"], [
+      billingRow({
+        projectId: "p-issued",
+        isUnbilledAlert: false,
+        status: "READY_TO_SEND",
+        activeInvoice: { id: "inv-1" } as never,
+        unbilledAmountTotal: 0,
+      }),
+    ]);
+    expect(result).toEqual({ count: 0, amountTotal: 0 });
+  });
+
+  it("returns a zero-value (not null) indicator when there are simply no unbilled rows", () => {
+    const result = buildUnbilledVesselIndicator(["owner"], [billingRow({ isUnbilledAlert: false })]);
+    expect(result).toEqual({ count: 0, amountTotal: 0 });
+  });
+
+  it("is null-safe against an empty billing workspace", () => {
+    expect(buildUnbilledVesselIndicator(["owner"], [])).toEqual({ count: 0, amountTotal: 0 });
+  });
+
+  it("allows admin, same as owner", () => {
+    const result = buildUnbilledVesselIndicator(["admin"], [billingRow({ isUnbilledAlert: true, unbilledAmountTotal: 750_000 })]);
+    expect(result).toEqual({ count: 1, amountTotal: 750_000 });
+  });
+
+  it("returns null for reviewer — a role that cannot access the Billing Workspace", () => {
+    expect(buildUnbilledVesselIndicator(["reviewer"], [billingRow({ isUnbilledAlert: true })])).toBeNull();
+  });
+
+  it("returns null for viewer", () => {
+    expect(buildUnbilledVesselIndicator(["viewer"], [billingRow({ isUnbilledAlert: true })])).toBeNull();
+  });
+
+  it("returns null for a user with no roles at all", () => {
+    expect(buildUnbilledVesselIndicator([], [billingRow({ isUnbilledAlert: true })])).toBeNull();
+  });
+
+  it("allows a user with multiple roles including owner, even if another role is unauthorized", () => {
+    const result = buildUnbilledVesselIndicator(["viewer", "owner"], [billingRow({ isUnbilledAlert: true, unbilledAmountTotal: 400_000 })]);
+    expect(result).toEqual({ count: 1, amountTotal: 400_000 });
   });
 });
 

@@ -1,3 +1,6 @@
+import type { TenantRole } from "@/lib/auth/tenant";
+import { canAccessBillingWorkspace } from "@/lib/billing-workspace/access";
+import type { BillingWorkspaceRow } from "@/lib/billing-workspace/types";
 import type { CashPoolDailySummaryRow, CashPoolRow } from "@/lib/cash-pool/repository";
 import type { CashPoolDailyCloseStatus, CashReconciliationStatus } from "@/lib/cash-reconciliation/types";
 import type { CashPoolReconciliationCurrentRow } from "@/lib/cash-reconciliation/repository";
@@ -73,6 +76,33 @@ export function buildActiveProjectCostRows(
       };
     })
     .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+export interface UnbilledVesselIndicator {
+  count: number;
+  amountTotal: number;
+}
+
+// Gate 3B — Owner Dashboard "Kapal Belum Ditagihkan" attention indicator.
+// isUnbilledAlert/unbilledAmountTotal are read verbatim from the Billing
+// Workspace row (same unbilled_vessel_projects/Phase 2A semantics the
+// Billing Workspace page itself uses — closed project, no active
+// draft/issued invoice; an issued invoice always clears a project off this
+// list, so this can never double as a collection/unpaid-invoice signal).
+// Returns null when the role may not access the Billing Workspace, so the
+// dashboard omits the indicator entirely rather than showing zeroed data —
+// same gate listBillingWorkspaceForActiveTenant() itself enforces.
+export function buildUnbilledVesselIndicator(
+  roles: TenantRole[],
+  billingRows: BillingWorkspaceRow[],
+): UnbilledVesselIndicator | null {
+  if (!canAccessBillingWorkspace(roles)) return null;
+
+  const unbilled = billingRows.filter((row) => row.isUnbilledAlert);
+  return {
+    count: unbilled.length,
+    amountTotal: unbilled.reduce((sum, row) => sum + row.unbilledAmountTotal, 0),
+  };
 }
 
 export interface OwnerControlSummary {

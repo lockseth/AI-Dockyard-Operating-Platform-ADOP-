@@ -9,6 +9,8 @@ import { TEXT_TONE_CLASSES, type Tone } from "@/components/ui/tone";
 import { canAccessDailyOperations } from "@/lib/operations-daily/access";
 import { canReadCashImportStaging } from "@/lib/cash-import-staging/access";
 import { canViewTrustedTransactionHistory } from "@/lib/transaction-history/access";
+import { canAccessBillingWorkspace } from "@/lib/billing-workspace/access";
+import { listBillingWorkspaceForActiveTenant } from "@/lib/billing-workspace/service";
 import { getDailyCashPoolForActiveTenant, getDailyCashPoolSummaryForActiveTenant } from "@/lib/cash-pool/service";
 import {
   getCashPoolReconciliationForActiveTenant,
@@ -27,6 +29,7 @@ import { getVesselProjectPriorityLabel } from "@/lib/vessel-projects/labels";
 import {
   buildActiveProjectCostRows,
   buildOwnerControlSummary,
+  buildUnbilledVesselIndicator,
   getExpenseSubmissionsPendingReview,
   getLatestReconciliationIdsByPool,
 } from "@/lib/owner-control/view-model";
@@ -69,6 +72,7 @@ export default async function AppPage() {
   const canDailyOps = canAccessDailyOperations(context.roles);
   const canSeeImportBatches = canReadCashImportStaging(context.roles);
   const canViewHistory = canViewTrustedTransactionHistory(context.roles);
+  const canSeeBilling = canAccessBillingWorkspace(context.roles);
 
   const pool = await getDailyCashPoolForActiveTenant(businessDate);
 
@@ -84,6 +88,7 @@ export default async function AppPage() {
     costSummaries,
     importBatches,
     recentActivity,
+    billingRows,
   ] = await Promise.all([
     pool ? getDailyCashPoolSummaryForActiveTenant(businessDate) : Promise.resolve(null),
     pool ? getCashPoolReconciliationForActiveTenant(pool.id) : Promise.resolve(null),
@@ -98,6 +103,11 @@ export default async function AppPage() {
     canViewHistory
       ? listTrustedTransactionsForActiveTenant({ limit: 5 })
       : Promise.resolve({ transactions: [], nextCursor: null }),
+    // Same read/role gate as /billing/workspace itself (owner/admin only) —
+    // listBillingWorkspaceForActiveTenant() throws for any other role, so
+    // it must stay behind canSeeBilling exactly like the other conditional
+    // reads above.
+    canSeeBilling ? listBillingWorkspaceForActiveTenant() : Promise.resolve([]),
   ]);
 
   const pendingSubmissions = getExpenseSubmissionsPendingReview(submissions);
@@ -108,6 +118,7 @@ export default async function AppPage() {
   const pendingImportBatchCount = importBatches.filter(
     (batch) => batch.status === "mapping_required" || batch.status === "ready_for_review",
   ).length;
+  const unbilledIndicator = buildUnbilledVesselIndicator(context.roles, billingRows);
 
   const activeProjectCostRows = buildActiveProjectCostRows(projects, vessels, costSummaries);
   const cashSummary = buildOwnerControlSummary({
@@ -136,7 +147,7 @@ export default async function AppPage() {
     .sort((a, b) => b.totalCost - a.totalCost)
     .slice(0, DASHBOARD_PROJECT_PREVIEW_LIMIT);
 
-  const actionItems: Array<{ label: string; count: number; href: string; tone: Tone }> = [
+  const actionItems: Array<{ label: string; count: number; href: string; tone: Tone; valueLabel?: string }> = [
     {
       label: "Pengajuan Biaya Menunggu Review",
       count: pendingSubmissions.length,
@@ -157,6 +168,20 @@ export default async function AppPage() {
     },
     ...(canSeeImportBatches
       ? [{ label: "Batch Import Perlu Review", count: pendingImportBatchCount, href: "/operations/import", tone: "neutral" as Tone }]
+      : []),
+    // unbilledIndicator is null for a role that cannot access the Billing
+    // Workspace — same gate as /billing/workspace itself — so the item is
+    // omitted entirely rather than shown with zeroed-out data.
+    ...(unbilledIndicator
+      ? [
+          {
+            label: "Kapal Belum Ditagihkan",
+            count: unbilledIndicator.count,
+            href: "/billing/workspace",
+            tone: "danger" as Tone,
+            valueLabel: formatRupiah(unbilledIndicator.amountTotal),
+          },
+        ]
       : []),
   ].filter((item) => item.count > 0);
 
@@ -229,8 +254,15 @@ export default async function AppPage() {
                 <Link key={item.label} href={item.href} className="block">
                   <Card tone={item.tone} className="flex items-start gap-3 transition-colors hover:brightness-[0.98]">
                     <AlertIcon tone={item.tone} />
-                    <span className="min-w-0 flex-1 text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-                      {item.label}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+                        {item.label}
+                      </span>
+                      {item.valueLabel ? (
+                        <span className="mt-0.5 block text-xs text-neutral-500 dark:text-neutral-400">
+                          {item.valueLabel} belum ditagihkan
+                        </span>
+                      ) : null}
                     </span>
                     <Badge tone={item.tone}>{item.count}</Badge>
                   </Card>
