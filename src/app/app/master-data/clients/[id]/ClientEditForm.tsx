@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { updateClientAction } from "@/lib/master-data/clients/actions";
 import type { MasterDataActionResult } from "@/lib/master-data/clients/service";
 import type { ClientRow } from "@/lib/master-data/clients/repository";
-import { SelectField, TextAreaField, TextField } from "@/components/master-data/fields";
+import { NumericField, SelectField, TextAreaField, TextField } from "@/components/master-data/fields";
 import { FormError } from "@/components/master-data/FormError";
 
 const initialState: MasterDataActionResult = {};
@@ -50,10 +50,9 @@ export function ClientEditForm({ client }: { client: ClientRow }) {
           defaultValue={client.tax_identifier}
           errors={state.fieldErrors?.taxIdentifier}
         />
-        <TextField
+        <NumericField
           label="Jangka Waktu Pembayaran Default (hari, opsional)"
           name="defaultPaymentTermDays"
-          type="number"
           defaultValue={client.default_payment_term_days}
           errors={state.fieldErrors?.defaultPaymentTermDays}
         />

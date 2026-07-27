@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { createClientAction } from "@/lib/master-data/clients/actions";
 import type { MasterDataActionResult } from "@/lib/master-data/clients/service";
-import { SelectField, TextAreaField, TextField } from "@/components/master-data/fields";
+import { NumericField, SelectField, TextAreaField, TextField } from "@/components/master-data/fields";
 import { FormError } from "@/components/master-data/FormError";
 
 const initialState: MasterDataActionResult = {};
@@ -44,10 +44,9 @@ export function ClientCreateForm() {
           name="taxIdentifier"
           errors={state.fieldErrors?.taxIdentifier}
         />
-        <TextField
+        <NumericField
           label="Jangka Waktu Pembayaran Default (hari, opsional)"
           name="defaultPaymentTermDays"
-          type="number"
           errors={state.fieldErrors?.defaultPaymentTermDays}
         />
         <SelectField

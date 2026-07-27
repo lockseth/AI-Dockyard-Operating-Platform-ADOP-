@@ -10,6 +10,7 @@ import { formatRupiah } from "@/lib/operations-daily/format";
 import { getCashReconciliationStatusLabel } from "@/lib/operations-daily/labels";
 import { FieldError, FormError } from "@/components/master-data/FormError";
 import { inputClassName } from "@/components/master-data/fields";
+import { NumericTextInput } from "@/components/master-data/NumericTextInput";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, StatCard } from "@/components/ui/Card";
@@ -136,14 +137,12 @@ export function EodCloseSection({
                   <label htmlFor="actualCountedCash" className="text-[12.5px] font-semibold text-neutral-700 dark:text-neutral-300">
                     Kas Fisik Terhitung (Rp)
                   </label>
-                  <input
+                  <NumericTextInput
                     id="actualCountedCash"
                     name="actualCountedCash"
-                    type="number"
-                    min="0"
-                    step="1"
                     required
                     defaultValue={reconciliation?.actual_counted_cash ?? undefined}
+                    ariaInvalid={!!draftState.fieldErrors?.actualCountedCash?.length}
                     className={inputClassName}
                   />
                   <FieldError messages={draftState.fieldErrors?.actualCountedCash} />

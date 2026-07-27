@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { recordCashPoolEntryAction } from "@/lib/operations-daily/actions";
 import { FieldError, FormError } from "@/components/master-data/FormError";
 import { inputClassName } from "@/components/master-data/fields";
+import { NumericTextInput, NumericTextInputControlled } from "@/components/master-data/NumericTextInput";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { formatBusinessDateLabel, formatRupiah } from "@/lib/operations-daily/format";
@@ -58,14 +59,12 @@ export function StandardCashEntryForm({
       <input type="hidden" name="poolId" value={poolId} />
       <input type="hidden" name="entryType" value={entryType} />
       <span className="text-sm font-medium">{label}</span>
-      <input
+      <NumericTextInput
         name="amount"
-        type="number"
-        min="1"
-        step="1"
         required
         placeholder="Nominal (Rp)"
-        aria-label={`Nominal ${label}`}
+        ariaLabel={`Nominal ${label}`}
+        ariaInvalid={!!state.fieldErrors?.amount?.length}
         disabled={disabled}
         className={inputClassName}
       />
@@ -149,15 +148,12 @@ export function OpeningCashEntryForm({
   return (
     <div className="flex flex-col gap-2 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
       <span className="text-sm font-medium">{label}</span>
-      <input
-        type="number"
-        min="1"
-        step="1"
+      <NumericTextInputControlled
         required
-        value={amount}
-        onChange={(event) => setAmount(event.target.value)}
+        rawValue={amount}
+        onRawValueChange={setAmount}
         placeholder="Nominal (Rp)"
-        aria-label={`Nominal ${label}`}
+        ariaLabel={`Nominal ${label}`}
         disabled={disabled}
         className={inputClassName}
       />

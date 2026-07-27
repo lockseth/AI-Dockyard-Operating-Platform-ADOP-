@@ -1,4 +1,5 @@
 import { FieldError } from "./FormError";
+import { NumericTextInput } from "./NumericTextInput";
 
 // Shared across every text/select input in the app — a fix here reaches
 // every consumer at once (LOCK Gate 4: "perbaiki shared component/design
@@ -27,9 +28,10 @@ export const selectClassName =
   "h-[42px] rounded-lg border-[1.5px] border-neutral-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-slate-50 disabled:text-slate-400 aria-[invalid=true]:border-red-500 dark:border-neutral-700";
 
 // Composite Rp-prefixed currency control — same outer border/radius/height
-// as inputClassName, split into a muted prefix chip and a borderless number
-// input. Kept as type="number" (not a masked/formatted text input) so
-// server-side parsing of the submitted form value is unchanged.
+// as inputClassName, split into a muted prefix chip and a masked NumericTextInput.
+// Displays "1.000.000" while typing; the paired hidden input (same `name`)
+// still carries the raw digit string, so server-side parsing of the
+// submitted form value is unchanged.
 export function CurrencyField({
   label,
   name,
@@ -60,14 +62,13 @@ export function CurrencyField({
         <span className="flex h-full shrink-0 items-center border-r border-neutral-300 bg-neutral-100 px-3 text-sm font-semibold text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
           Rp
         </span>
-        <input
+        <NumericTextInput
           id={name}
           name={name}
-          type="number"
-          defaultValue={defaultValue ?? undefined}
+          defaultValue={defaultValue}
           required={required}
           disabled={disabled}
-          aria-invalid={hasError}
+          ariaInvalid={hasError}
           className="h-full flex-1 border-none bg-transparent px-3 text-sm text-neutral-900 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-neutral-400 dark:text-neutral-100"
         />
       </div>
@@ -106,6 +107,45 @@ export function TextField({
         required={required}
         disabled={disabled}
         aria-invalid={errors && errors.length > 0}
+        className={inputClassName}
+      />
+      <FieldError messages={errors} />
+    </div>
+  );
+}
+
+// Labeled counterpart to TextField for non-currency numeric business fields
+// (duration, quantity, etc.) — same layout, but the input is a masked
+// NumericTextInput instead of a raw type="number" input, so "30" formats
+// consistently with every other numeric field once values grow past 999.
+export function NumericField({
+  label,
+  name,
+  defaultValue,
+  required,
+  disabled,
+  errors,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | number | null;
+  required?: boolean;
+  disabled?: boolean;
+  errors?: string[];
+}) {
+  const hasError = !!errors && errors.length > 0;
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={name} className="text-sm font-medium">
+        {label}
+      </label>
+      <NumericTextInput
+        id={name}
+        name={name}
+        defaultValue={defaultValue}
+        required={required}
+        disabled={disabled}
+        ariaInvalid={hasError}
         className={inputClassName}
       />
       <FieldError messages={errors} />
