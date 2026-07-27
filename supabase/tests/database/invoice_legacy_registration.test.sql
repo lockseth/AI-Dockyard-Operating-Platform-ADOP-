@@ -181,15 +181,18 @@ select throws_ok(
 );
 
 -- Structural backstop: even a raw INSERT bypassing the RPC's friendlier
--- pre-check is rejected by the composite FK itself (§15.9).
+-- pre-check is rejected by the composite FK itself (§15.9). Kept as a
+-- `draft` row with client_id left NULL so this isolates the project_id FK
+-- from both invoices_issued_shape (which would otherwise reject a null
+-- client_id on an 'issued' row for an unrelated reason) and the newer
+-- invoices_enforce_client_matches_project guard (audit follow-up, proven
+-- exhaustively in invoice_billing_metadata_cardinality.test.sql) — a null
+-- client_id trivially satisfies "no project, no client" until the FK on
+-- project_id itself is what actually fires here.
 reset role;
 select throws_ok(
-  $$ insert into public.invoices (tenant_id, status, legal_entity_id, client_id, project_id, invoice_number, invoice_date, origin, imported_by, imported_at, issued_at, issued_by, created_by)
-     values (
-       'e8e8e8e8-e8e8-4e8e-8e8e-e8e8e8e8e8e8', 'issued', 'e0000000-0000-0000-0000-0000000000a9', 'e0000000-0000-0000-0000-0000000000c1',
-       'e0000000-0000-0000-0000-00000000ffff', 'INV/2029/OLD-005', '2029-07-01', 'legacy_import',
-       '00000000-e8e8-4444-0000-000000000001', now(), now(), '00000000-e8e8-4444-0000-000000000001', '00000000-e8e8-4444-0000-000000000001'
-     ) $$,
+  $$ insert into public.invoices (tenant_id, status, project_id, client_id, created_by)
+     values ('e8e8e8e8-e8e8-4e8e-8e8e-e8e8e8e8e8e8', 'draft', 'e0000000-0000-0000-0000-00000000ffff', null, null) $$,
   '23503',
   null,
   'LG-06 (structural): a raw INSERT against a non-existent project_id is rejected by the composite FK regardless of caller'

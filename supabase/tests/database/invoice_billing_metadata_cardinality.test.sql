@@ -59,6 +59,7 @@ insert into public.legal_entities (id, tenant_id, display_name, status) values
 
 insert into public.clients (id, tenant_id, client_code, display_name, created_by) values
   ('c0000000-0000-0000-0000-0000000000c1', 'c6c6c6c6-c6c6-4c6c-8c6c-c6c6c6c6c6c6', 'CL-M-ANCHOR', 'Anchor Client M', '00000000-c6c6-4444-0000-000000000001'),
+  ('c0000000-0000-0000-0000-0000000000c2', 'c6c6c6c6-c6c6-4c6c-8c6c-c6c6c6c6c6c6', 'CL-M-WRONG', 'Wrong Client M (never the real project owner)', '00000000-c6c6-4444-0000-000000000001'),
   ('d0000000-0000-0000-0000-0000000000c1', 'd7d7d7d7-d7d7-4d7d-8d7d-d7d7d7d7d7d7', 'CL-N-ANCHOR', 'Anchor Client N', '00000000-d7d7-4444-0000-000000000001');
 
 insert into public.vessels (id, tenant_id, client_id, vessel_code, vessel_name, created_by) values
@@ -168,6 +169,31 @@ select throws_ok(
   'invoice project_id is immutable once set',
   'a raw UPDATE changing project_id after creation is rejected regardless of caller'
 );
+
+-- Structural cardinality guards found missing during the Phase 2A closeout
+-- audit (§5.1/§8.2) — a raw INSERT bypassing every RPC must not be able to
+-- create an invoice whose client_id disagrees with its own project_id, nor
+-- a coverage line whose project_id disagrees with its invoice's locked
+-- project_id.
+select throws_ok(
+  format(
+    $$ insert into public.invoices (tenant_id, status, project_id, client_id, created_by)
+       values ('c6c6c6c6-c6c6-4c6c-8c6c-c6c6c6c6c6c6', 'draft', 'c0000000-0000-0000-0000-0000000000a2', 'c0000000-0000-0000-0000-0000000000c2', null) $$
+  ),
+  'invoice client_id must match its project''s client_id',
+  'a raw INSERT setting client_id inconsistent with project_id''s real client is rejected regardless of caller'
+);
+select throws_ok(
+  format(
+    $$ insert into public.invoice_transaction_lines (tenant_id, invoice_id, transaction_entry_id, project_id, amount, description)
+       values ('c6c6c6c6-c6c6-4c6c-8c6c-c6c6c6c6c6c6', %L, 'c1000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-0000000000a3', 100000, 'raw insert mismatched project line') $$,
+    (select id from pgtap_bm_invoice_1)
+  ),
+  'invoice_transaction_lines.project_id must match its invoice''s locked project_id',
+  'a raw INSERT binding a line whose project_id disagrees with its invoice''s locked project_id is rejected regardless of caller'
+);
+
+select set_config('request.jwt.claims', '', true);
 
 -- =============================================================================
 -- ROLE MATRIX — R-01..R-05
