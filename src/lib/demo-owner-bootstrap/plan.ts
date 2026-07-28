@@ -1,6 +1,6 @@
 import type {
   DemoTenantIdentity,
-  OwnerBootstrapIdentity,
+  OwnerIdentityFields,
   Plan,
   PlanConflict,
   PlanResult,
@@ -120,10 +120,11 @@ function ownerRoleStep(membership: ResolvedMembershipRow | null): PlanStep {
 // decide the smallest idempotent set of steps, or refuse with a specific
 // conflict reason when the target state is ambiguous. Never mutates
 // anything and never receives a live client — see repository.ts for the I/O
-// boundary this feeds.
+// boundary this feeds. Takes OwnerIdentityFields (no password) since
+// planning never needs the secret — only the apply-time executor does.
 export function buildPlan(
   state: ResolvedState,
-  input: OwnerBootstrapIdentity,
+  input: OwnerIdentityFields,
   tenantIdentity: DemoTenantIdentity,
 ): PlanResult {
   if (state.legalEntities.length > 1) {

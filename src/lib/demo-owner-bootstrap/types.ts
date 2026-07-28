@@ -17,9 +17,15 @@ export interface DemoTenantIdentity {
   legalDisplayName: string;
 }
 
-export interface OwnerBootstrapIdentity {
+// Fields needed to resolve state and build a plan — no secret. Dry-run only
+// ever needs this; see OwnerBootstrapIdentity below for the apply-only
+// superset that carries the password.
+export interface OwnerIdentityFields {
   email: string;
   displayName: string;
+}
+
+export interface OwnerBootstrapIdentity extends OwnerIdentityFields {
   password: string;
 }
 

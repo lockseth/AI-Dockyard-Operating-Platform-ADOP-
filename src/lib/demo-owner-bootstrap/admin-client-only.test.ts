@@ -21,6 +21,7 @@ const PURE_FILES = [
   "executor.ts",
   "types.ts",
   "cli-args.ts",
+  "cli-flow.ts",
 ];
 
 describe("demo-owner-bootstrap: admin client usage confined to repository.ts", () => {

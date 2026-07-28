@@ -3,10 +3,11 @@ import path from "node:path";
 import readline from "node:readline";
 import { ALLOWED_TARGET } from "./target";
 import { DEMO_TENANT_IDENTITY } from "./identity";
-import { ownerBootstrapIdentitySchema } from "./validation";
+import { ownerBootstrapIdentitySchema, ownerIdentityFieldsSchema } from "./validation";
 import { createAdminClient, createSupabaseRepository } from "./repository";
 import { buildExpectedConfirmationToken, runBootstrap } from "./executor";
 import { parseCliArgs } from "./cli-args";
+import { collectIdentityInput } from "./cli-flow";
 import { redactEmail } from "./redact";
 import type { RunReport } from "./types";
 
@@ -129,30 +130,13 @@ async function main(): Promise<void> {
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   try {
-    const email = await promptVisible(rl, "Internal Founder owner email: ");
-    const displayName = await promptVisible(rl, "Internal Founder owner display name: ");
-    const password = await promptHidden("Internal Founder owner password (hidden): ");
-
-    const parsed = ownerBootstrapIdentitySchema.safeParse({ email, displayName, password });
-    if (!parsed.success) {
-      console.error("Invalid input:");
-      for (const issue of parsed.error.issues) {
-        console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
-      }
-      process.exitCode = 1;
-      return;
-    }
-
-    let confirmationToken: string | undefined;
-    if (args.apply) {
-      const expected = buildExpectedConfirmationToken(ALLOWED_TARGET, DEMO_TENANT_IDENTITY.slug);
-      console.log(`\nAbout to APPLY against:`);
-      console.log(`  ref:    ${ALLOWED_TARGET.ref}`);
-      console.log(`  url:    ${ALLOWED_TARGET.url}`);
-      console.log(`  tenant: ${DEMO_TENANT_IDENTITY.slug} (${DEMO_TENANT_IDENTITY.displayName})`);
-      console.log(`  owner:  ${redactEmail(parsed.data.email)}`);
-      confirmationToken = await promptVisible(rl, `Type "${expected}" to confirm: `);
-    }
+    // Mode is already decided (args.apply) before any identity/secret
+    // prompt runs — collectIdentityInput skips the hidden password prompt
+    // outright for dry-run instead of requesting then discarding it.
+    const collected = await collectIdentityInput(args.apply, {
+      promptVisible: (question) => promptVisible(rl, question),
+      promptHidden,
+    });
 
     if (!serviceRoleKey) {
       console.error("SUPABASE_SERVICE_ROLE_KEY is not configured. Set it via .env.demo.local or the shell environment.");
@@ -163,18 +147,66 @@ async function main(): Promise<void> {
     const client = createAdminClient(target.url, serviceRoleKey);
     const repository = createSupabaseRepository(client);
 
+    if (!args.apply) {
+      // Dry-run: read-only. No password field exists on `collected` here,
+      // and ownerIdentityFieldsSchema has no password to require/validate.
+      const parsed = ownerIdentityFieldsSchema.safeParse(collected);
+      if (!parsed.success) {
+        console.error("Invalid input:");
+        for (const issue of parsed.error.issues) {
+          console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
+        }
+        process.exitCode = 1;
+        return;
+      }
+
+      const report = await runBootstrap({
+        repository,
+        target,
+        tenantIdentity: DEMO_TENANT_IDENTITY,
+        identity: parsed.data,
+        apply: false,
+      });
+
+      printReport(report);
+      if (report.kind !== "dry_run") {
+        process.exitCode = 1;
+      }
+      return;
+    }
+
+    // Apply: hidden password + exact confirmation token, both still required.
+    const parsed = ownerBootstrapIdentitySchema.safeParse(collected);
+    if (!parsed.success) {
+      console.error("Invalid input:");
+      for (const issue of parsed.error.issues) {
+        console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
+      }
+      process.exitCode = 1;
+      return;
+    }
+
+    const expected = buildExpectedConfirmationToken(ALLOWED_TARGET, DEMO_TENANT_IDENTITY.slug);
+    console.log(`\nAbout to APPLY against:`);
+    console.log(`  ref:    ${ALLOWED_TARGET.ref}`);
+    console.log(`  url:    ${ALLOWED_TARGET.url}`);
+    console.log(`  tenant: ${DEMO_TENANT_IDENTITY.slug} (${DEMO_TENANT_IDENTITY.displayName})`);
+    console.log(`  owner:  ${redactEmail(parsed.data.email)}`);
+    const confirmationToken = await promptVisible(rl, `Type "${expected}" to confirm: `);
+
     const report = await runBootstrap({
       repository,
       target,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: parsed.data,
-      apply: args.apply,
+      identity: { email: parsed.data.email, displayName: parsed.data.displayName },
+      apply: true,
+      password: parsed.data.password,
       confirmationToken,
     });
 
     printReport(report);
     if (report.kind !== "applied" || !report.success) {
-      process.exitCode = report.kind === "dry_run" ? 0 : 1;
+      process.exitCode = 1;
     }
   } finally {
     rl.close();

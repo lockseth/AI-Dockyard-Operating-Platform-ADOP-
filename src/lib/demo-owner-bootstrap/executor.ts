@@ -5,6 +5,7 @@ import type {
   BootstrapRepository,
   DemoTenantIdentity,
   OwnerBootstrapIdentity,
+  OwnerIdentityFields,
   Plan,
   PlanStep,
   ResolvedState,
@@ -18,17 +19,29 @@ export function buildExpectedConfirmationToken(target: TargetDescriptor, tenantS
   return `${target.ref} ${tenantSlug}`;
 }
 
-export interface RunBootstrapOptions {
+interface RunBootstrapOptionsBase {
   repository: BootstrapRepository;
   target: TargetDescriptor;
   tenantIdentity: DemoTenantIdentity;
-  input: OwnerBootstrapIdentity;
-  apply: boolean;
-  // Required and checked only when apply=true. Never derived automatically —
-  // the caller (cli.ts) must have shown the operator the exact target and
-  // gotten this back verbatim.
-  confirmationToken?: string;
+  // Only email/displayName — every branch up through plan-building is
+  // read-only and never needs a password, dry-run or apply.
+  identity: OwnerIdentityFields;
 }
+
+// Discriminated on `apply` so the password only exists on the type when
+// apply=true — a dry-run RunBootstrapOptions is structurally incapable of
+// carrying a password, the same way BootstrapRepository is structurally
+// incapable of a destructive call (see types.ts).
+export type RunBootstrapOptions =
+  | (RunBootstrapOptionsBase & { apply: false })
+  | (RunBootstrapOptionsBase & {
+      apply: true;
+      password: string;
+      // Checked only once apply=true. Never derived automatically — the
+      // caller (cli.ts) must have shown the operator the exact target and
+      // gotten this back verbatim.
+      confirmationToken?: string;
+    });
 
 // Executes one already-decided plan step against the repository, returning
 // the concrete ids the step touched (used to build audit evidence after the
@@ -210,11 +223,11 @@ export async function runBootstrap(options: RunBootstrapOptions): Promise<RunRep
   }
 
   const state = await options.repository.resolveState({
-    email: options.input.email,
+    email: options.identity.email,
     tenantSlug: options.tenantIdentity.slug,
   });
 
-  const planResult = buildPlan(state, options.input, options.tenantIdentity);
+  const planResult = buildPlan(state, options.identity, options.tenantIdentity);
   if (planResult.kind === "conflict") {
     return { kind: "conflict", reason: planResult.reason, detail: planResult.detail };
   }
@@ -228,5 +241,6 @@ export async function runBootstrap(options: RunBootstrapOptions): Promise<RunRep
     return { kind: "confirmation_required", expectedToken };
   }
 
-  return runPlanSteps(options.repository, planResult, state, options.input, options.tenantIdentity, options.target);
+  const input: OwnerBootstrapIdentity = { ...options.identity, password: options.password };
+  return runPlanSteps(options.repository, planResult, state, input, options.tenantIdentity, options.target);
 }

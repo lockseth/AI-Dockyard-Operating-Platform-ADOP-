@@ -26,9 +26,17 @@ export const ownerPasswordSchema = z
     "Password harus mengandung huruf dan angka.",
   );
 
-export const ownerBootstrapIdentitySchema = z.object({
+// Dry-run's schema: no password, because dry-run never prompts for, needs,
+// or validates one — see cli-flow.ts's collectIdentityInput.
+export const ownerIdentityFieldsSchema = z.object({
   email: ownerEmailSchema,
   displayName: ownerDisplayNameSchema,
+});
+
+export type OwnerIdentityFieldsInput = z.infer<typeof ownerIdentityFieldsSchema>;
+
+// Apply-only superset: everything dry-run validates, plus the password.
+export const ownerBootstrapIdentitySchema = ownerIdentityFieldsSchema.extend({
   password: ownerPasswordSchema,
 });
 

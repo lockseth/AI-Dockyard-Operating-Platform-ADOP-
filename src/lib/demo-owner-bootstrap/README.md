@@ -52,9 +52,14 @@ dedicated TS runner added deliberately at that point.
 
 ### Dry-run
 
-Prompts for the internal Founder owner's email, display name, and password
-(password input is hidden), resolves live state read-only, and prints the
-plan. Makes no writes. This is the default — no flag needed.
+Prompts for the internal Founder owner's email and display name only —
+**never a password**. Mode (`--apply` or not) is decided before any
+identity prompt runs (`parseCliArgs`), so dry-run skips the hidden password
+prompt outright instead of asking then discarding it; see `cli-flow.ts`'s
+`collectIdentityInput` and `executor.ts`'s `RunBootstrapOptions`, which is
+typed so a dry-run run structurally cannot carry a password at all. Resolves
+live state read-only and prints the plan. Makes no writes. This is the
+default — no flag needed.
 
 ### Apply prerequisites
 
@@ -63,9 +68,11 @@ plan. Makes no writes. This is the default — no flag needed.
    either in the shell environment or in a gitignored `.env.demo.local` at
    the repo root (same convention as `.env.example` documents for
    `dev:demo`). Never pass these as CLI arguments.
-2. Run with `--apply`. The CLI prints the exact target (ref/URL) and tenant,
-   then requires you to type back `<ref> <tenant-slug>` verbatim before any
-   write happens. A wrong or missing token aborts with zero mutations.
+2. Run with `--apply`. In addition to email/display name, the CLI now also
+   prompts for the password (hidden input) and prints the exact target
+   (ref/URL) and tenant, then requires you to type back
+   `<ref> <tenant-slug>` verbatim before any write happens. A wrong or
+   missing token aborts with zero mutations.
 
 ### Target guard
 

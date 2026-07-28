@@ -5,6 +5,7 @@ import { buildExpectedConfirmationToken, runBootstrap } from "./executor";
 import type {
   BootstrapRepository,
   OwnerBootstrapIdentity,
+  OwnerIdentityFields,
   ResolvedLegalEntityRow,
   ResolvedMembershipRow,
   ResolvedState,
@@ -14,11 +15,12 @@ import type {
 } from "./types";
 import type { TablesInsert } from "@/types/database";
 
-const INPUT: OwnerBootstrapIdentity = {
+const IDENTITY: OwnerIdentityFields = {
   email: "founder-demo@example.test",
   displayName: "Founder Demo Owner",
-  password: "Correct-Horse-9",
 };
+
+const PASSWORD = "Correct-Horse-9";
 
 // In-memory fake standing in for a real Supabase project. Never touches the
 // network — this is what requirement §"mocks/local-safe fixtures" refers
@@ -179,7 +181,7 @@ describe("runBootstrap — target guard", () => {
       repository: repo,
       target: { ref: "some-other-ref", url: "https://some-other-ref.supabase.co" },
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: false,
     });
     expect(report.kind).toBe("target_rejected");
@@ -192,7 +194,7 @@ describe("runBootstrap — target guard", () => {
       repository: repo,
       target: { ref: "localhost", url: "http://localhost:54321" },
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: false,
     });
     expect(report.kind).toBe("target_rejected");
@@ -207,11 +209,25 @@ describe("runBootstrap — dry-run is the default", () => {
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: false,
     });
     expect(report.kind).toBe("dry_run");
     expect(repo.calls).toEqual(["resolveState"]);
+  });
+
+  it("never needs a password — the options object has no password field at all", async () => {
+    const repo = new FakeRepository();
+    // No `password` key exists on this literal; TypeScript enforces that a
+    // dry-run RunBootstrapOptions cannot carry one (see executor.ts).
+    const report = await runBootstrap({
+      repository: repo,
+      target: ALLOWED_TARGET,
+      tenantIdentity: DEMO_TENANT_IDENTITY,
+      identity: IDENTITY,
+      apply: false,
+    });
+    expect(report.kind).toBe("dry_run");
   });
 });
 
@@ -222,8 +238,9 @@ describe("runBootstrap — apply requires explicit confirmation", () => {
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: true,
+      password: PASSWORD,
     });
     expect(report.kind).toBe("confirmation_required");
     expect(repo.calls.some((c) => MUTATING_CALLS.includes(c))).toBe(false);
@@ -235,8 +252,9 @@ describe("runBootstrap — apply requires explicit confirmation", () => {
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: true,
+      password: PASSWORD,
       confirmationToken: "wrong token",
     });
     expect(report.kind).toBe("confirmation_required");
@@ -250,8 +268,9 @@ describe("runBootstrap — apply requires explicit confirmation", () => {
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: true,
+      password: PASSWORD,
       confirmationToken: token,
     });
     expect(report.kind).toBe("applied");
@@ -269,8 +288,9 @@ describe("runBootstrap — new tenant provisioning + audit evidence", () => {
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: true,
+      password: PASSWORD,
       confirmationToken: token,
     });
     expect(report.kind).toBe("applied");
@@ -292,8 +312,9 @@ describe("runBootstrap — idempotent rerun", () => {
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
-      apply: true,
+      identity: IDENTITY,
+      apply: true as const,
+      password: PASSWORD,
       confirmationToken: token,
     };
 
@@ -322,8 +343,9 @@ describe("runBootstrap — partial failure reporting", () => {
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: true,
+      password: PASSWORD,
       confirmationToken: token,
     });
     expect(report.kind).toBe("applied");
@@ -350,8 +372,9 @@ describe("runBootstrap — partial failure reporting", () => {
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
-      apply: true,
+      identity: IDENTITY,
+      apply: true as const,
+      password: PASSWORD,
       confirmationToken: token,
     };
 
@@ -388,8 +411,9 @@ describe("runBootstrap — audit evidence not written when nothing changed", () 
       repository: repo,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
-      apply: true,
+      identity: IDENTITY,
+      apply: true as const,
+      password: PASSWORD,
       confirmationToken: token,
     };
     await runBootstrap(options);
@@ -432,10 +456,38 @@ describe("runBootstrap — no delete/reset operations", () => {
       repository: guarded,
       target: ALLOWED_TARGET,
       tenantIdentity: DEMO_TENANT_IDENTITY,
-      input: INPUT,
+      identity: IDENTITY,
       apply: true,
+      password: PASSWORD,
       confirmationToken: token,
     });
     expect(report.kind).toBe("applied");
+  });
+});
+
+describe("runBootstrap — no credential logging", () => {
+  it("never carries the raw password into any RunReport, dry-run or applied", async () => {
+    const repo = new FakeRepository();
+    const dryRun = await runBootstrap({
+      repository: repo,
+      target: ALLOWED_TARGET,
+      tenantIdentity: DEMO_TENANT_IDENTITY,
+      identity: IDENTITY,
+      apply: false,
+    });
+    expect(JSON.stringify(dryRun)).not.toContain(PASSWORD);
+
+    const token = buildExpectedConfirmationToken(ALLOWED_TARGET, DEMO_TENANT_IDENTITY.slug);
+    const applied = await runBootstrap({
+      repository: repo,
+      target: ALLOWED_TARGET,
+      tenantIdentity: DEMO_TENANT_IDENTITY,
+      identity: IDENTITY,
+      apply: true,
+      password: PASSWORD,
+      confirmationToken: token,
+    });
+    expect(JSON.stringify(applied)).not.toContain(PASSWORD);
+    expect(JSON.stringify(applied)).not.toMatch(/password/i);
   });
 });
