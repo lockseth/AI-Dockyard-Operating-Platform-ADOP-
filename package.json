@@ -15,7 +15,8 @@
     "db:test": "supabase test db supabase/tests/database",
     "db:lint": "supabase db lint",
     "db:types": "supabase gen types typescript --local > src/types/database.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "demo:owner-bootstrap": "jiti src/lib/demo-owner-bootstrap/cli.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
