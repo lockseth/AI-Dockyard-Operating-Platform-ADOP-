@@ -35,8 +35,15 @@ business data — see `plan.ts` for the exhaustive step list.
   its own client instead of importing it.
 - `executor.ts` — orchestrates guard → resolve → plan → (apply?) → journal.
   Pure aside from the injected `repository`; fully testable with a mock.
-- `cli-args.ts` / `cli.ts` — the I/O shell: argv parsing, env loading,
-  interactive prompts, printing. Thin by design.
+- `cli-args.ts` / `cli-io.ts` / `cli.ts` — the I/O shell: argv parsing, env
+  loading, interactive prompts, printing. Thin by design. `cli-io.ts` holds
+  the two raw stdin/stdout primitives (`promptVisible`, `promptHidden`) as
+  an injectable, unit-testable unit: each call owns stdin exclusively for
+  its own lifetime only (a fresh `readline.Interface` per visible prompt,
+  closed before resolving; the hidden-password raw-mode reader only runs
+  once no `readline.Interface` is alive) — the fix for a Windows bug where
+  a long-lived interface stayed subscribed to stdin while the hidden
+  password reader also read from it concurrently.
 
 ## Running it
 
