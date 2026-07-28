@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { requiredText } from "@/lib/master-data/shared/validation";
+// Relative, not "@/..." — this module is loaded by cli.ts via jiti's plain
+// CLI runner (pnpm demo:owner-bootstrap), which does not resolve the "@/"
+// tsconfig path alias for runtime (value) imports the way Next.js's bundler
+// or Vitest's tsconfig-paths plugin do. Type-only "@/..." imports elsewhere
+// in this module are unaffected — they're erased before jiti ever tries to
+// resolve them.
+import { requiredText } from "../master-data/shared/validation";
 import { containsForbiddenOwnerLiteral } from "./identity";
 
 export const ownerEmailSchema = z

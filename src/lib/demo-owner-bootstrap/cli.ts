@@ -82,6 +82,21 @@ function promptHidden(question: string): Promise<string> {
   });
 }
 
+const USAGE = `Usage: pnpm demo:owner-bootstrap [--apply] [--help]
+
+Provisions the internal Founder owner (Gate 6G-B) for the ADOP Demo tenant.
+
+  (no flags)   Dry-run (default). Read-only: prompts for email + display
+               name only, resolves live state, and prints the plan. Never
+               prompts for a password, never writes.
+  --apply      Also prompts for the hidden password and an exact typed
+               confirmation token before making any change.
+  --dry-run    Explicit no-op; dry-run is already the default.
+  --help, -h   Print this message and exit. Reads no env/credential file,
+               prompts for nothing, makes no network call.
+
+See src/lib/demo-owner-bootstrap/README.md for the full contract.`;
+
 function printReport(report: RunReport): void {
   switch (report.kind) {
     case "target_rejected":
@@ -119,6 +134,15 @@ function printReport(report: RunReport): void {
 
 async function main(): Promise<void> {
   const args = parseCliArgs(process.argv.slice(2));
+
+  // Checked before loadDemoEnvFile()/any process.env read, before the
+  // readline interface is created, and before repository.createAdminClient
+  // ever runs — --help must never touch env/credentials, prompt for
+  // identity, or make a network call.
+  if (args.help) {
+    console.log(USAGE);
+    return;
+  }
 
   loadDemoEnvFile();
 
