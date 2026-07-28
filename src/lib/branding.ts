@@ -1,6 +1,6 @@
-// Neutral foundation-stage branding. Do not hardcode PT Gamatara or any
-// other legal entity name here — the design-partner identity is business
-// context, not application branding.
+// Neutral foundation-stage branding. Do not hardcode PT CONTOH TENANT or
+// any other legal entity name here — the design-partner identity is
+// business context, not application branding.
 export const branding = {
   productName: "ADOP",
   subtitle: "AI Dockyard Operating Platform",

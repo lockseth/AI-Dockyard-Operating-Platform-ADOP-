@@ -43,7 +43,7 @@ Jangan membuat dokumen duplikat untuk requirement yang sudah memiliki source of 
 ### Identity
 
 - Product: **AI Dockyard Operating Platform (ADOP)**.
-- Design partner: **PT Gamatara**.
+- Design partner: **PT PELAYARAN GEMA BAHARI**.
 - Primary user: **Pak Hanafi — Owner**.
 - Principle: **Trust Before Intelligence**.
 - Core object: **Project Kapal**.

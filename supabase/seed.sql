@@ -20,8 +20,9 @@ values
 on conflict (id) do nothing;
 
 -- Tenant A's legal entity is now locked to Pak Hanafi's real legal name and
--- logo (design partner: PT Gamatara — a different concept from this legal
--- entity, which is the tenant/customer identity shown in the product UI).
+-- logo (design partner: PT PELAYARAN GEMA BAHARI — a different concept from
+-- this legal entity, which is the tenant/customer identity shown in the
+-- product UI).
 -- Tenant B stays an unbranded placeholder on purpose: it exists only to
 -- prove tenant isolation in tests, never to be shown to a real user.
 insert into public.legal_entities (id, tenant_id, legal_name, display_name, logo_path, status)

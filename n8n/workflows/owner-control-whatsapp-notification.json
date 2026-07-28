@@ -190,11 +190,11 @@
     },
     "Has Event?": {
       "main": [
-        [{ "node": "Send via Fonnte", "type": "main", "index": 0 }],
+        [{ "node": "Send via Fonnte (Hendro's paired device -> owner recipient)", "type": "main", "index": 0 }],
         []
       ]
     },
-    "Send via Fonnte": {
+    "Send via Fonnte (Hendro's paired device -> owner recipient)": {
       "main": [[{ "node": "Fonnte Success?", "type": "main", "index": 0 }]]
     },
     "Fonnte Success?": {

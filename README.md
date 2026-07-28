@@ -2,7 +2,7 @@
 
 **Versi dokumen:** 1.3  
 **Diperbarui:** 19 Juli 2026  
-**Design partner:** PT Gamatara  
+**Design partner:** PT PELAYARAN GEMA BAHARI  
 **Primary user:** Pak Hanafi — Owner
 
 ADOP adalah platform kendali operasional galangan kapal yang menyatukan kas, biaya, proyek kapal, billing, piutang, dan insight AI dalam satu sumber data yang dapat diaudit. Fase pertama berfokus pada **AI Cost Control**.
@@ -11,7 +11,7 @@ Dokumen ini sengaja dibuat mandiri agar proyek dapat dilanjutkan dari akun Claud
 
 ## Masalah Utama
 
-PT Gamatara menjalankan beberapa proyek kapal secara bersamaan dengan satu kas operasional. Data yang tersebar di Excel dan proses manual membuat owner sulit mengetahui dengan cepat:
+PT PELAYARAN GEMA BAHARI menjalankan beberapa proyek kapal secara bersamaan dengan satu kas operasional. Data yang tersebar di Excel dan proses manual membuat owner sulit mengetahui dengan cepat:
 
 - posisi kas dan pengeluaran hari ini;
 - biaya per kapal/proyek;

@@ -1,16 +1,16 @@
 # Product Requirements Document
 
-## AI Dockyard Operating Platform — PT Gamatara
+## AI Dockyard Operating Platform — PT PELAYARAN GEMA BAHARI
 
 **Versi:** 1.3  
 **Tanggal:** 19 Juli 2026  
-**Design Partner:** PT Gamatara  
+**Design Partner:** PT PELAYARAN GEMA BAHARI  
 **Primary User:** Pak Hanafi — Owner  
 **Fase aktif:** Phase 1 — AI Cost Control / Founding Design Partner Pilot
 
 ## 1. Ringkasan Produk
 
-AI Dockyard Operating Platform (ADOP) adalah platform kendali operasional galangan kapal. Phase 1 membantu PT Gamatara mencatat, mengontrol, dan menganalisis kas serta pengeluaran harian per kapal/proyek.
+AI Dockyard Operating Platform (ADOP) adalah platform kendali operasional galangan kapal. Phase 1 membantu PT PELAYARAN GEMA BAHARI mencatat, mengontrol, dan menganalisis kas serta pengeluaran harian per kapal/proyek.
 
 Owner memperoleh dashboard dan WhatsApp Business Copilot untuk menanyakan kondisi bisnis berdasarkan data yang sudah tercatat. Sistem dibangun dengan prinsip **Trust Before Intelligence**: data, permission, ledger, approval, dan audit trail harus dapat dipercaya sebelum AI memberikan insight atau melakukan tindakan.
 
@@ -102,7 +102,7 @@ Urutan pembangunan wajib:
 
 ### 5.2 Living Knowledge Platform
 
-Hasil interview dan pola operasional PT Gamatara disimpan sebagai knowledge yang berversi. Perubahan pengetahuan bisnis tidak boleh merusak core platform atau menghapus keputusan sebelumnya.
+Hasil interview dan pola operasional PT PELAYARAN GEMA BAHARI disimpan sebagai knowledge yang berversi. Perubahan pengetahuan bisnis tidak boleh merusak core platform atau menghapus keputusan sebelumnya.
 
 ### 5.3 Explainable AI
 
@@ -194,7 +194,7 @@ ADOP wajib memiliki satu **Universal Import Core** canonical agar data lama tida
 
 Domain adapter berikutnya: invoice/billing historis (Phase 2), piutang dan pembayaran (Phase 3), data operasional docking (Phase 4). Detail phase mapping mengikuti `ADOP_WORKFLOW_ROADMAP_v1.0.md` §2 dan tabel Domain Import.
 
-Untuk format laporan kas PT Gamatara yang telah diperiksa, canonical mapping awal harus mendukung:
+Untuk format laporan kas PT PELAYARAN GEMA BAHARI yang telah diperiksa, canonical mapping awal harus mendukung:
 
 - `TANGGAL` → transaction/report date;
 - `KETERANGAN` → cost description atau funding description;
@@ -680,7 +680,7 @@ WhatsApp Business Copilot dimulai pada Phase 1 sebagai interface read-only terha
 - Apakah closing cash otomatis menjadi opening cash hari berikutnya?
 - Siapa yang menyetujui top-up dan apakah top-up dapat terjadi beberapa kali per hari?
 - Apakah tipe Emergency/Standard/Docking/PLTU single-select atau multi-select, dan apa definisi setiap tipe?
-- Apa daftar Facility/Dock/Gate/Pelabuhan/PLTU fisik PT Gamatara dan hubungan hierarkinya?
+- Apa daftar Facility/Dock/Gate/Pelabuhan/PLTU fisik PT PELAYARAN GEMA BAHARI dan hubungan hierarkinya?
 - Apakah duplicate hanya warning atau membutuhkan approval sebelum diteruskan?
 - Apakah project closed dapat di-reopen dan siapa yang berwenang?
 - Jam pasti Morning Daily Expense Brief?

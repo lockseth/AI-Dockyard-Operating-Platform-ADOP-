@@ -11,7 +11,7 @@ vi.mock("@/lib/invoice-evidence/actions", () => ({
 const INVOICE_ID = "11111111-1111-4111-8111-111111111111";
 const LEGAL_ENTITY_ID = "22222222-2222-4222-8222-222222222222";
 
-const LEGAL_ENTITY_OPTIONS = [{ id: LEGAL_ENTITY_ID, displayName: "PT Gamatara" }];
+const LEGAL_ENTITY_OPTIONS = [{ id: LEGAL_ENTITY_ID, displayName: "PT CONTOH TENANT" }];
 
 beforeEach(() => {
   vi.clearAllMocks();

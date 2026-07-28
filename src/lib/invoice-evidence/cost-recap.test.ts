@@ -180,12 +180,12 @@ describe("buildInvoiceCostRecapWorkbook", () => {
   it("renders the tenant name, invoice status label, line rows, and a matching TOTAL row", () => {
     const lines = [line({ id: "l1", amount: 100_000, description: "Biaya A" }), line({ id: "l2", amount: 50_000, description: "Biaya B" })];
     const rows = buildInvoiceCostRecapRows(lines, [project({ project_code: "PRJ-9" })], [vessel({ vessel_name: "MV Uji" })], [client({ display_name: "PT Uji" })]);
-    const recap: InvoiceCostRecap = { invoice: invoice({ status: "issued", issued_at: "2026-07-20T00:00:00Z", line_count: 2, total_amount: 150_000 }), tenantDisplayName: "PT Gamatara Dockyard", rows };
+    const recap: InvoiceCostRecap = { invoice: invoice({ status: "issued", issued_at: "2026-07-20T00:00:00Z", line_count: 2, total_amount: 150_000 }), tenantDisplayName: "PT CONTOH TENANT", rows };
 
     const sheet = readSheet(recap, new Date("2026-07-27T03:00:00Z"));
     const flattened = sheet.map((r) => r.join(" | ")).join("\n");
 
-    expect(flattened).toContain("PT Gamatara Dockyard");
+    expect(flattened).toContain("PT CONTOH TENANT");
     expect(flattened).toContain("Diterbitkan");
     expect(sheet).toContainEqual([1, "PRJ-9", "MV Uji", "PT Uji", "Biaya A", 100_000]);
     expect(sheet).toContainEqual([2, "PRJ-9", "MV Uji", "PT Uji", "Biaya B", 50_000]);
@@ -193,7 +193,7 @@ describe("buildInvoiceCostRecapWorkbook", () => {
   });
 
   it("labels a draft invoice recap as non-final so it cannot be mistaken for the signed invoice", () => {
-    const recap: InvoiceCostRecap = { invoice: invoice({ status: "draft" }), tenantDisplayName: "PT Gamatara Dockyard", rows: [] };
+    const recap: InvoiceCostRecap = { invoice: invoice({ status: "draft" }), tenantDisplayName: "PT CONTOH TENANT", rows: [] };
     const sheet = readSheet(recap, new Date("2026-07-27T03:00:00Z"));
     const flattened = sheet.map((r) => r.join(" | ")).join("\n");
     expect(flattened).toContain("DRAFT");
@@ -203,7 +203,7 @@ describe("buildInvoiceCostRecapWorkbook", () => {
   it("labels a void invoice recap with its void reason and marks it unfit for billing", () => {
     const recap: InvoiceCostRecap = {
       invoice: invoice({ status: "void", void_at: "2026-07-25T00:00:00Z", void_reason: "Salah proyek" }),
-      tenantDisplayName: "PT Gamatara Dockyard",
+      tenantDisplayName: "PT CONTOH TENANT",
       rows: [],
     };
     const sheet = readSheet(recap, new Date("2026-07-27T03:00:00Z"));

@@ -52,3 +52,19 @@ outside anything `pnpm test`/`pnpm test:integration` runs.
 This workflow only ever calls ADOP's `/api/internal/notifications/{claim,complete,fail}`
 routes and the Fonnte send API — it never talks to Supabase directly and
 never calls any ADOP approve/reject/import endpoint.
+
+### Pilot constraints (Founder-accepted)
+
+1. Pilot is scoped to a single tenant: **PT PELAYARAN GEMA BAHARI**.
+2. `RECIPIENT_OWNER_WHATSAPP_NUMBER` is one configured recipient. A second
+   tenant must not be onboarded before tenant-scoped recipient routing
+   exists.
+3. Delivery is at-least-once. A duplicate notification can occur if Fonnte
+   succeeds but the `complete` callback fails before the lease is
+   reclaimed.
+4. A duplicate notification must never be treated as a duplicate approval,
+   acknowledgment, invoice, or transaction.
+5. This workflow must be monitored during the pilot.
+6. Runtime stays inactive until an internal dry run is approved.
+7. Pak Hanafi's number must not be used before an internal test to
+   Hendro's number PASSes and the Founder gives explicit approval.

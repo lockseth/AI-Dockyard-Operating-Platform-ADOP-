@@ -17,7 +17,7 @@ Ketidakpastian nama PT dan belum tersedianya template invoice **tidak menghalang
 
 - UI inti memakai identitas produk **ADOP by CHAMELONIX**.
 - Nama PT, logo, alamat, kontak, NPWP, rekening, penandatangan, cap, prefix dokumen, dan identitas invoice disimpan sebagai **Tenant & Legal Entity Configuration**.
-- Dilarang melakukan hardcode `PT Gamatara` di komponen, database seed produksi, laporan, atau template dokumen.
+- Dilarang melakukan hardcode `PT CONTOH TENANT` di komponen, database seed produksi, laporan, atau template dokumen.
 - Selama nama perusahaan belum final, UI menggunakan label netral seperti **Perusahaan Pak Hanafi**, **Nama Perusahaan**, atau data dummy development yang jelas ditandai.
 - Template invoice menjadi dependency untuk finalisasi **Phase 2 — Billing Intelligence**, bukan Phase 1.
 
