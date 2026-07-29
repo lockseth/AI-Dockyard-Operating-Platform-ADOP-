@@ -195,6 +195,8 @@ Gunakan template jika data Anda belum memiliki format yang rapi. Jika sudah memp
 
 ## 8. WhatsApp Copilot Rules
 
+**Status Gate 6J-A (dibekukan final, documentation-only):** kontrak **GEMA Assistant** — pola 3-persona CHAMELONIX Role-Aware Business Messaging (A. Owner: business intelligence + Morning Brief + help; B. Admin: product help only pada pilot ini; C. External Client verified/unverified: verified dapat notifikasi invoice + secure link + explicit acknowledgment, unverified hanya FAQ publik + human handoff) — sudah dibekukan final di `ADOP_GATE_6J_A_AI_HELP_EXECUTIVE_ASSISTANT_CONTRACT_v1.0.md`. Reviewer/viewer tanpa akses assistant sama sekali. Identity Owner/Admin (`assistant_channel_identities`) dan Client (`client_contacts` + kolom verifikasi baru) dipisah tegas; pairing/verifikasi memakai challenge code single-use TTL 10 menit via `PAIR <code>`/`VERIFY <code>`. Satu-satunya write capability di seluruh sistem adalah invoice acknowledgment oleh client verified (§5); semua lainnya read-only. Sandbox demo Jumat 2026-07-31 memakai device Hendro (Gate 1L, migrasi ke device PT-controlled ditunda, bukan dibatalkan); produksi wajib device PT PELAYARAN GEMA BAHARI-controlled; nomor Founder tidak pernah di-hardcode; Fonnte bukan Meta Official WhatsApp Business API. Morning Brief default 07:00 WIB, satu komposer canonical untuk scheduled maupun interaktif. **Belum diimplementasikan** apa pun di atas — migration, endpoint, komposer, dan provider semua menunggu gate implementasi berikutnya (§17/§20 dokumen tersebut). Jangan berasumsi runtime assistant sudah aktif.
+
 Greeting sekali pada awal sesi lokal:
 
 `Selamat {pagi|siang|sore|malam}, Pak Hanafi.`
