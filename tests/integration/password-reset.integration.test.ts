@@ -42,10 +42,10 @@ describe("password reset — real local Supabase", () => {
     });
 
     const registered = await anonClient.auth.resetPasswordForEmail(member.email, {
-      redirectTo: "http://127.0.0.1:3000/auth/confirm?next=%2Freset-password",
+      redirectTo: "http://127.0.0.1:3000/auth/implicit-confirm?next=%2Freset-password",
     });
     const unregistered = await anonClient.auth.resetPasswordForEmail("definitely-not-registered@adop-integration.local", {
-      redirectTo: "http://127.0.0.1:3000/auth/confirm?next=%2Freset-password",
+      redirectTo: "http://127.0.0.1:3000/auth/implicit-confirm?next=%2Freset-password",
     });
 
     // Supabase's own resetPasswordForEmail never reveals whether the email

@@ -106,7 +106,7 @@ export async function requestPasswordResetAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  const redirectTo = `${getServerEnv().APP_URL}/auth/confirm?next=${encodeURIComponent("/reset-password")}`;
+  const redirectTo = `${getServerEnv().APP_URL}/auth/implicit-confirm?next=${encodeURIComponent("/reset-password")}`;
   await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo });
 
   return { message: GENERIC_PASSWORD_RESET_REQUESTED_MESSAGE };

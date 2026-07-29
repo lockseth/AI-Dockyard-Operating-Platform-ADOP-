@@ -22,7 +22,7 @@ export async function inviteUserByEmail(
 ): Promise<InviteUserByEmailResult> {
   const admin = createSupabaseAdminClient();
   const server = getServerEnv();
-  const redirectTo = `${server.APP_URL}/auth/confirm?next=${encodeURIComponent(nextPath)}`;
+  const redirectTo = `${server.APP_URL}/auth/implicit-confirm?next=${encodeURIComponent(nextPath)}`;
 
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { display_name: displayName },
