@@ -1,5 +1,57 @@
 # n8n workflows
 
+## gema-assistant-inbound-pair-verify.json
+
+Gate 6J-C — canonical inbound gateway for the GEMA Assistant `PAIR <code>` /
+`VERIFY <code>` commands only (Gate 6J-A/6J-B/6J-B1). No AI chat, no Public
+FAQ, no Morning Brief, no invoice or anomaly-alert routing lives behind this
+workflow — see `ADOP_GATE_6J_A_AI_HELP_EXECUTIVE_ASSISTANT_CONTRACT_v1.0.md`.
+
+Graph: `Webhook Inbound -> Normalize Provider Payload -> Validate Required
+Fields -> Sign Canonical Request -> Post ADOP Inbound -> Has Reply? -> Map
+Safe Reply Text -> Send Safe Reply via Fonnte -> Fonnte Send Success? ->
+Reply Sent / Reply Send Failed`.
+
+### Required environment variables (set in n8n's own environment only)
+
+| Variable | Role |
+| --- | --- |
+| `ADOP_APP_URL` | Base URL of the ADOP deployment — same variable the Gate 1L workflow already uses. |
+| `ADOP_INTERNAL_API_SECRET` | Same value as ADOP's `INTERNAL_API_SECRET` — the baseline internal-auth header, shared with Gate 1L. |
+| `ADOP_ASSISTANT_INBOUND_SIGNING_SECRET` | Same value as ADOP's `INTERNAL_ASSISTANT_INBOUND_SIGNING_SECRET`. Signs the canonical request (timestamp + exact raw body) — a SEPARATE, additional layer on top of the internal secret above, not a replacement. |
+| `FONNTE_SENDER_DEVICE_TOKEN` | Sender device token — same Fonnte-paired device Gate 1L already uses to send. This workflow never registers a new device. |
+
+None of these are ever hardcoded in the workflow JSON, this file, or any
+test fixture — see `gema-assistant-inbound-pair-verify.test.ts`'s literal
+secret/phone/tenant-id scan.
+
+### Deployment notes / known limitations
+
+- **Webhook payload field names are unverified against the real Fonnte
+  inbound webhook.** This gate was authored without access to the hosted
+  n8n/Fonnte runtime (explicitly out of scope for this gate — see the gate's
+  own CLOUD/RUNTIME BOUNDARY). The `Normalize Provider Payload` node assumes
+  plausible field names (`sender`/`message`/`id`) — confirm these against
+  Fonnte's actual inbound webhook documentation (or a real captured payload)
+  before enabling this workflow, and adjust that one node only.
+- **HMAC signing requires the n8n Code node to have access to Node's
+  `crypto` builtin** (self-hosted n8n: `NODE_FUNCTION_ALLOW_BUILTIN=crypto`
+  or equivalent). If that is not configured, the `Sign Canonical Request`
+  node throws and the workflow fails closed — it never falls back to
+  calling ADOP unsigned, since `/api/internal/assistant/inbound` rejects any
+  request without a valid signature regardless (`x-internal-secret` alone
+  is not sufficient). Confirm this setting on the actual hosted n8n instance
+  before relying on this workflow in production.
+- The `Map Safe Reply Text` node's template strings must be kept in sync
+  with `src/lib/assistant-inbound/safe-replies.ts` — the workflow's own test
+  file asserts they match exactly; update both together.
+- This workflow is checked in **inactive** (`"active": false`) and has never
+  been imported into, or executed against, the hosted n8n instance. Importing,
+  activating, and end-to-end testing against a real Fonnte device is a
+  separate, later deployment step — not part of this gate.
+- Existing outbound workflow (`owner-control-whatsapp-notification.json`,
+  Gate 1L) is untouched by this gate.
+
 ## owner-control-whatsapp-notification.json
 
 Gate 1L — claims one pending `notification_events` row from ADOP every

@@ -1,0 +1,255 @@
+{
+  "name": "ADOP Gate 6J-C — GEMA Assistant Inbound PAIR/VERIFY",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gema-assistant-inbound",
+        "options": {}
+      },
+      "id": "webhook-inbound",
+      "name": "Webhook Inbound",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "gema-assistant-inbound-pair-verify"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Maps the provider's raw webhook body to ADOP's canonical envelope\n// shape (task LOCK A). Field names below assume Fonnte's inbound webhook\n// payload (sender/message/id) — CONFIRM against the actual Fonnte inbound\n// webhook schema before enabling this workflow in production; this gate\n// was authored without hosted-runtime access to verify the exact field\n// names (see README §Deployment Notes).\nconst body = $input.item.json;\n\nconst envelope = {\n  provider: 'fonnte',\n  providerMessageId: String(body.id || body.messageId || body.message_id || ''),\n  channel: 'whatsapp',\n  senderAddress: String(body.sender || body.from || ''),\n  messageText: String(body.message || body.text || ''),\n  providerTimestamp: new Date().toISOString(),\n};\n\nreturn [{ json: { envelope, canonicalBody: JSON.stringify(envelope) } }];"
+      },
+      "id": "normalize-provider-payload",
+      "name": "Normalize Provider Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-provider-message-id",
+              "leftValue": "={{ $json.envelope.providerMessageId }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            },
+            {
+              "id": "has-sender-address",
+              "leftValue": "={{ $json.envelope.senderAddress }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            },
+            {
+              "id": "has-message-text",
+              "leftValue": "={{ $json.envelope.messageText }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-required-fields",
+      "name": "Validate Required Fields",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// HMAC over timestamp + the EXACT canonical body string this same\n// execution will POST (see Post ADOP Inbound's jsonBody, which references\n// $json.canonicalBody verbatim — never a re-serialized copy). The secret\n// comes ONLY from the n8n credential/environment, never hardcoded (task\n// LOCK B).\n//\n// NOTE: this requires the n8n instance to allow the 'crypto' Node.js\n// builtin inside Code nodes (self-hosted: NODE_FUNCTION_ALLOW_BUILTIN=crypto\n// or equivalent). If that is not configured, this node throws and the\n// workflow fails closed — it does NOT fall back to calling ADOP unsigned,\n// since ADOP's own endpoint rejects any request without a valid signature\n// regardless (see src/lib/assistant-inbound/signature.ts). This is a known\n// deployment-time dependency, unverified against the actual hosted n8n\n// runtime as of this gate — see README §Deployment Notes / LIMITATIONS.\nconst crypto = require('crypto');\n\nconst secret = $env.ADOP_ASSISTANT_INBOUND_SIGNING_SECRET;\nif (!secret) {\n  throw new Error('ADOP_ASSISTANT_INBOUND_SIGNING_SECRET is not configured for this n8n environment.');\n}\n\nconst timestamp = String(Math.floor(Date.now() / 1000));\nconst canonicalBody = $json.canonicalBody;\nconst signature = crypto.createHmac('sha256', secret).update(`${timestamp}.${canonicalBody}`).digest('hex');\n\nreturn [{ json: { ...$json, timestamp, signature } }];"
+      },
+      "id": "sign-canonical-request",
+      "name": "Sign Canonical Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADOP_APP_URL }}/api/internal/assistant/inbound",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-secret", "value": "={{ $env.ADOP_INTERNAL_API_SECRET }}" },
+            { "name": "x-assistant-signature-timestamp", "value": "={{ $json.timestamp }}" },
+            { "name": "x-assistant-signature", "value": "={{ $json.signature }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.canonicalBody }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "post-adop-inbound",
+      "name": "Post ADOP Inbound",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, -80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "reply-required",
+              "leftValue": "={{ $json.reply.replyRequired }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-reply",
+      "name": "Has Reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, -80]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Closed allowlist — MUST mirror src/lib/assistant-inbound/safe-replies.ts\n// exactly (task LOCK H: only allowlisted static templates keyed by\n// safeReplyCode, never a raw error or messageText). Update both places\n// together if the reply vocabulary ever changes.\nconst TEMPLATES = {\n  paired: 'Nomor WhatsApp berhasil dipasangkan.',\n  verified: 'Nomor WhatsApp Anda berhasil diverifikasi.',\n  invalid_or_expired: 'Kode tidak valid atau sudah kedaluwarsa. Silakan minta kode baru.',\n  locked: 'Terlalu banyak percobaan salah. Silakan minta kode baru dari admin.',\n  ambiguous: 'Permintaan tidak dapat diproses saat ini. Silakan hubungi admin.',\n  duplicate: 'Permintaan ini sudah diproses sebelumnya.',\n  rate_limited: 'Terlalu banyak permintaan. Silakan coba lagi beberapa saat lagi.',\n};\n\nconst code = $json.reply && $json.reply.safeReplyCode;\nconst replyText = TEMPLATES[code] || '';\n\nreturn [{ json: { ...$json, replyText } }];"
+      },
+      "id": "map-safe-reply-text",
+      "name": "Map Safe Reply Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.fonnte.com/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ $env.FONNTE_SENDER_DEVICE_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "target", "value": "={{ $('Normalize Provider Payload').item.json.envelope.senderAddress }}" },
+            { "name": "message", "value": "={{ $json.replyText }}" }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send-safe-reply-via-fonnte",
+      "name": "Send Safe Reply via Fonnte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, -160],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "fonnte-send-ok",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fonnte-send-success",
+      "name": "Fonnte Send Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1760, -160]
+    },
+    {
+      "parameters": {},
+      "id": "reply-sent",
+      "name": "Reply Sent",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1980, -240]
+    },
+    {
+      "parameters": {},
+      "id": "reply-send-failed",
+      "name": "Reply Send Failed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1980, -80]
+    }
+  ],
+  "connections": {
+    "Webhook Inbound": {
+      "main": [[{ "node": "Normalize Provider Payload", "type": "main", "index": 0 }]]
+    },
+    "Normalize Provider Payload": {
+      "main": [[{ "node": "Validate Required Fields", "type": "main", "index": 0 }]]
+    },
+    "Validate Required Fields": {
+      "main": [
+        [{ "node": "Sign Canonical Request", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Sign Canonical Request": {
+      "main": [[{ "node": "Post ADOP Inbound", "type": "main", "index": 0 }]]
+    },
+    "Post ADOP Inbound": {
+      "main": [[{ "node": "Has Reply?", "type": "main", "index": 0 }]]
+    },
+    "Has Reply?": {
+      "main": [
+        [{ "node": "Map Safe Reply Text", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Map Safe Reply Text": {
+      "main": [[{ "node": "Send Safe Reply via Fonnte", "type": "main", "index": 0 }]]
+    },
+    "Send Safe Reply via Fonnte": {
+      "main": [[{ "node": "Fonnte Send Success?", "type": "main", "index": 0 }]]
+    },
+    "Fonnte Send Success?": {
+      "main": [
+        [{ "node": "Reply Sent", "type": "main", "index": 0 }],
+        [{ "node": "Reply Send Failed", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

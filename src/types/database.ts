@@ -143,6 +143,54 @@ export type Database = {
           },
         ]
       }
+      assistant_inbound_events: {
+        Row: {
+          channel: string
+          command_type: string
+          created_at: string
+          id: string
+          payload_digest: string
+          processed_at: string | null
+          provider: string
+          provider_message_id: string
+          received_at: string
+          result_code: string | null
+          sender_address: string
+          status: Database["public"]["Enums"]["assistant_inbound_event_status"]
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          command_type: string
+          created_at?: string
+          id?: string
+          payload_digest: string
+          processed_at?: string | null
+          provider: string
+          provider_message_id: string
+          received_at?: string
+          result_code?: string | null
+          sender_address: string
+          status?: Database["public"]["Enums"]["assistant_inbound_event_status"]
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          command_type?: string
+          created_at?: string
+          id?: string
+          payload_digest?: string
+          processed_at?: string | null
+          provider?: string
+          provider_message_id?: string
+          received_at?: string
+          result_code?: string | null
+          sender_address?: string
+          status?: Database["public"]["Enums"]["assistant_inbound_event_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cash_import_batches: {
         Row: {
           business_date: string
@@ -4083,6 +4131,15 @@ export type Database = {
           verified_at: string
         }[]
       }
+      assistant_complete_client_verification_by_address: {
+        Args: { p_channel: string; p_code: string; p_whatsapp_number: string }
+        Returns: {
+          contact_id: string
+          outcome: string
+          tenant_id: string
+          verified_at: string
+        }[]
+      }
       assistant_complete_pairing: {
         Args: {
           p_channel: string
@@ -4232,6 +4289,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_inbound_assistant_event: {
+        Args: {
+          p_channel: string
+          p_command_type: string
+          p_payload_digest: string
+          p_provider: string
+          p_provider_message_id: string
+          p_sender_address: string
+        }
+        Returns: {
+          event_id: string
+          is_new: boolean
+        }[]
+      }
       claim_next_notification_event: {
         Args: { p_lease_seconds?: number; p_worker_id: string }
         Returns: {
@@ -4295,6 +4366,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      count_recent_inbound_assistant_events: {
+        Args: {
+          p_channel: string
+          p_command_type: string
+          p_sender_address: string
+          p_window_seconds?: number
+        }
+        Returns: number
       }
       create_cash_import_batch: {
         Args: {
@@ -4926,6 +5006,30 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "cash_pool_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_inbound_assistant_event_result: {
+        Args: { p_event_id: string; p_result_code: string }
+        Returns: {
+          channel: string
+          command_type: string
+          created_at: string
+          id: string
+          payload_digest: string
+          processed_at: string | null
+          provider: string
+          provider_message_id: string
+          received_at: string
+          result_code: string | null
+          sender_address: string
+          status: Database["public"]["Enums"]["assistant_inbound_event_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "assistant_inbound_events"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -5922,6 +6026,7 @@ export type Database = {
     }
     Enums: {
       assistant_channel_identity_status: "pending" | "verified" | "revoked"
+      assistant_inbound_event_status: "received" | "processed"
       cash_import_batch_status:
         | "draft"
         | "mapping_required"
@@ -6158,6 +6263,7 @@ export const Constants = {
   public: {
     Enums: {
       assistant_channel_identity_status: ["pending", "verified", "revoked"],
+      assistant_inbound_event_status: ["received", "processed"],
       cash_import_batch_status: [
         "draft",
         "mapping_required",

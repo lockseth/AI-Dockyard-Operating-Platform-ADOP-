@@ -446,6 +446,8 @@ Pak Hanafi menerima Morning Daily Expense Brief untuk aktivitas hari sebelumnya.
 
 **Status Gate 6J-B (Identity & Pairing Schema Foundation) — IMPLEMENTED:** tabel `assistant_channel_identities` (pairing Owner/Admin) dan kolom verifikasi `client_contacts.whatsapp_verification_*` (persona C candidate identity) sudah ada beserta RLS dan RPC foundation (`supabase/migrations/20260729030000_assistant_identity_pairing.sql`, `src/lib/assistant-identity/*`) — masih schema/RPC saja, belum ada webhook inbound, UI, atau AI runtime.
 
+**Status Gate 6J-C (Inbound WhatsApp Gateway & PAIR/VERIFY Command Handler) — IMPLEMENTED, LOCAL ONLY:** endpoint `POST /api/internal/assistant/inbound` (`src/lib/assistant-inbound/*`) menutup dua celah Gate 6J-B — idempotency inbound per provider message id (`assistant_inbound_events`, RPC-only) dan resolusi VERIFY lintas tenant tanpa mempercayai tenant_id dari sender (`assistant_complete_client_verification_by_address`, fail-closed ambiguous). Command tertutup hanya `PAIR <code>`/`VERIFY <code>`; tidak ada AI, FAQ, Morning Brief, invoice, atau anomaly alert. Canonical n8n workflow (`n8n/workflows/gema-assistant-inbound-pair-verify.json`) tetap inactive, belum diimpor ke hosted n8n. Field webhook Fonnte asli dan ketersediaan Node `crypto` pada Code node hosted n8n masih perlu diverifikasi sebelum deployment (lihat `n8n/workflows/README.md`).
+
 #### Greeting yang Dikunci
 
 Pada awal setiap sesi WhatsApp, AI wajib mengucapkan greeting sesuai waktu lokal:

@@ -29,6 +29,15 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // "server-only"'s default export throws unconditionally outside
+      // Next.js's bundler (which resolves it to a no-op for server
+      // bundles) — needed here because assistant-inbound.integration.test.ts
+      // imports the real Next.js route handler directly (mirrors the same
+      // alias in vitest.config.ts).
+      "server-only": path.resolve(
+        __dirname,
+        "./node_modules/server-only/empty.js",
+      ),
     },
   },
 });

@@ -34,6 +34,11 @@ const serverEnvSchema = z.object({
   WHATSAPP_SENDER_ID: z.string().default(""),
   INTERNAL_API_SECRET: z.string().default(""),
   CRON_SECRET: z.string().default(""),
+  // HMAC key for /api/internal/assistant/inbound's canonical-request
+  // signature (Gate 6J-C) — layered on top of INTERNAL_API_SECRET, never a
+  // replacement for it. Empty fails closed, same posture as every other
+  // secret here.
+  INTERNAL_ASSISTANT_INBOUND_SIGNING_SECRET: z.string().default(""),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
