@@ -320,6 +320,8 @@ User memperoleh:
 - link menuju record hasil import;
 - kemampuan memperbaiki baris gagal dan menjalankan ulang tanpa duplikasi.
 
+**Status Gate 6I-A (terimplementasi):** exception-only auto-disposition (`auto_apply_cash_import_batch_dispositions`, hanya mengisi baris `disposition IS NULL`, tidak pernah menimpa keputusan manual) dan candidate entity plan untuk label "Kandidat Project Baru" — satu `cash_import_candidate_plans` per label per batch (bukan per baris), disimpan saat mapping (`set_cash_import_label_mapping` diperluas dengan field client/service type/facility/tanggal mulai), tetapi vessel dan Project Kapal draft baru dibuat secara atomik saat `approve_and_commit_cash_import_batch` (bukan saat mapping). Project draft memakai `lifecycle_status = 'draft'` (nilai baru pada enum resmi, lihat `CLAUDE.md` §4 Operating Rules), dipromosikan ke `active` lewat `transition_vessel_project_lifecycle` yang sudah ada. Lihat `supabase/migrations/20260729020000_import_candidate_projects_and_exception_review.sql`.
+
 ### 7.4 Daily Cash Control
 
 - Menggunakan satu shared daily cash pool untuk seluruh kapal, bukan saldo terpisah per kapal.

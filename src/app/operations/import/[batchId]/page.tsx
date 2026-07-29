@@ -9,15 +9,17 @@ import {
   canWriteCashImportStaging,
 } from "@/lib/cash-import-staging/access";
 import { getCashImportBatchDetailForActiveTenant } from "@/lib/cash-import-staging/service";
-import { summarizeCashImportLabels } from "@/lib/cash-import-staging/label-summary";
+import { summarizeCashImportBatchDecisions, summarizeCashImportLabels } from "@/lib/cash-import-staging/label-summary";
 import { buildCanonicalCommitPreview } from "@/lib/cash-import-staging/canonical-preview";
 import { listVesselProjectsForActiveTenant } from "@/lib/vessel-projects/service";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { AccessDenied } from "../AccessDenied";
 import { StagingBanner } from "../StagingBanner";
 import { AuditTimeline } from "./AuditTimeline";
+import { AutoApplyControl } from "./AutoApplyControl";
 import { BatchSummaryPanel } from "./BatchSummaryPanel";
 import { CommittedSummaryPanel } from "./CommittedSummaryPanel";
+import { DecisionSummaryPanel } from "./DecisionSummaryPanel";
 import { ImportPreviewPanel } from "./ImportPreviewPanel";
 import { LabelMappingControl } from "./LabelMappingControl";
 import { OwnerApprovalControl } from "./OwnerApprovalControl";
@@ -63,21 +65,46 @@ export default async function CashImportBatchDetailPage({
   const canEditStaging = canWrite && !isCommitted && !isRolledBack;
 
   const vesselProjects = canEditStaging ? await listVesselProjectsForActiveTenant() : [];
-  const labelSummaries = summarizeCashImportLabels(detail.rows);
+  const labelSummaries = summarizeCashImportLabels(detail.rows, detail.candidatePlans);
   const mappingIncomplete = labelSummaries.some(
     (label) =>
       label.mappingKind === null || (label.mappingKind === "existing_vessel_project" && !label.mappedVesselProjectId),
+  );
+  // Gate 6I-A: a candidate label with at least one included row still needs
+  // its creation plan completed before the batch can go to review — mirrors
+  // mark_cash_import_batch_ready_for_review's own CANDIDATE_PLAN_INCOMPLETE
+  // guard.
+  const candidatePlanIncomplete = labelSummaries.some(
+    (label) => label.mappingKind === "new_project_candidate" && !label.candidatePlan,
   );
   const dispositionIncomplete = detail.rows.some(
     (row) => row.provisional_classification !== "opening_cash" && row.disposition === null,
   );
   const readyBlocked =
-    detail.batch.error_count > 0 || mappingIncomplete || dispositionIncomplete || detail.hasOpeningBalanceConflict;
+    detail.batch.error_count > 0 ||
+    mappingIncomplete ||
+    candidatePlanIncomplete ||
+    dispositionIncomplete ||
+    detail.hasOpeningBalanceConflict;
   // Computed for every status (not only ready_for_review) so the Preview
   // panel — and its OPENING_BALANCE_CONFLICT signal — is visible before the
   // batch is even submitted, per the locked Upload → Staging → Mapping →
   // Validasi → Preview → Ajukan Import → Setujui & Import flow.
-  const canonicalPreview = buildCanonicalCommitPreview(detail.batch, detail.rows, detail.hasOpeningBalanceConflict);
+  const canonicalPreview = buildCanonicalCommitPreview(
+    detail.batch,
+    detail.rows,
+    detail.hasOpeningBalanceConflict,
+    detail.candidatePlans,
+  );
+  const decisionSummary = summarizeCashImportBatchDecisions(
+    detail.batch,
+    detail.rows,
+    detail.candidatePlans,
+    detail.hasOpeningBalanceConflict,
+  );
+  const includedTransactionCount = detail.rows.filter(
+    (row) => row.provisional_classification !== "opening_cash" && row.disposition === "include",
+  ).length;
 
   return (
     <AppShell title="Detail Batch Import" sectionLabel="Manajemen Data">
@@ -113,6 +140,7 @@ export default async function CashImportBatchDetailPage({
         ) : null}
 
         <BatchSummaryPanel batch={detail.batch} />
+        <DecisionSummaryPanel summary={decisionSummary} />
 
         {isCommitted ? <CommittedSummaryPanel batch={detail.batch} /> : null}
         {isRolledBack ? <RolledBackSummaryPanel batch={detail.batch} /> : null}
@@ -121,8 +149,15 @@ export default async function CashImportBatchDetailPage({
           <ImportPreviewPanel rows={detail.rows} preview={canonicalPreview} />
         ) : null}
 
+        {canEditStaging ? <AutoApplyControl batchId={detail.batch.id} /> : null}
+
         {canApprove && detail.batch.status === "ready_for_review" ? (
-          <OwnerApprovalControl batchId={detail.batch.id} preview={canonicalPreview} />
+          <OwnerApprovalControl
+            batchId={detail.batch.id}
+            preview={canonicalPreview}
+            candidateProjectCount={decisionSummary.candidateProjectCount}
+            includedTransactionCount={includedTransactionCount}
+          />
         ) : null}
 
         {canRollback && isCommitted ? <RollbackControl batchId={detail.batch.id} batch={detail.batch} /> : null}
@@ -138,6 +173,10 @@ export default async function CashImportBatchDetailPage({
                 batchId={detail.batch.id}
                 label={label}
                 vesselProjects={vesselProjects}
+                clients={detail.clients}
+                serviceTypes={detail.serviceTypes}
+                facilityLocations={detail.facilityLocations}
+                defaultStartDate={detail.batch.business_date}
                 canWrite={canEditStaging}
               />
             ))}
@@ -158,8 +197,9 @@ export default async function CashImportBatchDetailPage({
             />
             {readyBlocked && detail.batch.status !== "ready_for_review" ? (
               <p className="text-xs text-neutral-500">
-                Lengkapi mapping label dan disposisi setiap baris, dan pastikan tidak ada baris error, sebelum
-                menyiapkan batch untuk review.
+                Lengkapi mapping label dan disposisi setiap baris (termasuk rencana kandidat project baru: client,
+                service type, dan tanggal mulai), dan pastikan tidak ada baris error, sebelum menyiapkan batch untuk
+                review.
               </p>
             ) : null}
           </section>

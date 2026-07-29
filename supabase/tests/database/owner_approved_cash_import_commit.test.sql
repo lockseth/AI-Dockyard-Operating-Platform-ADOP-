@@ -484,17 +484,30 @@ select throws_ok(
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- --- #16 MAPPING_NOT_COMMITTABLE (new_project_candidate) ---------------------
+-- --- #16 (superseded by Gate 6I-A) -------------------------------------------
+-- Gate 6I-A makes new_project_candidate a legitimate, committable mapping —
+-- see supabase/tests/database/import_candidate_projects_and_exception_review.
+-- test.sql for the full candidate-creation happy path. What's proven here
+-- instead: (a) a bare new_project_candidate mapping with no creation plan now
+-- fails FAST, at mapping time, rather than silently reaching ready_for_review
+-- only to be discovered uncommittable at final approval; (b) 'unresolved'
+-- remains the one mapping kind that is still MAPPING_NOT_COMMITTABLE at
+-- commit, unchanged from before this gate.
 select set_config('request.jwt.claims', json_build_object('sub', 'd1000000-0000-4000-0000-000000000002', 'role', 'authenticated')::text, true);
 select set_config('role', 'authenticated', true);
-select lives_ok(
+select throws_ok(
   $$ select public.set_cash_import_label_mapping((select id from pgtap_batch2), 'KM Anchor DP', 'new_project_candidate') $$,
-  'scenario 2 label remapped to new_project_candidate'
+  'CANDIDATE_PLAN_FIELDS_REQUIRED',
+  '#16 (Gate 6I-A) mapping a label new_project_candidate without vessel name/client/service type/start date fails fast, at mapping time'
+);
+select lives_ok(
+  $$ select public.set_cash_import_label_mapping((select id from pgtap_batch2), 'KM Anchor DP', 'unresolved') $$,
+  'scenario 2 label remapped to unresolved (still uncommittable, unchanged by Gate 6I-A)'
 );
 select lives_ok(
   $$ select public.set_cash_import_row_disposition(
        (select id from public.cash_import_rows where batch_id = (select id from pgtap_batch2) and vessel_label = 'KM Anchor DP'), 'include', null
-     ) $$, 'scenario 2 row included under new_project_candidate mapping'
+     ) $$, 'scenario 2 row included under unresolved mapping'
 );
 select lives_ok($$ select public.mark_cash_import_batch_ready_for_review((select id from pgtap_batch2)) $$, 'scenario 2 batch reaches ready_for_review with an uncommittable mapping kind');
 reset role;
@@ -505,7 +518,7 @@ select set_config('role', 'authenticated', true);
 select throws_ok(
   $$ select public.approve_and_commit_cash_import_batch((select id from pgtap_batch2)) $$,
   'MAPPING_NOT_COMMITTABLE',
-  '#16 an included row mapped to new_project_candidate (auto-create is out of scope for this gate) blocks commit'
+  '#16 an included row mapped to unresolved blocks commit'
 );
 reset role;
 select set_config('request.jwt.claims', '', true);

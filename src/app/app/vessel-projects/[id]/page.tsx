@@ -70,7 +70,14 @@ export default async function VesselProjectDetailPage({
       </dl>
 
       {canMutate ? <PriorityControl projectId={project.id} currentPriority={project.priority} /> : null}
-      {canMutate ? <LifecycleTransitionControl projectId={project.id} currentStatus={project.lifecycle_status} /> : null}
+      {canMutate ? (
+        <LifecycleTransitionControl
+          projectId={project.id}
+          currentStatus={project.lifecycle_status}
+          facilityLocationId={project.facility_location_id}
+          facilityLocations={facilityLocations}
+        />
+      ) : null}
 
       <Card>
         <div className="flex items-center justify-between gap-2">

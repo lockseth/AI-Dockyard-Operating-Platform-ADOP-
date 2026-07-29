@@ -49,6 +49,18 @@ describe("mapVesselProjectError", () => {
     expect(mapVesselProjectError(pgError("P0001", "vessel project not found"))).toMatch(/tidak ditemukan/i);
   });
 
+  it("maps a P0001 DRAFT_ACTIVATION_MISSING_FACILITY_LOCATION exception to a clear missing-field message", () => {
+    expect(mapVesselProjectError(pgError("P0001", "DRAFT_ACTIVATION_MISSING_FACILITY_LOCATION"))).toMatch(
+      /facility location/i,
+    );
+  });
+
+  it("maps a P0001 CROSS_TENANT_FACILITY_LOCATION_REJECTED exception to a cross-tenant message", () => {
+    expect(mapVesselProjectError(pgError("P0001", "CROSS_TENANT_FACILITY_LOCATION_REJECTED"))).toMatch(
+      /bukan milik tenant/i,
+    );
+  });
+
   it("falls back to the generic message for an unrecognized P0001 message", () => {
     expect(mapVesselProjectError(pgError("P0001", "some other db exception"))).toBe(GENERIC_VESSEL_PROJECT_ERROR);
   });

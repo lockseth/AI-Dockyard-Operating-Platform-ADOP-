@@ -22,6 +22,12 @@ export function mapVesselProjectError(error: PostgrestError | null | undefined):
       if (error.message === "SHARED_OVERHEAD_ALLOCATION_INCOMPLETE") {
         return "Project tidak dapat ditutup — masih ada Biaya Bersama/Overhead pada periode project ini yang belum dialokasikan penuh. Selesaikan alokasinya di halaman Biaya Bersama/Overhead terlebih dahulu.";
       }
+      if (error.message?.includes("DRAFT_ACTIVATION_MISSING_FACILITY_LOCATION")) {
+        return "Facility Location wajib diisi sebelum project draft ini dapat diaktifkan.";
+      }
+      if (error.message?.includes("CROSS_TENANT_FACILITY_LOCATION_REJECTED")) {
+        return "Facility Location yang dipilih bukan milik tenant ini.";
+      }
       if (error.message?.includes("not authorized")) {
         return "Anda tidak memiliki izin untuk mengubah status project ini.";
       }

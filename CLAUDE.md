@@ -83,7 +83,7 @@ Billing, collection, bank API, dan automasi fase lanjut bukan pilot default.
 - `Vessel`, `Project`, `service_type`, `facility_location`, dan `reporting_period` adalah konsep terpisah.
 - Service type awal: Emergency, Standard, Docking, PLTU.
 - Daftar Gate/Dock/Pelabuhan/PLTU fisik masih configurable/open discovery.
-- Lifecycle: `active → ready_to_close → closed`.
+- Lifecycle: `draft (khusus kandidat project dari import) → active → ready_to_close → closed`. Draft hanya dibuat oleh approval import (Gate 6I-A) berstatus "Perlu Dilengkapi"; project manual tetap langsung `active`.
 - Owner atau admin berizin dapat close; closed project menolak expense baru.
 - Koreksi financial memakai append-only adjustment/reversal.
 - Candidate duplicate tetap terlihat dan selalu membutuhkan human review.

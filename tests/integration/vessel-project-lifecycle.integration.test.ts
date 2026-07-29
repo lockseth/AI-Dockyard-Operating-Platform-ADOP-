@@ -294,6 +294,72 @@ describe("vessel project lifecycle — real local Supabase", () => {
     expect(skipError).not.toBeNull();
   });
 
+  // Gate 6I-A corrective: pgTAP already exhaustively proves the deterministic
+  // rules (missing/cross-tenant facility rejected, complete draft activates,
+  // unauthorized/cross-tenant rejected — supabase/tests/database/import_
+  // candidate_projects_and_exception_review.test.sql Scenario 9). This is
+  // the one thing that needs a real HTTP round trip: true concurrent
+  // "Lengkapi & Aktifkan" calls racing on the SAME incomplete draft.
+  it("concurrent complete-and-activate: two simultaneous transitions on the same incomplete draft succeed exactly once", async () => {
+    const { data: draft } = await admin
+      .from("vessel_projects")
+      .insert({
+        tenant_id: TENANT_A_ID,
+        vessel_id: vesselAId,
+        client_id: clientAId,
+        service_type_id: serviceTypeAId,
+        facility_location_id: null,
+        lifecycle_status: "draft",
+        start_date: "2026-01-15",
+        created_by: ownerA.id,
+      })
+      .select("*")
+      .single();
+    expect(draft?.lifecycle_status).toBe("draft");
+    createdProjectIds.push(draft!.id);
+
+    const ownerAClientOne = await signInAsMember(ownerA.email);
+    const ownerAClientTwo = await signInAsMember(ownerA.email);
+
+    const [resultOne, resultTwo] = await Promise.all([
+      ownerAClientOne.rpc("transition_vessel_project_lifecycle", {
+        p_project_id: draft!.id,
+        p_to_status: "active",
+        p_facility_location_id: facilityLocationAId,
+      }),
+      ownerAClientTwo.rpc("transition_vessel_project_lifecycle", {
+        p_project_id: draft!.id,
+        p_to_status: "active",
+        p_facility_location_id: facilityLocationAId,
+      }),
+    ]);
+
+    const outcomes = [resultOne, resultTwo];
+    const succeeded = outcomes.filter((r) => r.error === null);
+    const failed = outcomes.filter((r) => r.error !== null);
+    expect(succeeded).toHaveLength(1);
+    expect(failed).toHaveLength(1);
+    // The loser's row lock waits for the winner's commit, then sees lifecycle_
+    // status already changed — the trigger's own "unchanged" guard rejects it,
+    // never a second activation.
+    expect(failed[0].error!.message).toContain("status unchanged");
+
+    const { data: finalProject } = await admin
+      .from("vessel_projects")
+      .select("lifecycle_status, facility_location_id")
+      .eq("id", draft!.id)
+      .single();
+    expect(finalProject!.lifecycle_status).toBe("active");
+    expect(finalProject!.facility_location_id).toBe(facilityLocationAId);
+
+    const { count: activeEventCount } = await admin
+      .from("vessel_project_lifecycle_events")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", draft!.id)
+      .eq("to_status", "active");
+    expect(activeEventCount).toBe(1);
+  });
+
   it("a reviewer cannot transition a project's lifecycle", async () => {
     const ownerAClient = await signInAsMember(ownerA.email);
     const { data: created } = await ownerAClient

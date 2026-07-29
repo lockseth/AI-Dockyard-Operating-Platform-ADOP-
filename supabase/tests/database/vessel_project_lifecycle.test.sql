@@ -74,8 +74,11 @@ select has_table('public', 'vessel_project_lifecycle_events', 'public.vessel_pro
 select has_type('public', 'vessel_project_lifecycle_status', 'vessel_project_lifecycle_status enum exists');
 select ok(
   (select array_agg(enumlabel::text order by enumsortorder) from pg_enum where enumtypid = 'public.vessel_project_lifecycle_status'::regtype)
-    = array['active', 'ready_to_close', 'closed'],
-  'vessel_project_lifecycle_status is exactly active/ready_to_close/closed, in state-machine order'
+    = array['draft', 'active', 'ready_to_close', 'closed'],
+  -- Gate 6I-A adds 'draft' (import-candidate-only, before 'active') — see
+  -- supabase/tests/database/import_candidate_projects_and_exception_review.
+  -- test.sql for the draft->active promotion and invalid-transition proofs.
+  'vessel_project_lifecycle_status is exactly draft/active/ready_to_close/closed, in state-machine order'
 );
 
 select col_is_pk('public', 'vessel_projects', 'id', 'vessel_projects PK is id');
@@ -99,28 +102,28 @@ select has_trigger('public', 'vessel_project_lifecycle_events', 'vessel_project_
 
 select is(
   (select n.nspname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where p.oid = 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text)'::regprocedure),
+    where p.oid = 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text, uuid)'::regprocedure),
   'public',
   'transition_vessel_project_lifecycle lives in public — required for it to be RPC-callable'
 );
 select ok(
   exists (
     select 1 from pg_proc, unnest(proconfig) as cfg
-    where oid = 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text)'::regprocedure
+    where oid = 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text, uuid)'::regprocedure
       and cfg = 'search_path=public, pg_temp'
   ),
   'transition_vessel_project_lifecycle has a fixed search_path'
 );
 select ok(
-  (select prosecdef from pg_proc where oid = 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text)'::regprocedure),
+  (select prosecdef from pg_proc where oid = 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text, uuid)'::regprocedure),
   'transition_vessel_project_lifecycle is SECURITY DEFINER'
 );
 select ok(
-  not has_function_privilege('anon', 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text)', 'EXECUTE'),
+  not has_function_privilege('anon', 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text, uuid)', 'EXECUTE'),
   'anon cannot execute transition_vessel_project_lifecycle'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.transition_vessel_project_lifecycle(uuid, public.vessel_project_lifecycle_status, text, uuid)', 'EXECUTE'),
   'authenticated can execute transition_vessel_project_lifecycle (internal role check gates it, not the grant)'
 );
 

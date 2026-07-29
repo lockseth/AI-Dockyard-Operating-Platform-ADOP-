@@ -1,6 +1,7 @@
 import type { VesselProjectLifecycleStatus, VesselProjectPriority } from "./types";
 
 const LIFECYCLE_STATUS_LABELS: Record<VesselProjectLifecycleStatus, string> = {
+  draft: "Draft (Perlu Dilengkapi)",
   active: "Aktif",
   ready_to_close: "Siap Ditutup",
   closed: "Ditutup",

@@ -1,13 +1,13 @@
-import type { CashImportBatchRow, CashImportRowRow } from "./repository";
+import type { CashImportBatchRow, CashImportCandidatePlanRow, CashImportRowRow } from "./repository";
 
 // Pure, UI-facing mirror of approve_and_commit_cash_import_batch's own
-// bucket rules (20260720120000_owner_approved_cash_import_commit.sql §6b) —
-// lets the Owner Control / batch detail page show "what would happen if you
-// approve this" BEFORE the owner actually commits, and explain a skip's
-// variance against the raw source. This is cosmetic only: the RPC is the
-// sole source of truth for what actually posts, re-validates every one of
-// these invariants itself server-side, and never trusts a client-computed
-// total.
+// bucket rules (20260720120000_owner_approved_cash_import_commit.sql §6b,
+// extended by Gate 6I-A's 20260729020000...sql) — lets the Owner Control /
+// batch detail page show "what would happen if you approve this" BEFORE the
+// owner actually commits, and explain a skip's variance against the raw
+// source. This is cosmetic only: the RPC is the sole source of truth for
+// what actually posts, re-validates every one of these invariants itself
+// server-side, and never trusts a client-computed total.
 export interface CanonicalCommitPreview {
   openingCash: number;
   cashTopUpTotal: number;
@@ -27,6 +27,7 @@ export type CommitBlocker =
   | "DISPOSITION_INCOMPLETE"
   | "MANUAL_REVIEW_UNRESOLVED"
   | "MAPPING_NOT_COMMITTABLE"
+  | "CANDIDATE_PLAN_MISSING"
   | "VALIDATION_ERRORS_PRESENT"
   | "RECONCILIATION_VARIANCE"
   | "OPENING_BALANCE_CONFLICT";
@@ -39,6 +40,7 @@ export function buildCanonicalCommitPreview(
   batch: CashImportBatchRow,
   rows: CashImportRowRow[],
   hasOpeningBalanceConflict = false,
+  candidatePlans: CashImportCandidatePlanRow[] = [],
 ): CanonicalCommitPreview {
   let cashTopUpTotal = 0;
   let projectRefundTotal = 0;
@@ -48,6 +50,7 @@ export function buildCanonicalCommitPreview(
   let skippedCreditTotal = 0;
 
   const blockers = new Set<CommitBlocker>();
+  const planLabels = new Set(candidatePlans.map((plan) => plan.vessel_label));
 
   if (batch.error_count > 0) {
     blockers.add("VALIDATION_ERRORS_PRESENT");
@@ -83,8 +86,15 @@ export function buildCanonicalCommitPreview(
     }
 
     // disposition === 'include' from here on.
-    if (row.mapping_kind === "new_project_candidate" || row.mapping_kind === "unresolved") {
+    if (row.mapping_kind === "unresolved") {
       blockers.add("MAPPING_NOT_COMMITTABLE");
+      continue;
+    }
+    // Gate 6I-A: a candidate row only becomes committable once its label has
+    // a complete creation plan — mirrors approve_and_commit_cash_import_
+    // batch's own CANDIDATE_PLAN_MISSING guard exactly.
+    if (row.mapping_kind === "new_project_candidate" && (row.vessel_label === null || !planLabels.has(row.vessel_label))) {
+      blockers.add("CANDIDATE_PLAN_MISSING");
       continue;
     }
 
@@ -92,7 +102,7 @@ export function buildCanonicalCommitPreview(
       cashTopUpTotal += row.debit ?? 0;
     } else if (row.mapping_kind === "shared_overhead") {
       sharedOverheadTotal += row.credit ?? 0;
-    } else if (row.mapping_kind === "existing_vessel_project") {
+    } else if (row.mapping_kind === "existing_vessel_project" || row.mapping_kind === "new_project_candidate") {
       const debit = row.debit ?? 0;
       const credit = row.credit ?? 0;
       if (debit > 0 && credit <= 0) {

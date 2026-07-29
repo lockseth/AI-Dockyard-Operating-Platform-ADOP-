@@ -61,7 +61,16 @@ export function mapCashImportStagingError(error: PostgrestError | null | undefin
         return "Masih ada baris berstatus 'Perlu Tinjauan Manual' yang belum diputuskan sebagai include/skip.";
       }
       if (message.includes("MAPPING_NOT_COMMITTABLE")) {
-        return "Masih ada baris dengan mapping yang belum dapat dimasukkan ke data operasional (kandidat proyek baru/unresolved).";
+        return "Masih ada baris dengan mapping unresolved — belum dapat dimasukkan ke data operasional.";
+      }
+      if (message.includes("CANDIDATE_PLAN_FIELDS_REQUIRED")) {
+        return "Lengkapi nama kapal, client, service type, dan tanggal mulai untuk kandidat project baru.";
+      }
+      if (message.includes("CANDIDATE_PLAN_INCOMPLETE")) {
+        return "Ada label 'Kandidat Project Baru' yang disertakan tetapi rencana pembuatannya belum lengkap.";
+      }
+      if (message.includes("CANDIDATE_PLAN_MISSING")) {
+        return "Ada label 'Kandidat Project Baru' yang belum memiliki rencana pembuatan — tidak dapat disetujui.";
       }
       if (message.includes("OPENING_BALANCE_CONFLICT")) {
         return "Kas harian tanggal ini sudah memiliki transaksi — saldo awal tidak dapat dimasukkan lagi.";

@@ -6,7 +6,9 @@ import type { CashImportBatchRpcRow } from "./types";
 export type CashImportBatchRow = Tables<"cash_import_batches">;
 export type CashImportRowRow = Tables<"cash_import_rows">;
 export type CashImportEventRow = Tables<"cash_import_events">;
+export type CashImportCandidatePlanRow = Tables<"cash_import_candidate_plans">;
 export type CashImportBatchCreationResult = Database["public"]["CompositeTypes"]["cash_import_batch_creation_result"];
+export type CashImportAutoDispositionResult = Database["public"]["CompositeTypes"]["cash_import_auto_disposition_result"];
 
 // `supabase gen types` marks every SQL function parameter that has no
 // DEFAULT as non-nullable, even though Postgres itself accepts NULL for any
@@ -96,6 +98,21 @@ export async function listCashImportRowsForBatch(tenantId: string, batchId: stri
   return data ?? [];
 }
 
+export async function listCashImportCandidatePlansForBatch(
+  tenantId: string,
+  batchId: string,
+): Promise<CashImportCandidatePlanRow[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("cash_import_candidate_plans")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("batch_id", batchId);
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function listCashImportEventsForBatch(tenantId: string, batchId: string): Promise<CashImportEventRow[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -144,6 +161,12 @@ export async function setCashImportLabelMapping(params: {
   vesselLabel: string | null;
   mappingKind: Database["public"]["Enums"]["cash_import_mapping_kind"];
   mappedVesselProjectId: string | null;
+  candidateVesselName?: string | null;
+  candidateClientId?: string | null;
+  candidateServiceTypeId?: string | null;
+  candidateFacilityLocationId?: string | null;
+  candidateStartDate?: string | null;
+  candidatePriority?: Database["public"]["Enums"]["vessel_project_priority"];
 }) {
   const supabase = await createSupabaseServerClient();
   return supabase.rpc("set_cash_import_label_mapping", {
@@ -151,6 +174,28 @@ export async function setCashImportLabelMapping(params: {
     p_vessel_label: nullableRpcArg(params.vesselLabel),
     p_mapping_kind: params.mappingKind,
     p_mapped_vessel_project_id: params.mappedVesselProjectId ?? undefined,
+    p_candidate_vessel_name: params.candidateVesselName ?? undefined,
+    p_candidate_client_id: params.candidateClientId ?? undefined,
+    p_candidate_service_type_id: params.candidateServiceTypeId ?? undefined,
+    p_candidate_facility_location_id: params.candidateFacilityLocationId ?? undefined,
+    p_candidate_start_date: params.candidateStartDate ?? undefined,
+    p_candidate_priority: params.candidatePriority ?? undefined,
+  });
+}
+
+// Sets disposition for every currently-undecided (disposition IS NULL) row
+// in scope — the whole batch, or (when vesselLabel/scopeToLabel are
+// supplied) just one label group. Never overwrites an existing decision.
+export async function autoApplyCashImportBatchDispositions(params: {
+  batchId: string;
+  vesselLabel?: string | null;
+  scopeToLabel?: boolean;
+}) {
+  const supabase = await createSupabaseServerClient();
+  return supabase.rpc("auto_apply_cash_import_batch_dispositions", {
+    p_batch_id: params.batchId,
+    p_vessel_label: nullableRpcArg(params.vesselLabel ?? null),
+    p_scope_to_label: params.scopeToLabel ?? false,
   });
 }
 

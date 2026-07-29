@@ -6,14 +6,22 @@ import type { CashImportRowRow } from "@/lib/cash-import-staging/repository";
 import { RowDispositionControl } from "./RowDispositionControl";
 import { Table, TableHead, TableRow, Th, Td } from "@/components/ui/Table";
 
-type StatusFilter = "all" | "valid" | "warning" | "error";
+type StatusFilter = "needs_review" | "all" | "valid" | "warning" | "error";
 
 const FILTERS: Array<{ value: StatusFilter; label: string }> = [
+  { value: "needs_review", label: "Perlu Ditinjau" },
   { value: "all", label: "Semua" },
   { value: "valid", label: "Valid" },
   { value: "warning", label: "Warning" },
   { value: "error", label: "Error" },
 ];
+
+// A row still needs a human decision when it has no disposition yet, or was
+// explicitly left for manual review (by an admin or by auto_apply_cash_
+// import_batch_dispositions) — the exception-only review default view.
+function needsReview(row: CashImportRowRow): boolean {
+  return row.disposition === null || row.disposition === "manual_review";
+}
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   valid: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
@@ -30,16 +38,17 @@ export function RowTable({
   rows: CashImportRowRow[];
   canWrite: boolean;
 }) {
-  const [filter, setFilter] = useState<StatusFilter>("all");
+  const [filter, setFilter] = useState<StatusFilter>("needs_review");
 
   const transactionRows = useMemo(
     () => rows.filter((row) => row.provisional_classification !== "opening_cash"),
     [rows],
   );
-  const filteredRows = useMemo(
-    () => (filter === "all" ? transactionRows : transactionRows.filter((row) => row.status === filter)),
-    [transactionRows, filter],
-  );
+  const filteredRows = useMemo(() => {
+    if (filter === "all") return transactionRows;
+    if (filter === "needs_review") return transactionRows.filter(needsReview);
+    return transactionRows.filter((row) => row.status === filter);
+  }, [transactionRows, filter]);
 
   return (
     <section className="flex flex-col gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">

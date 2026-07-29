@@ -15,7 +15,17 @@ const initialState: CashImportStagingActionResult = {};
 // rejectCashImportBatchAction are the only two server actions this renders;
 // every total shown here is a COSMETIC preview (buildCanonicalCommitPreview)
 // — the RPC re-validates and computes the real canonical totals itself.
-export function OwnerApprovalControl({ batchId, preview }: { batchId: string; preview: CanonicalCommitPreview }) {
+export function OwnerApprovalControl({
+  batchId,
+  preview,
+  candidateProjectCount,
+  includedTransactionCount,
+}: {
+  batchId: string;
+  preview: CanonicalCommitPreview;
+  candidateProjectCount: number;
+  includedTransactionCount: number;
+}) {
   const [approveState, approveFormAction, approvePending] = useActionState(
     approveAndCommitCashImportBatchAction,
     initialState,
@@ -30,6 +40,17 @@ export function OwnerApprovalControl({ batchId, preview }: { batchId: string; pr
   return (
     <section className="flex flex-col gap-4 rounded-md border border-blue-200 bg-blue-50/40 p-4 dark:border-blue-900 dark:bg-blue-950/20">
       <h2 className="text-sm font-medium text-neutral-500">Persetujuan Owner</h2>
+
+      <p className="text-xs text-neutral-600 dark:text-neutral-400">
+        Persetujuan ini akan memasukkan <strong>{includedTransactionCount}</strong> transaksi
+        {candidateProjectCount > 0 ? (
+          <>
+            {" "}
+            dan membuat <strong>{candidateProjectCount}</strong> Project Kapal baru (status Draft — Perlu Dilengkapi)
+          </>
+        ) : null}
+        .
+      </p>
 
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <PreviewRow label="Saldo Awal (Opening)" value={formatRupiah(preview.openingCash)} />

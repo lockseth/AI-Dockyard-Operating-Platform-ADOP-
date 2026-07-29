@@ -4,6 +4,9 @@ import type { CashImportPreviewRow } from "@/lib/cash-import/types";
 export type CashImportBatchStatus = Database["public"]["Enums"]["cash_import_batch_status"];
 export type CashImportMappingKind = Database["public"]["Enums"]["cash_import_mapping_kind"];
 export type CashImportRowDisposition = Database["public"]["Enums"]["cash_import_row_disposition"];
+export type CashImportCandidatePlanRow = Database["public"]["Tables"]["cash_import_candidate_plans"]["Row"];
+export type CashImportAutoDispositionResult =
+  Database["public"]["CompositeTypes"]["cash_import_auto_disposition_result"];
 
 // The exact shape public.create_cash_import_batch's jsonb_to_recordset call
 // expects per row — a projection of the Gate 1J-A parser's own

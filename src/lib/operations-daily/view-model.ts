@@ -31,10 +31,19 @@ export function buildActiveVesselProjectOptions(
 }
 
 // Shared overhead can be allocated to any project that could still receive
-// it — active or ready_to_close, but never closed (record_project_expense's
-// own closed-project guard has no equivalent here, since allocation isn't a
-// new expense; the closed check lives in allocate_shared_overhead_entry
-// itself). Broader than buildActiveVesselProjectOptions on purpose.
+// it — active or ready_to_close, but never closed nor draft. Explicit
+// allow-list (not `!== "closed"`) so a future lifecycle_status value is
+// excluded by default until deliberately added here — mirrors allocate_
+// shared_overhead_entry's own CANNOT_ALLOCATE_OVERHEAD_TO_INELIGIBLE_PROJECT
+// guard (20260729020000...sql §8b), which remains the real enforcement;
+// this is UI-only convenience so a stale client can't even attempt a
+// rejected allocation. Broader than buildActiveVesselProjectOptions on
+// purpose (still excludes draft, same as that one).
+const ALLOCATABLE_OVERHEAD_LIFECYCLE_STATUSES: ReadonlySet<VesselProjectRow["lifecycle_status"]> = new Set([
+  "active",
+  "ready_to_close",
+]);
+
 export function buildAllocatableVesselProjectOptions(
   projects: VesselProjectRow[],
   vessels: VesselRow[],
@@ -42,7 +51,7 @@ export function buildAllocatableVesselProjectOptions(
   const vesselNameById = new Map(vessels.map((vessel) => [vessel.id, vessel.vessel_name]));
 
   return projects
-    .filter((project) => project.lifecycle_status !== "closed")
+    .filter((project) => ALLOCATABLE_OVERHEAD_LIFECYCLE_STATUSES.has(project.lifecycle_status))
     .map((project) => ({ value: project.id, label: getVesselProjectLabel(project, vesselNameById) }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }

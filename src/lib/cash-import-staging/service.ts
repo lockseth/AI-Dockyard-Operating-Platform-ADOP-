@@ -2,13 +2,21 @@ import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
 import { parseCashReportWorkbook } from "@/lib/cash-import/parser";
 import type { CashImportFileError } from "@/lib/cash-import/types";
+import { listClientsForActiveTenant } from "@/lib/master-data/clients/service";
+import type { ClientRow } from "@/lib/master-data/clients/repository";
+import { listServiceTypesForActiveTenant } from "@/lib/master-data/service-types/service";
+import type { ServiceTypeRow } from "@/lib/master-data/service-types/repository";
+import { listFacilityLocationsForActiveTenant } from "@/lib/master-data/facility-locations/service";
+import type { FacilityLocationRow } from "@/lib/master-data/facility-locations/repository";
 import { mapCashImportStagingError } from "./errors";
 import {
   approveAndCommitCashImportBatch,
+  autoApplyCashImportBatchDispositions,
   createCashImportBatch,
   getCashImportBatch,
   hasExistingFinancialEntriesForBusinessDate,
   listCashImportBatchesForTenant,
+  listCashImportCandidatePlansForBatch,
   listCashImportEventsForBatch,
   listCashImportRowsForBatch,
   markCashImportBatchReadyForReview,
@@ -16,13 +24,16 @@ import {
   rollbackCashImportBatch,
   setCashImportLabelMapping,
   setCashImportRowDisposition,
+  type CashImportAutoDispositionResult,
   type CashImportBatchRow,
+  type CashImportCandidatePlanRow,
   type CashImportEventRow,
   type CashImportRowRow,
 } from "./repository";
 import { toBatchRpcRow } from "./types";
 import {
   approveAndCommitCashImportBatchInputSchema,
+  autoApplyCashImportBatchDispositionsInputSchema,
   getCashImportBatchDetailInputSchema,
   markCashImportBatchReadyForReviewInputSchema,
   rejectCashImportBatchInputSchema,
@@ -54,6 +65,14 @@ export interface CashImportBatchDetail {
   // enforcement (this can go stale between page load and commit — a
   // concurrent commit still fails safely at that point).
   hasOpeningBalanceConflict: boolean;
+  // Gate 6I-A: one row per vessel_label currently mapped 'new_project_candidate'
+  // — a pure creation plan, never yet a real vessel/project.
+  candidatePlans: CashImportCandidatePlanRow[];
+  // Master lists for the candidate-plan form (Client/Service Type/Facility
+  // selects) — same lists the master-data direct-entry pages already expose.
+  clients: ClientRow[];
+  serviceTypes: ServiceTypeRow[];
+  facilityLocations: FacilityLocationRow[];
 }
 
 // RLS (owner/admin only) is the final enforcement layer for reads — same
@@ -75,13 +94,18 @@ export async function getCashImportBatchDetailForActiveTenant(rawInput: unknown)
     return null;
   }
 
-  const [rows, events, hasOpeningBalanceConflict] = await Promise.all([
-    listCashImportRowsForBatch(context.tenantId, batch.id),
-    listCashImportEventsForBatch(context.tenantId, batch.id),
-    hasExistingFinancialEntriesForBusinessDate(context.tenantId, batch.business_date),
-  ]);
+  const [rows, events, hasOpeningBalanceConflict, candidatePlans, clients, serviceTypes, facilityLocations] =
+    await Promise.all([
+      listCashImportRowsForBatch(context.tenantId, batch.id),
+      listCashImportEventsForBatch(context.tenantId, batch.id),
+      hasExistingFinancialEntriesForBusinessDate(context.tenantId, batch.business_date),
+      listCashImportCandidatePlansForBatch(context.tenantId, batch.id),
+      listClientsForActiveTenant(),
+      listServiceTypesForActiveTenant(),
+      listFacilityLocationsForActiveTenant(),
+    ]);
 
-  return { batch, rows, events, hasOpeningBalanceConflict };
+  return { batch, rows, events, hasOpeningBalanceConflict, candidatePlans, clients, serviceTypes, facilityLocations };
 }
 
 // The buffer is read once here, parsed in memory, and discarded — never
@@ -134,17 +158,51 @@ export async function setCashImportLabelMappingForActiveTenant(
   const context = await requireTenantContext();
   requireTenantRole(context, ["admin"]);
 
+  const isCandidate = input.mappingKind === "new_project_candidate";
   const { error } = await setCashImportLabelMapping({
     batchId: input.batchId,
     vesselLabel: input.vesselLabel,
     mappingKind: input.mappingKind,
     mappedVesselProjectId: input.mappingKind === "existing_vessel_project" ? input.mappedVesselProjectId : null,
+    candidateVesselName: isCandidate ? input.candidateVesselName : null,
+    candidateClientId: isCandidate ? input.candidateClientId : null,
+    candidateServiceTypeId: isCandidate ? input.candidateServiceTypeId : null,
+    candidateFacilityLocationId: isCandidate ? input.candidateFacilityLocationId : null,
+    candidateStartDate: isCandidate ? input.candidateStartDate : null,
+    candidatePriority: isCandidate ? input.candidatePriority : undefined,
   });
   if (error) {
     return { error: mapCashImportStagingError(error) };
   }
 
   return {};
+}
+
+// Admin-only, same posture as the other mapping/disposition edits. Only
+// ever fills in rows that currently have disposition IS NULL — see the RPC
+// header in the Gate 6I-A migration for the exact eligibility rules.
+export async function autoApplyCashImportBatchDispositionsForActiveTenant(
+  rawInput: unknown,
+): Promise<CashImportStagingActionResult & { result?: CashImportAutoDispositionResult }> {
+  const parsed = autoApplyCashImportBatchDispositionsInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  const input = parsed.data;
+
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["admin"]);
+
+  const { data, error } = await autoApplyCashImportBatchDispositions({
+    batchId: input.batchId,
+    vesselLabel: input.vesselLabel ?? null,
+    scopeToLabel: input.scopeToLabel ?? false,
+  });
+  if (error) {
+    return { error: mapCashImportStagingError(error) };
+  }
+
+  return { result: data ?? undefined };
 }
 
 export async function setCashImportRowDispositionForActiveTenant(

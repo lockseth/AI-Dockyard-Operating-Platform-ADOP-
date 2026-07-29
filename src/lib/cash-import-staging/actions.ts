@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { UnauthorizedTenantRoleError } from "@/lib/auth/tenant";
 import {
   approveAndCommitCashImportBatchForActiveTenant,
+  autoApplyCashImportBatchDispositionsForActiveTenant,
   markCashImportBatchReadyForReviewForActiveTenant,
   rejectCashImportBatchForActiveTenant,
   rollbackCashImportBatchForActiveTenant,
@@ -66,6 +67,38 @@ export async function setCashImportLabelMappingAction(
       vesselLabel: formData.get("vesselLabel"),
       mappingKind: formData.get("mappingKind"),
       mappedVesselProjectId: formData.get("mappedVesselProjectId"),
+      candidateVesselName: formData.get("candidateVesselName"),
+      candidateClientId: formData.get("candidateClientId"),
+      candidateServiceTypeId: formData.get("candidateServiceTypeId"),
+      candidateFacilityLocationId: formData.get("candidateFacilityLocationId"),
+      candidateStartDate: formData.get("candidateStartDate"),
+      candidatePriority: formData.get("candidatePriority"),
+    });
+  } catch (error) {
+    return mapThrown(error);
+  }
+
+  if (!result.error && !result.fieldErrors && typeof batchId === "string") {
+    revalidatePath(`/operations/import/${batchId}`);
+  }
+  return result;
+}
+
+export type AutoApplyCashImportBatchDispositionsActionResult = Awaited<
+  ReturnType<typeof autoApplyCashImportBatchDispositionsForActiveTenant>
+>;
+
+export async function autoApplyCashImportBatchDispositionsAction(
+  _prevState: AutoApplyCashImportBatchDispositionsActionResult,
+  formData: FormData,
+): Promise<AutoApplyCashImportBatchDispositionsActionResult> {
+  const batchId = formData.get("batchId");
+  let result: AutoApplyCashImportBatchDispositionsActionResult;
+  try {
+    result = await autoApplyCashImportBatchDispositionsForActiveTenant({
+      batchId,
+      vesselLabel: formData.get("vesselLabel"),
+      scopeToLabel: formData.get("scopeToLabel"),
     });
   } catch (error) {
     return mapThrown(error);

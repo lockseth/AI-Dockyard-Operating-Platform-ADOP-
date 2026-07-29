@@ -79,7 +79,7 @@ export async function transitionVesselProject(rawInput: unknown): Promise<Vessel
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
-  const { id, toStatus, reason } = parsed.data;
+  const { id, toStatus, reason, facilityLocationId } = parsed.data;
 
   const context = await requireTenantContext();
   requireTenantRole(context, ["owner", "admin"]);
@@ -89,7 +89,7 @@ export async function transitionVesselProject(rawInput: unknown): Promise<Vessel
     return { error: "Project tidak ditemukan." };
   }
 
-  const { error } = await transitionVesselProjectLifecycle(id, toStatus, reason);
+  const { error } = await transitionVesselProjectLifecycle(id, toStatus, reason, facilityLocationId);
   if (error) {
     return { error: mapVesselProjectError(error) };
   }

@@ -63,6 +63,7 @@ export async function transitionVesselProjectAction(
       id,
       toStatus: formData.get("toStatus"),
       reason: optionalField(formData, "reason"),
+      facilityLocationId: optionalField(formData, "facilityLocationId"),
     });
   } catch (error) {
     return mapThrown(error);

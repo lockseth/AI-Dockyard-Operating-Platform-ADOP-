@@ -143,12 +143,47 @@ describe("buildCanonicalCommitPreview", () => {
     expect(preview.projectExpenseTotal).toBe(0);
   });
 
-  it("flags MAPPING_NOT_COMMITTABLE for new_project_candidate/unresolved included rows", () => {
-    const rows: CashImportRowRow[] = [
-      row({ credit: 200_000, mapping_kind: "new_project_candidate", disposition: "include" }),
-    ];
+  it("flags MAPPING_NOT_COMMITTABLE for unresolved included rows", () => {
+    const rows: CashImportRowRow[] = [row({ credit: 200_000, mapping_kind: "unresolved", disposition: "include" })];
     const preview = buildCanonicalCommitPreview(batch({}), rows);
     expect(preview.blockers).toContain("MAPPING_NOT_COMMITTABLE");
+  });
+
+  it("flags CANDIDATE_PLAN_MISSING (Gate 6I-A) for a new_project_candidate row with no saved plan", () => {
+    const rows: CashImportRowRow[] = [
+      row({ vessel_label: "KM Baru", credit: 200_000, mapping_kind: "new_project_candidate", disposition: "include" }),
+    ];
+    const preview = buildCanonicalCommitPreview(batch({}), rows);
+    expect(preview.blockers).toContain("CANDIDATE_PLAN_MISSING");
+    expect(preview.blockers).not.toContain("MAPPING_NOT_COMMITTABLE");
+  });
+
+  it("Gate 6I-A: a new_project_candidate row WITH a saved plan is committable and posts like an existing-project expense", () => {
+    const rows: CashImportRowRow[] = [
+      row({ vessel_label: "KM Baru", credit: 200_000, mapping_kind: "new_project_candidate", disposition: "include" }),
+    ];
+    const preview = buildCanonicalCommitPreview(batch({}), rows, false, [
+      {
+        id: "plan-1",
+        tenant_id: "tenant-id",
+        batch_id: "batch-id",
+        vessel_label: "KM Baru",
+        vessel_name: "KM Baru",
+        client_id: "client-a",
+        service_type_id: "service-a",
+        facility_location_id: null,
+        start_date: "2036-07-17",
+        priority: "standard",
+        resolved_vessel_id: null,
+        resolved_project_id: null,
+        created_by: null,
+        created_at: "2036-07-17T00:00:00Z",
+        updated_at: "2036-07-17T00:00:00Z",
+      },
+    ]);
+    expect(preview.blockers).not.toContain("CANDIDATE_PLAN_MISSING");
+    expect(preview.blockers).not.toContain("MAPPING_NOT_COMMITTABLE");
+    expect(preview.projectExpenseTotal).toBe(200_000);
   });
 
   it("flags MAPPING_INCOMPLETE / DISPOSITION_INCOMPLETE for unset rows", () => {

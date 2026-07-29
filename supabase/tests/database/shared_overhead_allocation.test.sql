@@ -390,7 +390,9 @@ select throws_ok(
   $$ select public.allocate_shared_overhead_entry(
        (select id from pgtap_ov_entry_future), '90000000-0000-0000-0000-0000000000a2', 1000.00, 'project A sudah closed'
      ) $$,
-  'cannot allocate shared overhead to a closed vessel project',
+  'CANNOT_ALLOCATE_OVERHEAD_TO_INELIGIBLE_PROJECT',
+  -- Gate 6I-A corrective: message widened to a stable string covering both
+  -- closed and draft ineligibility (20260729020000...sql §8b).
   'project A already closed above — new allocations to it are rejected'
 );
 select set_config('request.jwt.claims', '', true);

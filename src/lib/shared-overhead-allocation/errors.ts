@@ -35,8 +35,8 @@ export function mapSharedOverheadAllocationError(error: PostgrestError | null | 
       if (error.message?.includes("vessel project not found")) {
         return "Project Kapal tidak ditemukan.";
       }
-      if (error.message?.includes("cannot allocate shared overhead to a closed vessel project")) {
-        return "Project Kapal ini sudah closed dan tidak dapat menerima alokasi biaya bersama/overhead baru.";
+      if (error.message?.includes("CANNOT_ALLOCATE_OVERHEAD_TO_INELIGIBLE_PROJECT")) {
+        return "Project Kapal ini berstatus closed atau masih draft (perlu dilengkapi) — tidak dapat menerima alokasi biaya bersama/overhead baru.";
       }
       if (error.message?.includes("allocation amount must be greater than zero")) {
         return "Nominal alokasi harus lebih besar dari nol.";

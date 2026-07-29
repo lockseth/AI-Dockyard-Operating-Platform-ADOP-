@@ -52,16 +52,21 @@ export async function insertVesselProject(row: TablesInsert<"vessel_projects">) 
 // The only mutation path for lifecycle_status — the RPC itself re-derives
 // tenant_id and re-checks owner/admin membership server-side (see the
 // migration), so there is no tenant_id/actor argument to pass or forge here.
+// facilityLocationId only matters for draft -> active ("Lengkapi &
+// Aktifkan") — the RPC coalesces it onto the existing value for every other
+// transition, so passing it always is harmless.
 export async function transitionVesselProjectLifecycle(
   id: string,
   toStatus: VesselProjectLifecycleStatus,
   reason?: string,
+  facilityLocationId?: string,
 ) {
   const supabase = await createSupabaseServerClient();
   return supabase.rpc("transition_vessel_project_lifecycle", {
     p_project_id: id,
     p_to_status: toStatus,
     p_reason: reason,
+    p_facility_location_id: facilityLocationId,
   });
 }
 

@@ -197,6 +197,124 @@ export type Database = {
           },
         ]
       }
+      cash_import_candidate_plans: {
+        Row: {
+          batch_id: string
+          client_id: string
+          created_at: string
+          created_by: string | null
+          facility_location_id: string | null
+          id: string
+          priority: Database["public"]["Enums"]["vessel_project_priority"]
+          resolved_project_id: string | null
+          resolved_vessel_id: string | null
+          service_type_id: string
+          start_date: string
+          tenant_id: string
+          updated_at: string
+          vessel_label: string
+          vessel_name: string
+        }
+        Insert: {
+          batch_id: string
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          facility_location_id?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["vessel_project_priority"]
+          resolved_project_id?: string | null
+          resolved_vessel_id?: string | null
+          service_type_id: string
+          start_date: string
+          tenant_id: string
+          updated_at?: string
+          vessel_label: string
+          vessel_name: string
+        }
+        Update: {
+          batch_id?: string
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          facility_location_id?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["vessel_project_priority"]
+          resolved_project_id?: string | null
+          resolved_vessel_id?: string | null
+          service_type_id?: string
+          start_date?: string
+          tenant_id?: string
+          updated_at?: string
+          vessel_label?: string
+          vessel_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_import_candidate_plans_batch_id_tenant_id_fkey"
+            columns: ["batch_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cash_import_batches"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_candidate_plans_client_id_tenant_id_fkey"
+            columns: ["client_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_candidate_plans_facility_location_id_tenant_id_fkey"
+            columns: ["facility_location_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_candidate_plans_resolved_project_id_tenant_id_fkey"
+            columns: ["resolved_project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "unbilled_vessel_projects"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_candidate_plans_resolved_project_id_tenant_id_fkey"
+            columns: ["resolved_project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_project_cost_summary"
+            referencedColumns: ["project_id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_candidate_plans_resolved_project_id_tenant_id_fkey"
+            columns: ["resolved_project_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessel_projects"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_candidate_plans_resolved_vessel_id_tenant_id_fkey"
+            columns: ["resolved_vessel_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vessels"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_candidate_plans_service_type_id_tenant_id_fkey"
+            columns: ["service_type_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_import_candidate_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_import_events: {
         Row: {
           actor_user_id: string | null
@@ -3876,6 +3994,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      auto_apply_cash_import_batch_dispositions: {
+        Args: {
+          p_batch_id: string
+          p_scope_to_label?: boolean
+          p_vessel_label?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["cash_import_auto_disposition_result"]
+        SetofOptions: {
+          from: "*"
+          to: "cash_import_auto_disposition_result"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       bind_invoice_transaction: {
         Args: { p_invoice_id: string; p_transaction_entry_id: string }
         Returns: {
@@ -5294,6 +5426,12 @@ export type Database = {
       set_cash_import_label_mapping: {
         Args: {
           p_batch_id: string
+          p_candidate_client_id?: string
+          p_candidate_facility_location_id?: string
+          p_candidate_priority?: Database["public"]["Enums"]["vessel_project_priority"]
+          p_candidate_service_type_id?: string
+          p_candidate_start_date?: string
+          p_candidate_vessel_name?: string
           p_mapped_vessel_project_id?: string
           p_mapping_kind: Database["public"]["Enums"]["cash_import_mapping_kind"]
           p_vessel_label: string
@@ -5466,6 +5604,7 @@ export type Database = {
       }
       transition_vessel_project_lifecycle: {
         Args: {
+          p_facility_location_id?: string
           p_project_id: string
           p_reason?: string
           p_to_status: Database["public"]["Enums"]["vessel_project_lifecycle_status"]
@@ -5688,10 +5827,18 @@ export type Database = {
       tenant_invitation_status: "pending" | "accepted" | "expired"
       tenant_role: "owner" | "admin" | "reviewer" | "viewer"
       tenant_status: "active" | "suspended"
-      vessel_project_lifecycle_status: "active" | "ready_to_close" | "closed"
+      vessel_project_lifecycle_status:
+        | "draft"
+        | "active"
+        | "ready_to_close"
+        | "closed"
       vessel_project_priority: "emergency" | "standard" | "urgent"
     }
     CompositeTypes: {
+      cash_import_auto_disposition_result: {
+        auto_included_count: number | null
+        manual_review_count: number | null
+      }
       cash_import_batch_creation_result: {
         batch: Database["public"]["Tables"]["cash_import_batches"]["Row"] | null
         is_new: boolean | null
@@ -5921,7 +6068,12 @@ export const Constants = {
       tenant_invitation_status: ["pending", "accepted", "expired"],
       tenant_role: ["owner", "admin", "reviewer", "viewer"],
       tenant_status: ["active", "suspended"],
-      vessel_project_lifecycle_status: ["active", "ready_to_close", "closed"],
+      vessel_project_lifecycle_status: [
+        "draft",
+        "active",
+        "ready_to_close",
+        "closed",
+      ],
       vessel_project_priority: ["emergency", "standard", "urgent"],
     },
   },

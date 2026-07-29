@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildActiveVesselProjectOptions,
+  buildAllocatableVesselProjectOptions,
   buildVesselProjectLabelMap,
   getEodCloseBlockedReason,
   getLatestReasonForStatus,
@@ -80,6 +81,23 @@ describe("buildActiveVesselProjectOptions", () => {
   it("uses a placeholder label when the vessel is missing from the lookup", () => {
     const options = buildActiveVesselProjectOptions([project({ id: "p-1", vessel_id: "missing" })], []);
     expect(options[0].label).toBe("Kapal tidak dikenal");
+  });
+});
+
+// Gate 6I-A corrective: draft (import-candidate-only, incomplete) is
+// excluded from normal Shared Overhead allocation targets alongside closed
+// — explicit active/ready_to_close allow-list, not a `!== "closed"`
+// deny-list, so a future lifecycle_status value is excluded by default.
+describe("buildAllocatableVesselProjectOptions", () => {
+  it("excludes draft and closed, includes active and ready_to_close", () => {
+    const projects = [
+      project({ id: "p-draft", lifecycle_status: "draft" }),
+      project({ id: "p-active", lifecycle_status: "active" }),
+      project({ id: "p-ready", lifecycle_status: "ready_to_close" }),
+      project({ id: "p-closed", lifecycle_status: "closed" }),
+    ];
+    const options = buildAllocatableVesselProjectOptions(projects, [vessel({})]);
+    expect(options.map((o) => o.value).sort()).toEqual(["p-active", "p-ready"]);
   });
 });
 

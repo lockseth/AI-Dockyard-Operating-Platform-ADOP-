@@ -23,10 +23,16 @@ export const createVesselProjectInputSchema = z.object({
 });
 export type CreateVesselProjectInput = z.infer<typeof createVesselProjectInputSchema>;
 
+// facilityLocationId is only ever meaningful for a draft -> active
+// transition ("Lengkapi & Aktifkan") — the RPC ignores it for every other
+// transition (coalesce onto the existing value) and the trigger only checks
+// it on that one arm. Reuses idOrNullSchema's own "" -> undefined -> RPC
+// default null shape rather than a bespoke one.
 export const transitionVesselProjectInputSchema = z.object({
   id: idSchema,
   toStatus: vesselProjectLifecycleStatusSchema,
   reason: optionalText(500),
+  facilityLocationId: z.preprocess(emptyToUndefined, idSchema.optional()),
 });
 export type TransitionVesselProjectInput = z.infer<typeof transitionVesselProjectInputSchema>;
 
