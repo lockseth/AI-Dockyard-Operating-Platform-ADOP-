@@ -14,9 +14,9 @@ import { buildCanonicalCommitPreview } from "@/lib/cash-import-staging/canonical
 import { listVesselProjectsForActiveTenant } from "@/lib/vessel-projects/service";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { AccessDenied } from "../AccessDenied";
-import { StagingBanner } from "../StagingBanner";
 import { AuditTimeline } from "./AuditTimeline";
 import { AutoApplyControl } from "./AutoApplyControl";
+import { BatchStatusBanner } from "./BatchStatusBanner";
 import { BatchSummaryPanel } from "./BatchSummaryPanel";
 import { CommittedSummaryPanel } from "./CommittedSummaryPanel";
 import { DecisionSummaryPanel } from "./DecisionSummaryPanel";
@@ -117,7 +117,7 @@ export default async function CashImportBatchDetailPage({
       </Link>
 
       <main className="flex flex-1 flex-col gap-6 pb-16">
-        <StagingBanner />
+        <BatchStatusBanner status={detail.batch.status} />
 
         {reopened === "1" ? (
           <div
@@ -133,9 +133,15 @@ export default async function CashImportBatchDetailPage({
             Tampilan baca-saja — hanya Admin yang dapat mengubah mapping, disposisi, dan menyiapkan batch untuk review.
           </p>
         ) : null}
-        {isCommitted || isRolledBack ? (
+        {isCommitted ? (
           <p className="text-xs text-neutral-500">
             Batch ini sudah disetujui dan dimasukkan ke data operasional — staging bersifat baca-saja.
+          </p>
+        ) : null}
+        {isRolledBack ? (
+          <p className="text-xs text-neutral-500">
+            Batch ini sudah dibatalkan (rollback) — transaksi pembalik telah dimasukkan ke data operasional; data asli
+            tidak lagi aktif. Staging bersifat baca-saja.
           </p>
         ) : null}
 
