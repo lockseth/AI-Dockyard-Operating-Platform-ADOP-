@@ -442,6 +442,8 @@ Pak Hanafi menerima Morning Daily Expense Brief untuk aktivitas hari sebelumnya.
 
 **Status Gate 6J-A (dibekukan final, documentation-only):** kontrak **GEMA Assistant** — pola 3-persona (Owner, Admin, External Client verified/unverified) — dibekukan final di `ADOP_GATE_6J_A_AI_HELP_EXECUTIVE_ASSISTANT_CONTRACT_v1.0.md`. Hanya client **verified** (lifecycle verifikasi baru via challenge code `VERIFY <code>`, terpisah dari `client_contacts.whatsapp_number` sebagai candidate identity) menerima notifikasi invoice + secure link + explicit acknowledgment (satu-satunya write capability di seluruh sistem); client unverified hanya FAQ publik + human handoff; tidak ada akses dashboard/biaya/kas/margin/data client lain untuk tier mana pun. Morning Brief default 07:00 WIB dengan satu komposer canonical (scheduled = interaktif). Sandbox demo Jumat 2026-07-31 tetap device Hendro (Gate 1L); produksi wajib device PT PELAYARAN GEMA BAHARI-controlled. Runtime **belum aktif** — semua migration/endpoint/komposer/provider masih target gate implementasi berikutnya (§20 dokumen tersebut).
 
+**Status Gate 6J-A1 (korektif, documentation-only):** §22 dokumen yang sama mengunci **Anomaly Alert Routing Contract** — satu canonical anomaly source (mesin duplicate detection existing, tanpa mesin kedua), severity EXACT/SUSPECTED/CRITICAL, routing realtime in-app Admin + WA Owner (khusus CRITICAL), dan rekap Morning Brief. Client tidak menerima alert anomali internal. Belum ada implementasi runtime pada gate ini.
+
 #### Greeting yang Dikunci
 
 Pada awal setiap sesi WhatsApp, AI wajib mengucapkan greeting sesuai waktu lokal:

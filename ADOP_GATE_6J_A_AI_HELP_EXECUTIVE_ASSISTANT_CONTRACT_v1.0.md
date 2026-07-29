@@ -8,6 +8,8 @@
 **Sifat Gate:** Audit + documentation-only. **Tidak ada implementasi** (migration, RPC, RLS, n8n workflow baru, endpoint, service/repository, provider integration, atau test) pada Gate 6J-A.
 **Status dokumen:** Baseline v1.0, **Revisi 3 (final)** — Founder telah mengambil keputusan atas seluruh open item identity/pairing, client verification, sender, capability matrix, dan Morning Brief schedule yang dicatat di Revisi 2. Revisi ini mengunci keputusan tersebut sebagai LOCK; item yang tersisa di §20 murni menunggu implementasi (gate berikutnya), bukan menunggu keputusan lagi.
 
+**Addendum — Gate 6J-A1 (korektif, documentation-only):** §22 menambahkan **Anomaly Alert Routing Contract** — LOCK satu canonical anomaly source (mesin expense duplicate detection existing) untuk realtime alert dan Morning Brief, severity matrix (EXACT/SUSPECTED/CRITICAL), dan routing per persona. Tidak mengubah keputusan Revisi 3 di atas; tidak ada implementasi runtime baru pada addendum ini.
+
 ---
 
 ## 1. Ruang Lingkup
@@ -436,3 +438,73 @@ alter table public.client_contacts add column
 Trigger (proposal): setiap `UPDATE` yang mengubah `whatsapp_number` mereset `whatsapp_verification_status` ke `unverified` dan mengosongkan `whatsapp_verified_at` — pola sama seperti evidence version baru kembali ke `pending` (`ADOP_GATE_4A_CONTRACT_v1.0.md` §5). Verifikasi memakai keyword **`VERIFY <code>`**, admin-triggered (bukan self-service web, karena client tidak punya login ADOP), TTL 10 menit sama seperti §21.1. Resolusi identity di runtime wajib memeriksa ambiguitas (`count(*) > 1` pada nomor yang sama, status apa pun, lintas client/tenant) sebelum mempercayai satu match sebagai identity tunggal.
 
 Ini proposal skema untuk gate implementasi — nama kolom/tabel final ditentukan saat migration ditulis.
+
+---
+
+## 22. Anomaly Alert Routing Contract — Gate 6J-A1 (LOCK, addendum korektif)
+
+**Sifat:** Audit + documentation-only, sama seperti Gate 6J-A. **Tidak ada implementasi** (migration, RPC, RLS, n8n workflow, endpoint, service, atau test) pada Gate 6J-A1. Addendum ini mengunci **routing** alert anomali/duplikasi di atas mesin deteksi yang sudah ada — tidak membuat mesin deteksi baru, tidak mengubah `CLAUDE.md` §7 (Universal Import Rules) di luar pencatatan status gate ini.
+
+### 22.1 Satu Canonical Anomaly Source — LOCK
+
+- **Satu-satunya** sumber deteksi anomali/duplikasi untuk seluruh sistem (realtime alert maupun Morning Brief, persona A maupun B) adalah mesin **expense duplicate detection** yang sudah ada: `supabase/migrations/20260719140000_expense_duplicate_detection.sql`, `src/lib/expense-duplicate-detection/*` (tabel `expense_duplicate_candidates`/`expense_duplicate_candidate_current`, reason code `reference_match`/`exact_financial_match`/`cross_project_reference_match`/`same_day_amount_vendor_match`, RPC `resolve_expense_duplicate_candidate`).
+- **Dilarang** membuat mesin/perhitungan anomali kedua untuk tujuan apa pun (realtime, Morning Brief, executive report, atau WhatsApp) — setiap konsumen wajib membaca dari sumber canonical yang sama, tidak menghitung ulang secara independen.
+- Constraint existing tetap berlaku tanpa perubahan: kandidat duplikasi **tidak pernah** memblokir pembuatan submission (komentar `expense_duplicate_detection.sql` baris 6: "Candidates are informational only: they never block a submission"); yang diblokir adalah **approval** submission ke ledger selama kandidat berstatus `pending` (`DUPLICATE_REVIEW_REQUIRED`) atau `confirmed_duplicate` (`DUPLICATE_CONFIRMED`) — lihat §22.2 tier EXACT.
+- Human review tetap wajib untuk seluruh tier tanpa pengecualian, sesuai `CLAUDE.md` §7 ("Candidate duplicate tetap terlihat dan selalu membutuhkan human review"). Addendum ini mengatur **routing/channel/urgency notifikasi**, bukan mengecualikan kewajiban resolusi manual pada `expense_duplicate_candidates`.
+
+### 22.2 Severity Matrix — LOCK
+
+Severity adalah **klasifikasi tambahan** di atas `expense_duplicate_candidate_current` (status `pending`/`not_duplicate`/`confirmed_duplicate` dan reason code existing) — bukan kolom database baru pada gate dokumentasi ini; skema kolom final ditentukan di gate implementasi (§22.6). Severity dihitung deterministic server-side oleh **satu fungsi canonical**, tidak pernah oleh LLM (`CLAUDE.md` §8, §10), dan tidak pernah diduplikasi logic-nya di lebih dari satu tempat.
+
+| Tier | Definisi | Kondisi pemicu (konseptual) |
+|---|---|---|
+| **EXACT DUPLICATE** | Berhasil dicegah **sebelum** masuk ledger | Kandidat `pending`/`confirmed_duplicate` pada submission yang approval-nya **belum pernah lolos** untuk kandidat ini (diblokir oleh RPC existing, §22.1) |
+| **SUSPECTED DUPLICATE** | Perlu pemeriksaan; ambiguitas match belum jelas | Kandidat berstatus `pending`, reason code apa pun, belum ada indikasi dampak finansial atau pola berulang |
+| **CRITICAL DUPLICATE** | Sudah berdampak finansial, percobaan override, atau pola berulang | (a) Kandidat terhubung ke submission yang **sudah** approved ke ledger (deteksi post-hoc/backdated), atau (b) percobaan approval berulang pada submission dengan kandidat pending/confirmed (indikasi override attempt), atau (c) pola berulang — kandidat baru dengan reason code sama pada vendor/kapal/project yang sama dalam window waktu tertentu (threshold configurable, §22.4) |
+
+### 22.3 Realtime Routing — LOCK
+
+Realtime = tindakan operasional segera, bukan pengawasan. Channel realtime reuse notification-outbox pattern (§4, `src/lib/notification-outbox/*`, `supabase/migrations/20260721000000_owner_control_notification_outbox.sql`) untuk in-app, dan reuse n8n/Fonnte outbound pattern (§4, §13) untuk WhatsApp Owner — **belum diaktifkan** pada gate ini (§22.6).
+
+| Tier | In-app realtime → Admin | Audit attempt | WA realtime → Owner |
+|---|---|---|---|
+| EXACT DUPLICATE | ✅ | ✅ | ❌ |
+| SUSPECTED DUPLICATE | ✅ (ke Review & Approval Admin — surface existing `src/lib/operations-daily/*`) | ✅ | ❌ |
+| CRITICAL DUPLICATE | ✅ | ✅ | ✅ |
+
+- In-app realtime **selalu** ke Admin (persona B/`role admin`) untuk ketiga tier; CRITICAL menambah WA realtime ke Owner (persona A/`role owner`) **di atas** in-app Admin — bukan pengganti.
+- WA realtime Owner untuk CRITICAL **wajib** memakai jalur pairing/identity `assistant_channel_identities` (§9.1) begitu Gate 6J-B selesai — **tidak pernah** dikirim ke nomor yang tidak melalui verified pairing, dan **tidak pernah** ke `client_contacts` (§22.4 butir client).
+- Persona B (Admin) **tidak** menerima WA realtime untuk anomaly alert pada pilot ini — hanya in-app; kapabilitas WA realtime Admin untuk anomaly (bila diperlukan nanti) memerlukan revisi kontrak eksplisit, konsisten dengan §6 ("Kapabilitas operasional Internal Operator di masa depan tetap wajib melalui revisi kontrak eksplisit").
+
+### 22.4 Morning Brief Routing & Prinsip — LOCK
+
+- Morning Brief = pengawasan (oversight), bukan tindakan operasional — menampilkan **unresolved list** (SUSPECTED dan CRITICAL yang belum resolved) dan **rekap resolved** (termasuk EXACT yang sudah tercegah, dan seluruh tier yang sudah diresolusi).
+- **EXACT DUPLICATE:** tidak muncul sebagai unresolved (sudah tercegah sebelum ledger), tetap muncul di **rekap** Morning Brief sebagai bagian dari laporan aktivitas pencegahan.
+- **SUSPECTED DUPLICATE:** muncul sebagai **unresolved** selama status `pending`, pindah ke rekap resolved setelah diresolusi (`not_duplicate`/`confirmed_duplicate`).
+- **CRITICAL DUPLICATE:** tetap muncul di Morning Brief **sampai resolved** — tidak hilang otomatis walau sudah pernah ditampilkan pada brief sebelumnya.
+- Morning Brief memakai **komposer canonical yang sama** dengan §14 — tidak ada mesin ringkasan anomali kedua yang terpisah dari komposer Morning Brief utama; blok anomali adalah satu section di dalam output komposer yang sama.
+- Severity dan threshold finansial (mis. batas nominal yang menaikkan SUSPECTED → CRITICAL, atau window waktu pola berulang) **wajib tenant-configurable** — **tidak pernah** hardcode nominal pada kode/dokumen (`CLAUDE.md` §6: "Jangan hardcode nilai snapshot file ke business rule").
+- Koreksi atas transaksi yang sudah CRITICAL (sudah masuk ledger) **hanya** lewat reversal eksplisit dan audited (`CLAUDE.md` §9: "Koreksi financial memakai append-only adjustment/reversal") — **tidak pernah** delete atau auto-reversal oleh sistem.
+- **Client** (persona C, verified maupun unverified) **tidak pernah** menerima alert anomali internal dalam bentuk apa pun — baik realtime maupun Morning Brief. Anomaly alert routing eksklusif untuk persona A (Owner, tier CRITICAL) dan persona B (Admin, seluruh tier), konsisten dengan §6 Capability Matrix ("Data operasional tenant" = ❌ **tegas** untuk persona C).
+
+### 22.5 Deduplication & Escalation State — LOCK
+
+- **Dedupe notification/outbox wajib mencegah alert ganda** untuk kandidat anomali yang sama — reuse pola idempotency existing (dedup by `provider_message_id` untuk WA §12.3/§12.4, pola unique/append-only pada notification-outbox §4) diterapkan pada kunci `candidate_id` + tier + channel: satu kandidat pada satu tier tidak mengirim lebih dari satu notifikasi realtime per channel, kecuali severity-nya naik (mis. SUSPECTED → CRITICAL memicu notifikasi baru).
+- **Escalation state canonical** (baru, melapis `expense_duplicate_candidate_current.status` existing — tidak menggantikannya): `detected → under_review → resolved` atau `detected → under_review → false_positive`.
+  - `detected`: kandidat baru terdeteksi mesin canonical (§22.1), severity awal dihitung.
+  - `under_review`: Admin/Owner sudah membuka/menandai kandidat sedang diperiksa (state UI eksplisit, bukan otomatis dari waktu berlalu).
+  - `resolved`: kandidat diresolusi `confirmed_duplicate` via `resolve_expense_duplicate_candidate` existing.
+  - `false_positive`: kandidat diresolusi `not_duplicate` via `resolve_expense_duplicate_candidate` existing.
+  - Skema kolom final state ini ditentukan di gate implementasi (§22.6).
+- Audit attempt (EXACT dan SUSPECTED) dan audit realtime/WA send (CRITICAL) mengikuti pola append-only `assistant_conversation_events`/`access_audit_events` (§4, §12.3) — reuse, bukan tabel audit baru per tier.
+
+### 22.6 Non-Goals & Gaps (Gate 6J-A1)
+
+Sama seperti §3/§18/§20 Gate 6J-A: **tidak ada** migration/RPC/RLS/endpoint/service/n8n workflow baru pada gate ini. Yang masih menunggu implementasi (gate berikutnya, bukan keputusan):
+
+1. Kolom/skema severity dan escalation state (§22.2, §22.5) pada `expense_duplicate_candidates`/tabel pendamping — proposal, belum migration.
+2. Fungsi canonical severity classifier (§22.2) — belum ditulis.
+3. Mekanisme in-app realtime — belum ada infrastruktur realtime sama sekali di codebase saat ini, tidak khusus untuk anomaly alert.
+4. Endpoint/trigger yang memicu WA realtime Owner untuk CRITICAL — bergantung pada Gate 6J-B (`assistant_channel_identities`) selesai lebih dulu.
+5. Konfigurasi tenant-level untuk threshold finansial dan window pola berulang (§22.4).
+6. Perluasan dedupe key notification-outbox/`assistant_conversation_events` untuk anomaly alert (§22.5).
