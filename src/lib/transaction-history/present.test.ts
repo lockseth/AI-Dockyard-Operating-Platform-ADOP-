@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildEffectClauses, formatSignedAmount } from "./present";
+import { buildEffectClauses, formatSignedAmount, resolveProjectOverheadLabel } from "./present";
 import type { TrustedTransactionRow } from "./types";
 
 function row(overrides: Partial<TrustedTransactionRow>): TrustedTransactionRow {
@@ -62,6 +62,51 @@ describe("buildEffectClauses", () => {
 
   it("returns no clauses when every effect is zero", () => {
     expect(buildEffectClauses(row({}))).toEqual([]);
+  });
+});
+
+// Gate 6I-C regression: the opening balance row (and its reversal) must
+// never be presented as Shared Overhead — it is reconciliation-only, never
+// a project/overhead allocation.
+describe("resolveProjectOverheadLabel", () => {
+  it("shows the vessel/project when one is mapped", () => {
+    expect(resolveProjectOverheadLabel(row({ vessel_name: "KM Nusantara", project_code: "PRJ-1" }))).toBe(
+      "KM Nusantara (PRJ-1)",
+    );
+    expect(resolveProjectOverheadLabel(row({ vessel_name: "KM Nusantara", project_code: null }))).toBe("KM Nusantara");
+  });
+
+  it("labels the opening balance row 'Saldo Awal / Rekonsiliasi', not Shared Overhead", () => {
+    expect(resolveProjectOverheadLabel(row({ vessel_name: null, transaction_type: "opening_cash" }))).toBe(
+      "Saldo Awal / Rekonsiliasi",
+    );
+  });
+
+  it("labels the opening balance reversal the same way", () => {
+    expect(resolveProjectOverheadLabel(row({ vessel_name: null, transaction_type: "opening_cash_reversal" }))).toBe(
+      "Saldo Awal / Rekonsiliasi",
+    );
+  });
+
+  it("still labels a real project-less expense Shared Overhead", () => {
+    expect(resolveProjectOverheadLabel(row({ vessel_name: null, transaction_type: "shared_overhead_expense" }))).toBe(
+      "Shared Overhead",
+    );
+  });
+
+  it("accepts a caller-supplied Shared Overhead label without changing the opening-balance branch", () => {
+    expect(
+      resolveProjectOverheadLabel(
+        row({ vessel_name: null, transaction_type: "shared_overhead_expense" }),
+        "Shared Overhead (tidak dialokasikan ke Project Kapal)",
+      ),
+    ).toBe("Shared Overhead (tidak dialokasikan ke Project Kapal)");
+    expect(
+      resolveProjectOverheadLabel(
+        row({ vessel_name: null, transaction_type: "opening_cash" }),
+        "Shared Overhead (tidak dialokasikan ke Project Kapal)",
+      ),
+    ).toBe("Saldo Awal / Rekonsiliasi");
   });
 });
 

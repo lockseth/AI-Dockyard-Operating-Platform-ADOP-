@@ -78,6 +78,13 @@ export interface CashImportBatchDecisionSummary {
   autoDecidedRows: number;
   manualReviewRows: number;
   blockedRows: number;
+  // Gate 6I-C: count of non-opening rows actually carrying disposition
+  // 'include' — read directly off the row's own committed disposition, never
+  // off disposition_reason text-matching. Unlike autoDecidedRows this is
+  // reliable for ANY row regardless of how it was decided (bulk auto-apply
+  // or one-at-a-time manual review), which is exactly what an applied
+  // batch's summary needs to show as its "committed outcome".
+  includedRows: number;
   existingProjectMappingCount: number;
   candidateProjectCount: number;
   projectCostTotal: number;
@@ -93,7 +100,12 @@ const AUTO_DISPOSITION_REASON_PREFIX = "Auto-disposition:";
 // adds the per-row decision-provenance counts the exception-only review UX
 // needs. "Auto-decided" is read off disposition_reason's own prefix (set by
 // auto_apply_cash_import_batch_dispositions) rather than re-deriving the
-// classification rules a second time in TypeScript.
+// classification rules a second time in TypeScript — that provenance signal
+// is a best-effort hint useful DURING staging/review, and is not guaranteed
+// to reflect how every row in an already-committed batch was actually
+// decided (a row can be committed after a manual override that never
+// touched disposition_reason). DecisionSummaryPanel therefore shows
+// includedRows, not autoDecidedRows, once the batch is committed.
 export function summarizeCashImportBatchDecisions(
   batch: CashImportBatchRow,
   rows: CashImportRowRow[],
@@ -109,6 +121,7 @@ export function summarizeCashImportBatchDecisions(
   const manualReviewRows = nonOpeningRows.filter(
     (row) => row.disposition === "manual_review" || row.disposition === null,
   ).length;
+  const includedRows = nonOpeningRows.filter((row) => row.disposition === "include").length;
 
   const existingProjectLabels = new Set(
     nonOpeningRows.filter((row) => row.mapping_kind === "existing_vessel_project").map((row) => row.vessel_label),
@@ -122,6 +135,7 @@ export function summarizeCashImportBatchDecisions(
     autoDecidedRows,
     manualReviewRows,
     blockedRows: preview.blockers.length,
+    includedRows,
     existingProjectMappingCount: existingProjectLabels.size,
     candidateProjectCount: candidatePlans.length > 0 ? candidatePlans.length : candidateProjectLabels.size,
     projectCostTotal: preview.projectExpenseTotal,

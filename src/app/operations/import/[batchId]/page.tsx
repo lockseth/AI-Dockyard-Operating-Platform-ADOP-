@@ -140,7 +140,7 @@ export default async function CashImportBatchDetailPage({
         ) : null}
 
         <BatchSummaryPanel batch={detail.batch} />
-        <DecisionSummaryPanel summary={decisionSummary} />
+        <DecisionSummaryPanel summary={decisionSummary} isCommitted={isCommitted} />
 
         {isCommitted ? <CommittedSummaryPanel batch={detail.batch} /> : null}
         {isRolledBack ? <RolledBackSummaryPanel batch={detail.batch} /> : null}

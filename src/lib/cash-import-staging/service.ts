@@ -98,7 +98,7 @@ export async function getCashImportBatchDetailForActiveTenant(rawInput: unknown)
     await Promise.all([
       listCashImportRowsForBatch(context.tenantId, batch.id),
       listCashImportEventsForBatch(context.tenantId, batch.id),
-      hasExistingFinancialEntriesForBusinessDate(context.tenantId, batch.business_date),
+      hasExistingFinancialEntriesForBusinessDate(context.tenantId, batch.business_date, batch.id),
       listCashImportCandidatePlansForBatch(context.tenantId, batch.id),
       listClientsForActiveTenant(),
       listServiceTypesForActiveTenant(),

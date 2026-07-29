@@ -1,6 +1,6 @@
 import { formatBusinessDateLabel } from "@/lib/operations-daily/format";
 import { labelOrRaw, TRANSACTION_SOURCE_LABEL, TRANSACTION_STATUS_LABEL, TRANSACTION_TYPE_LABEL } from "@/lib/transaction-history/labels";
-import { formatSignedAmount } from "@/lib/transaction-history/present";
+import { formatSignedAmount, resolveProjectOverheadLabel } from "@/lib/transaction-history/present";
 import type { TrustedTransactionRow } from "@/lib/transaction-history/types";
 import { Table, TableHead, TableRow, Th, Td } from "@/components/ui/Table";
 import { TextLink } from "@/components/ui/TextLink";
@@ -46,9 +46,7 @@ export function TransactionTable({ transactions }: { transactions: TrustedTransa
           <TableRow key={row.logical_transaction_id}>
             <Td className="whitespace-nowrap">{row.business_date ? formatBusinessDateLabel(row.business_date) : "-"}</Td>
             <Td>{labelOrRaw(TRANSACTION_TYPE_LABEL, row.transaction_type)}</Td>
-            <Td>
-              {row.vessel_name ? `${row.vessel_name}${row.project_code ? ` (${row.project_code})` : ""}` : "Shared Overhead"}
-            </Td>
+            <Td>{resolveProjectOverheadLabel(row)}</Td>
             <Td className="max-w-[220px] truncate text-neutral-600 dark:text-neutral-400" title={row.description ?? undefined}>
               {row.description ?? "-"}
             </Td>

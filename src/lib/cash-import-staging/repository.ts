@@ -40,9 +40,17 @@ export async function listCashImportBatchesForTenant(tenantId: string): Promise<
 // get_or_create_daily_cash_pool (that would create a pool as a side effect
 // of merely viewing a preview) — if no pool exists yet for this date, there
 // is nothing to conflict with.
+//
+// excludeBatchId scopes out entries this SAME batch already posted (Gate
+// 6I-C): once a batch commits, its own cash_pool_entries/project_cost_
+// ledger_entries rows land in this exact pool, and without this exclusion
+// every already-committed batch would forever "conflict" with itself. Before
+// commit, no row carries this batch's id yet, so passing it is a no-op for
+// the pre-approval preview — same behavior as before.
 export async function hasExistingFinancialEntriesForBusinessDate(
   tenantId: string,
   businessDate: string,
+  excludeBatchId?: string,
 ): Promise<boolean> {
   const supabase = await createSupabaseServerClient();
   const { data: pool, error: poolError } = await supabase
@@ -55,15 +63,20 @@ export async function hasExistingFinancialEntriesForBusinessDate(
   if (poolError) throw poolError;
   if (!pool) return false;
 
+  let entryQuery = supabase.from("cash_pool_entries").select("id", { count: "exact", head: true }).eq("pool_id", pool.id);
+  let costQuery = supabase
+    .from("project_cost_ledger_entries")
+    .select("id", { count: "exact", head: true })
+    .eq("pool_id", pool.id);
+
+  if (excludeBatchId) {
+    entryQuery = entryQuery.or(`import_batch_id.is.null,import_batch_id.neq.${excludeBatchId}`);
+    costQuery = costQuery.or(`import_batch_id.is.null,import_batch_id.neq.${excludeBatchId}`);
+  }
+
   const [{ count: entryCount, error: entryError }, { count: costCount, error: costError }] = await Promise.all([
-    supabase
-      .from("cash_pool_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("pool_id", pool.id),
-    supabase
-      .from("project_cost_ledger_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("pool_id", pool.id),
+    entryQuery,
+    costQuery,
   ]);
 
   if (entryError) throw entryError;

@@ -9,7 +9,7 @@ import {
   TRANSACTION_TYPE_LABEL,
 } from "@/lib/transaction-history/labels";
 import type { TrustedTransactionRow } from "@/lib/transaction-history/types";
-import { buildEffectClauses } from "@/lib/transaction-history/present";
+import { buildEffectClauses, resolveProjectOverheadLabel } from "@/lib/transaction-history/present";
 import type { CashImportBatchRow } from "@/lib/cash-import-staging/repository";
 import type { TenantRole } from "@/lib/auth/tenant";
 import type { TransactionInvoiceBindingRow } from "@/lib/invoice-evidence/types";
@@ -18,10 +18,7 @@ import { ReversalControl } from "./ReversalControl";
 import { InvoiceBindingsDisclosure } from "./InvoiceBindingsDisclosure";
 
 function projectDescriptor(transaction: TrustedTransactionRow): string {
-  if (transaction.vessel_name) {
-    return transaction.project_code ? `${transaction.vessel_name} (${transaction.project_code})` : transaction.vessel_name;
-  }
-  return "Shared Overhead (tidak dialokasikan ke Project Kapal)";
+  return resolveProjectOverheadLabel(transaction, "Shared Overhead (tidak dialokasikan ke Project Kapal)");
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {

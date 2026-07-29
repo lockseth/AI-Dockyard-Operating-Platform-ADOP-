@@ -31,6 +31,27 @@ export function buildEffectClauses(transaction: TrustedTransactionRow): string[]
   return clauses;
 }
 
+// Canonical Project/Overhead column resolver — the single source every
+// Riwayat Transaksi surface (list, today's-transactions, detail) must call
+// instead of re-deriving its own vessel_name-is-null fallback. Gate 6I-C: a
+// null vessel_name is NOT always Shared Overhead — the opening-balance
+// row/reversal (transaction_type 'opening_cash'/'opening_cash_reversal')
+// also carries a null vessel_name, and mislabeling it Shared Overhead
+// misrepresents a Rp0-overhead batch as having overhead. Only a project-less
+// row that is NOT an opening-balance movement is genuinely Shared Overhead.
+export function resolveProjectOverheadLabel(
+  transaction: Pick<TrustedTransactionRow, "vessel_name" | "project_code" | "transaction_type">,
+  sharedOverheadLabel = "Shared Overhead",
+): string {
+  if (transaction.vessel_name) {
+    return transaction.project_code ? `${transaction.vessel_name} (${transaction.project_code})` : transaction.vessel_name;
+  }
+  if (transaction.transaction_type === "opening_cash" || transaction.transaction_type === "opening_cash_reversal") {
+    return "Saldo Awal / Rekonsiliasi";
+  }
+  return sharedOverheadLabel;
+}
+
 export interface SignedAmountPresentation {
   text: string;
   isPositive: boolean;

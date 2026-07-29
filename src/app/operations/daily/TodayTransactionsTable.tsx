@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Table, TableHead, TableRow, Th, Td } from "@/components/ui/Table";
 import { TEXT_TONE_CLASSES, type Tone } from "@/components/ui/tone";
 import { labelOrRaw, TRANSACTION_TYPE_LABEL, TRANSACTION_STATUS_LABEL } from "@/lib/transaction-history/labels";
-import { formatSignedAmount } from "@/lib/transaction-history/present";
+import { formatSignedAmount, resolveProjectOverheadLabel } from "@/lib/transaction-history/present";
 import type { TrustedTransactionRow } from "@/lib/transaction-history/types";
 
 const STATUS_TONE: Record<string, Tone> = {
@@ -99,7 +99,7 @@ export function TodayTransactionsTable({ transactions }: { transactions: Trusted
               <TableRow key={row.logical_transaction_id}>
                 <Td>{formatTime(row.created_at)}</Td>
                 <Td>{labelOrRaw(TRANSACTION_TYPE_LABEL, row.transaction_type)}</Td>
-                <Td>{row.vessel_name ? `${row.vessel_name}${row.project_code ? ` (${row.project_code})` : ""}` : "Shared Overhead"}</Td>
+                <Td>{resolveProjectOverheadLabel(row)}</Td>
                 <Td className="max-w-[220px] truncate" title={row.description ?? undefined}>
                   {row.description ?? "-"}
                 </Td>
