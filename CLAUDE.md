@@ -199,6 +199,8 @@ Gunakan template jika data Anda belum memiliki format yang rapi. Jika sudah memp
 
 **Status Gate 6J-A1 (korektif, documentation-only):** §22 dokumen yang sama mengunci **Anomaly Alert Routing Contract** — satu canonical anomaly source (mesin `expense-duplicate-detection` existing, tidak ada mesin kedua), severity matrix EXACT/SUSPECTED/CRITICAL, routing realtime (Admin selalu; Owner via WA hanya untuk CRITICAL) dan Morning Brief (unresolved list + rekap resolved), dan escalation state `detected → under_review → resolved/false_positive`. Client tidak pernah menerima alert anomali internal. Belum ada implementasi apa pun (migration/RPC/endpoint/realtime infra) pada gate ini.
 
+**Status Gate 6J-B (Identity & Pairing Schema Foundation) — IMPLEMENTED:** `supabase/migrations/20260729030000_assistant_identity_pairing.sql` menambahkan tabel `assistant_channel_identities` (Owner/Admin WhatsApp pairing, status `pending/verified/revoked`) dan kolom verifikasi `client_contacts.whatsapp_verification_*` (`unverified/pending/verified/revoked`), dengan RLS + SECURITY DEFINER RPC (`assistant_issue_pairing_challenge`, `assistant_complete_pairing`, `assistant_revoke_pairing`, `assistant_issue_client_verification_challenge`, `assistant_complete_client_verification`, `assistant_reset_client_verification`) dan `src/lib/assistant-identity/*`. Challenge code TTL 10 menit, hanya digest sha256 tersimpan, lockout setelah 5 percobaan salah, `assistant_complete_*` service-role-only. Masih **schema/RPC foundation saja** — tidak ada webhook inbound, endpoint `/api/internal/assistant/*`, UI pairing, AI, atau pengiriman WhatsApp (tetap gate berikutnya, §17/§20 kontrak).
+
 Greeting sekali pada awal sesi lokal:
 
 `Selamat {pagi|siang|sore|malam}, Pak Hanafi.`

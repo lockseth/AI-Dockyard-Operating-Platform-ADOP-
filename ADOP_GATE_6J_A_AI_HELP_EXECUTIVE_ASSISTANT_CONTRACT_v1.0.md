@@ -354,7 +354,7 @@ Tidak berubah dari Revisi 2, ditambah: **challenge code** (pairing `PAIR`/verifi
 
 ## 17. Rollout Gates & Acceptance Criteria
 
-1. **Gate 6J-B (Identity & Pairing Schema):** migration `assistant_channel_identities` (§9.1, §21) dan kolom verifikasi `client_contacts` (§9.2, §21), termasuk trigger reset-to-unverified on number change, RLS, dan test tenant-isolation + cross-client-ambiguity.
+1. **Gate 6J-B (Identity & Pairing Schema) — IMPLEMENTED:** migration `20260729030000_assistant_identity_pairing.sql` — tabel `assistant_channel_identities` (§9.1, §21) dan kolom verifikasi `client_contacts` (§9.2, §21), trigger reset-to-unverified on number change, RLS + SECURITY DEFINER RPC foundation (`assistant_issue_pairing_challenge`/`assistant_complete_pairing`/`assistant_revoke_pairing`/`assistant_issue_client_verification_challenge`/`assistant_complete_client_verification`/`assistant_reset_client_verification`), pgTAP `assistant_identity_pairing.test.sql` (74 assertions: TTL, digest-not-plaintext, single-use replay, lockout, ambiguous/cross-tenant fail-closed, revoke authorization matrix, number-change reset, audit evidence) dan integration test tenant-isolation. Skema masih **schema-only foundation** — belum ada webhook inbound, AI, Morning Brief, atau anomaly routing (tetap Gate 6J-C dst., lihat §20).
 2. **Gate 6J-C (Routing & Internal API):** endpoint `/api/internal/assistant/inbound`, shared-secret auth, idempotency, `PAIR`/`VERIFY` challenge completion handler, intent classifier per-persona/tier, STOP/handoff handling.
 3. **Gate 6J-D (Acknowledgment Write Path):** endpoint/service internal baru untuk `invoice_notification_ack`, terpisah dari `recordInvoiceAcknowledgmentForActiveTenant`, otorisasi berbasis `client_contacts` verified + validasi binding invoice, idempotency/anti-replay.
 4. **Gate 6J-E (Morning Brief Composer):** komposer canonical dedicated (§14) dipakai scheduled maupun interaktif; scheduled trigger 07:00 WIB default.
@@ -391,7 +391,7 @@ Tidak ditemukan konflik material antara addendum finalisasi ini dan `CLAUDE.md`/
 
 Seluruh keputusan desain yang sebelumnya open (identity mechanism, client verification, sender demo, capability matrix, Morning Brief schedule) **sudah dijawab** di revisi ini. Yang tersisa murni menunggu implementasi kode/schema, bukan keputusan:
 
-1. Migration `assistant_channel_identities` dan kolom verifikasi `client_contacts` belum dibuat (§17 butir 1).
+1. ~~Migration `assistant_channel_identities` dan kolom verifikasi `client_contacts` belum dibuat~~ — **selesai di Gate 6J-B** (§17 butir 1). Endpoint/webhook yang memanggilnya tetap belum ada (butir 2 di bawah).
 2. Endpoint inbound, challenge-completion handler, dan intent classifier belum dibuat (§17 butir 2).
 3. Jalur tulis `invoice_notification_ack` yang tidak owner/admin-gated belum dibuat — `recordInvoiceAcknowledgmentForActiveTenant` existing tetap tidak bisa dipakai langsung (§5.5, §17 butir 3).
 4. Komposer Morning Brief dedicated belum dibangun; baseline sementara tetap dipakai untuk intent interaktif sampai itu ada (§14).

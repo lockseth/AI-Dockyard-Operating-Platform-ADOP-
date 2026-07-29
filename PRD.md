@@ -444,6 +444,8 @@ Pak Hanafi menerima Morning Daily Expense Brief untuk aktivitas hari sebelumnya.
 
 **Status Gate 6J-A1 (korektif, documentation-only):** §22 dokumen yang sama mengunci **Anomaly Alert Routing Contract** — satu canonical anomaly source (mesin duplicate detection existing, tanpa mesin kedua), severity EXACT/SUSPECTED/CRITICAL, routing realtime in-app Admin + WA Owner (khusus CRITICAL), dan rekap Morning Brief. Client tidak menerima alert anomali internal. Belum ada implementasi runtime pada gate ini.
 
+**Status Gate 6J-B (Identity & Pairing Schema Foundation) — IMPLEMENTED:** tabel `assistant_channel_identities` (pairing Owner/Admin) dan kolom verifikasi `client_contacts.whatsapp_verification_*` (persona C candidate identity) sudah ada beserta RLS dan RPC foundation (`supabase/migrations/20260729030000_assistant_identity_pairing.sql`, `src/lib/assistant-identity/*`) — masih schema/RPC saja, belum ada webhook inbound, UI, atau AI runtime.
+
 #### Greeting yang Dikunci
 
 Pada awal setiap sesi WhatsApp, AI wajib mengucapkan greeting sesuai waktu lokal:

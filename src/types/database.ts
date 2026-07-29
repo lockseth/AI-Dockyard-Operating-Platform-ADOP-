@@ -78,6 +78,71 @@ export type Database = {
           },
         ]
       }
+      assistant_channel_identities: {
+        Row: {
+          challenge_attempt_count: number
+          challenge_digest: string | null
+          challenge_expires_at: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          normalized_address: string
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
+          status: Database["public"]["Enums"]["assistant_channel_identity_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          challenge_attempt_count?: number
+          challenge_digest?: string | null
+          challenge_expires_at?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          normalized_address: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          status?: Database["public"]["Enums"]["assistant_channel_identity_status"]
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          challenge_attempt_count?: number
+          challenge_digest?: string | null
+          challenge_expires_at?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          normalized_address?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          status?: Database["public"]["Enums"]["assistant_channel_identity_status"]
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_channel_identities_tenant_id_user_id_fkey"
+            columns: ["tenant_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_memberships"
+            referencedColumns: ["tenant_id", "user_id"]
+          },
+        ]
+      }
       cash_import_batches: {
         Row: {
           business_date: string
@@ -940,6 +1005,11 @@ export type Database = {
           tenant_id: string
           updated_at: string
           whatsapp_number: string | null
+          whatsapp_verification_attempt_count: number
+          whatsapp_verification_digest: string | null
+          whatsapp_verification_expires_at: string | null
+          whatsapp_verification_status: Database["public"]["Enums"]["client_whatsapp_verification_status"]
+          whatsapp_verified_at: string | null
         }
         Insert: {
           client_id: string
@@ -958,6 +1028,11 @@ export type Database = {
           tenant_id: string
           updated_at?: string
           whatsapp_number?: string | null
+          whatsapp_verification_attempt_count?: number
+          whatsapp_verification_digest?: string | null
+          whatsapp_verification_expires_at?: string | null
+          whatsapp_verification_status?: Database["public"]["Enums"]["client_whatsapp_verification_status"]
+          whatsapp_verified_at?: string | null
         }
         Update: {
           client_id?: string
@@ -976,6 +1051,11 @@ export type Database = {
           tenant_id?: string
           updated_at?: string
           whatsapp_number?: string | null
+          whatsapp_verification_attempt_count?: number
+          whatsapp_verification_digest?: string | null
+          whatsapp_verification_expires_at?: string | null
+          whatsapp_verification_status?: Database["public"]["Enums"]["client_whatsapp_verification_status"]
+          whatsapp_verified_at?: string | null
         }
         Relationships: [
           {
@@ -3994,6 +4074,107 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      assistant_complete_client_verification: {
+        Args: { p_code: string; p_tenant_id: string; p_whatsapp_number: string }
+        Returns: {
+          contact_id: string
+          outcome: string
+          tenant_id: string
+          verified_at: string
+        }[]
+      }
+      assistant_complete_pairing: {
+        Args: {
+          p_channel: string
+          p_code: string
+          p_normalized_address: string
+        }
+        Returns: {
+          identity_id: string
+          outcome: string
+          tenant_id: string
+          user_id: string
+          verified_at: string
+        }[]
+      }
+      assistant_issue_client_verification_challenge: {
+        Args: { p_contact_id: string }
+        Returns: {
+          challenge_code: string
+          challenge_expires_at: string
+        }[]
+      }
+      assistant_issue_pairing_challenge: {
+        Args: {
+          p_channel: string
+          p_normalized_address: string
+          p_tenant_id: string
+        }
+        Returns: {
+          challenge_code: string
+          challenge_expires_at: string
+          identity_id: string
+        }[]
+      }
+      assistant_reset_client_verification: {
+        Args: { p_contact_id: string; p_reason?: string }
+        Returns: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_primary: boolean
+          position_department: string | null
+          receives_collection_reminder: boolean
+          receives_invoice_email: boolean
+          receives_invoice_whatsapp: boolean
+          role: Database["public"]["Enums"]["client_contact_role"] | null
+          status: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          updated_at: string
+          whatsapp_number: string | null
+          whatsapp_verification_attempt_count: number
+          whatsapp_verification_digest: string | null
+          whatsapp_verification_expires_at: string | null
+          whatsapp_verification_status: Database["public"]["Enums"]["client_whatsapp_verification_status"]
+          whatsapp_verified_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "client_contacts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      assistant_revoke_pairing: {
+        Args: { p_identity_id: string; p_reason?: string }
+        Returns: {
+          challenge_attempt_count: number
+          challenge_digest: string | null
+          challenge_expires_at: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          normalized_address: string
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
+          status: Database["public"]["Enums"]["assistant_channel_identity_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "assistant_channel_identities"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       auto_apply_cash_import_batch_dispositions: {
         Args: {
           p_batch_id: string
@@ -5740,6 +5921,7 @@ export type Database = {
       }
     }
     Enums: {
+      assistant_channel_identity_status: "pending" | "verified" | "revoked"
       cash_import_batch_status:
         | "draft"
         | "mapping_required"
@@ -5781,6 +5963,11 @@ export type Database = {
         | "finance"
         | "approver"
         | "other"
+      client_whatsapp_verification_status:
+        | "unverified"
+        | "pending"
+        | "verified"
+        | "revoked"
       expense_duplicate_candidate_status:
         | "pending"
         | "not_duplicate"
@@ -5970,6 +6157,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      assistant_channel_identity_status: ["pending", "verified", "revoked"],
       cash_import_batch_status: [
         "draft",
         "mapping_required",
@@ -6016,6 +6204,12 @@ export const Constants = {
         "finance",
         "approver",
         "other",
+      ],
+      client_whatsapp_verification_status: [
+        "unverified",
+        "pending",
+        "verified",
+        "revoked",
       ],
       expense_duplicate_candidate_status: [
         "pending",
