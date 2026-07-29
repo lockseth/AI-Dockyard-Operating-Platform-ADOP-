@@ -4552,6 +4552,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      owner_authorize_member_password_reset: {
+        Args: { p_membership_id: string }
+        Returns: string
+      }
+      owner_finalize_member_provisioning: {
+        Args: {
+          p_new_auth_account: boolean
+          p_pending_invitation_id: string
+          p_role: Database["public"]["Enums"]["tenant_role"]
+          p_target_user_id: string
+          p_tenant_id: string
+        }
+        Returns: {
+          membership_id: string
+          reactivated: boolean
+        }[]
+      }
       owner_provision_invited_member: {
         Args: {
           p_expected_role: Database["public"]["Enums"]["tenant_role"]
@@ -4559,6 +4576,16 @@ export type Database = {
         }
         Returns: {
           membership_id: string
+          target_user_id: string
+        }[]
+      }
+      owner_resolve_provision_target: {
+        Args: { p_email: string; p_tenant_id: string }
+        Returns: {
+          cross_tenant_conflict: boolean
+          pending_invitation_id: string
+          same_tenant_membership_id: string
+          same_tenant_status: Database["public"]["Enums"]["membership_status"]
           target_user_id: string
         }[]
       }

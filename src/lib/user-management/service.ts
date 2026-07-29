@@ -1,14 +1,21 @@
 import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
-import { inviteUserByEmail, setTemporaryPasswordAndConfirm } from "./admin-repository";
-import { mapUserManagementError } from "./errors";
+import {
+  createUserWithTemporaryPassword,
+  inviteUserByEmail,
+  setTemporaryPasswordAndConfirm,
+} from "./admin-repository";
+import { GENERIC_USER_MANAGEMENT_ERROR, mapUserManagementError } from "./errors";
 import {
   acceptTenantInvitationRpc,
   createTenantInvitationRpc,
   listPendingInvitationsForCurrentUser as listPendingInvitationsForCurrentUserRepo,
   listPendingInvitationsForTenant,
   listTenantMembers,
+  ownerAuthorizeMemberPasswordResetRpc,
+  ownerFinalizeMemberProvisioningRpc,
   ownerProvisionInvitedMemberRpc,
+  ownerResolveProvisionTargetRpc,
   setMembershipRoleRpc,
   setMembershipStatusRpc,
 } from "./repository";
@@ -16,12 +23,15 @@ import type {
   ChangeMembershipRoleInput,
   InviteMemberInput,
   ProvisionInvitedMemberInput,
+  ProvisionMemberInput,
+  ResetMemberTemporaryPasswordInput,
   SetMembershipStatusInput,
 } from "./validation";
 import type {
   PendingInvitationForTenant,
   PendingInvitationForUser,
   ProvisionInvitedMemberActionResult,
+  ProvisionMemberActionResult,
   TenantMemberSummary,
   UserManagementActionResult,
 } from "./types";
@@ -141,6 +151,100 @@ export async function provisionInvitedMemberDirectly(
     };
   }
 
+  return { temporaryPassword: passwordResult.temporaryPassword };
+}
+
+// "Tambah User Internal" — replaces the email-invitation UX for internal
+// (Admin/Viewer) users with immediate, direct provisioning. Every conflict
+// (cross-tenant membership, same-tenant already-active) is checked
+// read-only via owner_resolve_provision_target BEFORE any Admin API call,
+// so a doomed request never creates an orphaned auth.users row. When the
+// email already has an account, the membership is finalized FIRST and the
+// temporary password set SECOND (same order as provisionInvitedMemberDirectly
+// below) — if the password step fails, the owner recovers via the
+// per-member "Reset Password Sementara" action rather than resubmitting
+// this form (resubmitting would now see an already-active membership and
+// correctly refuse it as a duplicate).
+export async function provisionMemberDirectly(input: ProvisionMemberInput): Promise<ProvisionMemberActionResult> {
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner"]);
+
+  const { data: resolved, error: resolveError } = await ownerResolveProvisionTargetRpc(context.tenantId, input.email);
+  if (resolveError) {
+    return { error: mapUserManagementError(resolveError) };
+  }
+  if (!resolved) {
+    return { error: GENERIC_USER_MANAGEMENT_ERROR };
+  }
+  if (resolved.crossTenantConflict) {
+    return { error: "Pengguna ini sudah memiliki keanggotaan aktif atau nonaktif pada tenant lain." };
+  }
+  if (resolved.sameTenantStatus === "active") {
+    return { error: "Pengguna ini sudah menjadi anggota aktif pada tenant ini." };
+  }
+
+  let targetUserId = resolved.targetUserId;
+  const newAuthAccount = !targetUserId;
+
+  if (newAuthAccount) {
+    const created = await createUserWithTemporaryPassword(input.email, input.displayName, input.temporaryPassword);
+    if (created.error || !created.userId) {
+      return { error: "Gagal membuat akun pengguna baru. Silakan coba lagi." };
+    }
+    targetUserId = created.userId;
+  }
+
+  const { error: finalizeError } = await ownerFinalizeMemberProvisioningRpc(
+    context.tenantId,
+    targetUserId as string,
+    input.role,
+    resolved.pendingInvitationId,
+    newAuthAccount,
+  );
+  if (finalizeError) {
+    return { error: mapUserManagementError(finalizeError) };
+  }
+
+  if (newAuthAccount) {
+    // Password was already set atomically as part of createUser above —
+    // nothing further to do here.
+    return { temporaryPassword: input.temporaryPassword };
+  }
+
+  const passwordResult = await setTemporaryPasswordAndConfirm(targetUserId as string);
+  if (passwordResult.error || !passwordResult.temporaryPassword) {
+    return {
+      error:
+        "Keanggotaan berhasil diaktifkan, tetapi gagal mengatur kata sandi sementara. Gunakan tombol Reset Password Sementara untuk mencoba lagi.",
+    };
+  }
+  return { temporaryPassword: passwordResult.temporaryPassword };
+}
+
+// Owner-only "Reset Password Sementara" for an already-active member —
+// never changes membership/role, only issues a fresh temporary password and
+// forces a change on next login. The RPC authorizes (owner, same tenant,
+// not self, target must be active) and writes the audit event; the actual
+// Admin API password set happens here, reusing the same function the
+// direct-provisioning and stuck-invitation-recovery flows already use.
+export async function resetMemberTemporaryPassword(
+  input: ResetMemberTemporaryPasswordInput,
+): Promise<ProvisionMemberActionResult> {
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner"]);
+
+  const { data: targetUserId, error } = await ownerAuthorizeMemberPasswordResetRpc(input.membershipId);
+  if (error) {
+    return { error: mapUserManagementError(error) };
+  }
+  if (!targetUserId) {
+    return { error: GENERIC_USER_MANAGEMENT_ERROR };
+  }
+
+  const passwordResult = await setTemporaryPasswordAndConfirm(targetUserId);
+  if (passwordResult.error || !passwordResult.temporaryPassword) {
+    return { error: "Gagal mengatur kata sandi sementara. Silakan coba lagi." };
+  }
   return { temporaryPassword: passwordResult.temporaryPassword };
 }
 

@@ -14,7 +14,21 @@ const inviteMember = vi.fn();
 const changeMembershipRole = vi.fn();
 const setMembershipStatus = vi.fn();
 const acceptInvitation = vi.fn();
-vi.mock("./service", () => ({ inviteMember, changeMembershipRole, setMembershipStatus, acceptInvitation }));
+const provisionInvitedMemberDirectly = vi.fn();
+const provisionMemberDirectly = vi.fn();
+const resetMemberTemporaryPassword = vi.fn();
+vi.mock("./service", () => ({
+  inviteMember,
+  changeMembershipRole,
+  setMembershipStatus,
+  acceptInvitation,
+  provisionInvitedMemberDirectly,
+  provisionMemberDirectly,
+  resetMemberTemporaryPassword,
+}));
+
+const generateTemporaryPassword = vi.fn();
+vi.mock("./admin-repository", () => ({ generateTemporaryPassword }));
 
 describe("user-management actions source", () => {
   it("never queries a table directly or uses the service-role admin client", () => {
@@ -121,6 +135,153 @@ describe("setMembershipStatusAction", () => {
 
     expect(result).toEqual({});
     expect(revalidatePath).toHaveBeenCalledWith("/app/users");
+  });
+});
+
+describe("provisionInvitedMemberDirectlyAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function validFormData() {
+    const formData = new FormData();
+    formData.set("invitationId", "123e4567-e89b-12d3-a456-426614174000");
+    formData.set("expectedRole", "viewer");
+    return formData;
+  }
+
+  // CORRECTIVE (Gate 6G-H): this used to revalidatePath immediately on any
+  // non-error result — since every non-error result here carries a
+  // temporaryPassword, that dropped the just-accepted row out of the
+  // pending-invitations list before the owner could copy the password.
+  // Refreshing is now acknowledgeTemporaryPasswordAction's job alone.
+  it("never revalidates on a success carrying a temporaryPassword", async () => {
+    provisionInvitedMemberDirectly.mockResolvedValueOnce({ temporaryPassword: "Sup3r-Secret-Temp!" });
+    const { provisionInvitedMemberDirectlyAction } = await import("./actions");
+
+    const result = await provisionInvitedMemberDirectlyAction({}, validFormData());
+
+    expect(result).toEqual({ temporaryPassword: "Sup3r-Secret-Temp!" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("passes through a service error without revalidating", async () => {
+    provisionInvitedMemberDirectly.mockResolvedValueOnce({ error: "Undangan tidak valid." });
+    const { provisionInvitedMemberDirectlyAction } = await import("./actions");
+
+    const result = await provisionInvitedMemberDirectlyAction({}, validFormData());
+
+    expect(result.error).toBe("Undangan tidak valid.");
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("provisionMemberDirectlyAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function validFormData() {
+    const formData = new FormData();
+    formData.set("displayName", "Budi Santoso");
+    formData.set("email", "budi@example.com");
+    formData.set("role", "viewer");
+    formData.set("temporaryPassword", "Str0ngTempPass!");
+    return formData;
+  }
+
+  it("returns field errors for invalid input without calling the service", async () => {
+    const { provisionMemberDirectlyAction } = await import("./actions");
+    const formData = new FormData();
+    formData.set("displayName", "");
+    formData.set("email", "not-an-email");
+    formData.set("role", "owner");
+    formData.set("temporaryPassword", "short");
+
+    const result = await provisionMemberDirectlyAction({}, formData);
+
+    expect(result.fieldErrors).toBeTruthy();
+    expect(provisionMemberDirectly).not.toHaveBeenCalled();
+  });
+
+  it("never revalidates on a success carrying a temporaryPassword", async () => {
+    provisionMemberDirectly.mockResolvedValueOnce({ temporaryPassword: "Str0ngTempPass!" });
+    const { provisionMemberDirectlyAction } = await import("./actions");
+
+    const result = await provisionMemberDirectlyAction({}, validFormData());
+
+    expect(result).toEqual({ temporaryPassword: "Str0ngTempPass!" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("maps UnauthorizedTenantRoleError to a generic Indonesian message", async () => {
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    provisionMemberDirectly.mockRejectedValueOnce(new UnauthorizedTenantRoleError());
+    const { provisionMemberDirectlyAction } = await import("./actions");
+
+    const result = await provisionMemberDirectlyAction({}, validFormData());
+
+    expect(result).toEqual({ error: "Anda tidak memiliki izin untuk melakukan aksi ini." });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("resetMemberTemporaryPasswordAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function validFormData() {
+    const formData = new FormData();
+    formData.set("membershipId", "123e4567-e89b-12d3-a456-426614174000");
+    return formData;
+  }
+
+  it("returns field errors for a missing/invalid membershipId without calling the service", async () => {
+    const { resetMemberTemporaryPasswordAction } = await import("./actions");
+    const formData = new FormData();
+
+    const result = await resetMemberTemporaryPasswordAction({}, formData);
+
+    expect(result.fieldErrors).toBeTruthy();
+    expect(resetMemberTemporaryPassword).not.toHaveBeenCalled();
+  });
+
+  it("never revalidates on a success carrying a temporaryPassword", async () => {
+    resetMemberTemporaryPassword.mockResolvedValueOnce({ temporaryPassword: "Fresh-Temp-1" });
+    const { resetMemberTemporaryPasswordAction } = await import("./actions");
+
+    const result = await resetMemberTemporaryPasswordAction({}, validFormData());
+
+    expect(result).toEqual({ temporaryPassword: "Fresh-Temp-1" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("acknowledgeTemporaryPasswordAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("revalidates /app/users — the single point any temporary-password reveal refreshes the list", async () => {
+    const { acknowledgeTemporaryPasswordAction } = await import("./actions");
+
+    await acknowledgeTemporaryPasswordAction();
+
+    expect(revalidatePath).toHaveBeenCalledWith("/app/users");
+  });
+});
+
+describe("generateTemporaryPasswordAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns a candidate from admin-repository's generator", async () => {
+    generateTemporaryPassword.mockReturnValueOnce("Generated-Candidate-1");
+    const { generateTemporaryPasswordAction } = await import("./actions");
+
+    await expect(generateTemporaryPasswordAction()).resolves.toBe("Generated-Candidate-1");
   });
 });
 

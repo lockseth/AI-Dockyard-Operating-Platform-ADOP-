@@ -167,6 +167,91 @@ export async function ownerProvisionInvitedMemberRpc(
   };
 }
 
+export interface ResolveProvisionTargetRpcResult {
+  targetUserId: string | null;
+  sameTenantMembershipId: string | null;
+  sameTenantStatus: import("./types").MembershipStatus | null;
+  crossTenantConflict: boolean;
+  pendingInvitationId: string | null;
+}
+
+// Wraps public.owner_resolve_provision_target — read-only lookup used by
+// the "Tambah User Internal" flow before any Admin API call is made, so a
+// doomed request (cross-tenant conflict, already-active duplicate) never
+// creates an auth.users row it would have to clean up.
+export async function ownerResolveProvisionTargetRpc(
+  tenantId: string,
+  email: string,
+): Promise<{ data: ResolveProvisionTargetRpcResult | null; error: PostgrestError | null }> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .rpc("owner_resolve_provision_target", { p_tenant_id: tenantId, p_email: email })
+    .single();
+
+  if (error || !data) {
+    return { data: null, error };
+  }
+  return {
+    data: {
+      targetUserId: data.target_user_id,
+      sameTenantMembershipId: data.same_tenant_membership_id,
+      sameTenantStatus: data.same_tenant_status,
+      crossTenantConflict: data.cross_tenant_conflict,
+      pendingInvitationId: data.pending_invitation_id,
+    },
+    error: null,
+  };
+}
+
+export interface FinalizeMemberProvisioningRpcResult {
+  membershipId: string;
+  reactivated: boolean;
+}
+
+// Wraps public.owner_finalize_member_provisioning — the atomic write step.
+// Re-validates every condition owner_resolve_provision_target already
+// reported, closing the race window opened by the Admin API call the
+// caller made in between the two RPCs.
+export async function ownerFinalizeMemberProvisioningRpc(
+  tenantId: string,
+  targetUserId: string,
+  role: TenantRole,
+  pendingInvitationId: string | null,
+  newAuthAccount: boolean,
+): Promise<{ data: FinalizeMemberProvisioningRpcResult | null; error: PostgrestError | null }> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .rpc("owner_finalize_member_provisioning", {
+      p_tenant_id: tenantId,
+      p_target_user_id: targetUserId,
+      p_role: role,
+      // supabase gen types always renders a uuid RPC parameter as non-nullable
+      // `string`, regardless of whether the underlying SQL parameter actually
+      // accepts NULL (it does here — p_pending_invitation_id is optional).
+      // The cast reflects that generator limitation, not the real contract.
+      p_pending_invitation_id: pendingInvitationId as string,
+      p_new_auth_account: newAuthAccount,
+    })
+    .single();
+
+  if (error || !data) {
+    return { data: null, error };
+  }
+  return {
+    data: { membershipId: data.membership_id, reactivated: data.reactivated },
+    error: null,
+  };
+}
+
+// Wraps public.owner_authorize_member_password_reset — authorizes the
+// reset and writes the audit event; returns the target's auth user id so
+// the caller can perform the actual Admin API password set next (never
+// touches auth.users itself).
+export async function ownerAuthorizeMemberPasswordResetRpc(membershipId: string) {
+  const supabase = await createSupabaseServerClient();
+  return supabase.rpc("owner_authorize_member_password_reset", { p_membership_id: membershipId });
+}
+
 // Wraps public.set_membership_role — authorization (owner of the
 // membership's tenant), self-target rejection, and the atomic
 // delete-existing-roles-then-insert-one all happen inside the RPC.

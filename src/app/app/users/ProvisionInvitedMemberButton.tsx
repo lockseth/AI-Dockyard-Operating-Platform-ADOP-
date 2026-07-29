@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
-import { provisionInvitedMemberDirectlyAction } from "@/lib/user-management/actions";
+import { useActionState, useTransition } from "react";
+import { acknowledgeTemporaryPasswordAction, provisionInvitedMemberDirectlyAction } from "@/lib/user-management/actions";
 import type { PendingInvitationForTenant, ProvisionInvitedMemberActionResult } from "@/lib/user-management/types";
 import { FormError } from "@/components/master-data/FormError";
-import { Callout } from "@/components/ui/Callout";
 import { Button } from "@/components/ui/Button";
+import { TemporaryPasswordReveal } from "./TemporaryPasswordReveal";
 
 const initialState: ProvisionInvitedMemberActionResult = {};
 
@@ -17,20 +17,24 @@ const initialState: ProvisionInvitedMemberActionResult = {};
 // Rendered only for owners, next to the pending-invitation row it applies
 // to — there is no email input here; the target is always resolved
 // server-side from this exact invitationId.
+//
+// The list only refreshes once the owner clicks "Sudah Disalin" (see
+// acknowledgeTemporaryPasswordAction and provisionInvitedMemberDirectlyAction's
+// CORRECTIVE comment) — until then this row keeps showing the password
+// even though the invitation itself is already accepted server-side.
 export function ProvisionInvitedMemberButton({ invitation }: { invitation: PendingInvitationForTenant }) {
   const [state, formAction, isPending] = useActionState(provisionInvitedMemberDirectlyAction, initialState);
+  const [isAcknowledging, startAcknowledge] = useTransition();
 
   if (state.temporaryPassword) {
     return (
-      <Callout tone="warning" role="alert" className="text-xs" title="Kata Sandi Sementara">
-        <p className="mb-1">
-          Berikan kata sandi ini kepada pengguna secara aman. Kata sandi ini hanya ditampilkan satu kali dan
-          tidak akan bisa dilihat lagi setelah ini.
-        </p>
-        <code className="block rounded bg-black/5 px-2 py-1 font-mono text-sm break-all dark:bg-white/10">
-          {state.temporaryPassword}
-        </code>
-      </Callout>
+      <TemporaryPasswordReveal
+        temporaryPassword={state.temporaryPassword}
+        accountName={invitation.email}
+        accountEmail={invitation.email}
+        isAcknowledging={isAcknowledging}
+        onAcknowledge={() => startAcknowledge(() => acknowledgeTemporaryPasswordAction())}
+      />
     );
   }
 

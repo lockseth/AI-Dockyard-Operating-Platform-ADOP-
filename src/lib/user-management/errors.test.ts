@@ -84,6 +84,15 @@ describe("mapUserManagementError", () => {
     expect(mapUserManagementError(pgError("P000G", "Invitation state conflict"))).toMatch(/Muat ulang/);
   });
 
+  it("maps owner_authorize_member_password_reset's STOP conditions (Gate 6G-H direct provisioning)", () => {
+    expect(
+      mapUserManagementError(pgError("42501", "Cannot reset your own temporary password")),
+    ).toBe("Anda tidak dapat mereset kata sandi Anda sendiri.");
+    expect(mapUserManagementError(pgError("P000I", "Membership is not active"))).toBe(
+      "Kata sandi sementara hanya dapat direset untuk anggota yang berstatus aktif.",
+    );
+  });
+
   it("maps a generic 'Not authorized' RPC rejection to a permission message", () => {
     expect(mapUserManagementError(pgError("42501", "Not authorized to invite members to this tenant"))).toBe(
       "Anda tidak memiliki izin untuk melakukan aksi ini.",

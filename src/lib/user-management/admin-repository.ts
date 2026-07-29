@@ -2,6 +2,7 @@ import "server-only";
 import { randomInt } from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env/server";
+import { TEMPORARY_PASSWORD_CHARSET, TEMPORARY_PASSWORD_LENGTH } from "./temporary-password";
 
 // The ONLY file in src/lib/user-management allowed to reference
 // @/lib/supabase/admin — enforced by admin-client-only.test.ts.
@@ -36,15 +37,13 @@ export async function inviteUserByEmail(
   return { userId: data.user.id };
 }
 
-const TEMP_PASSWORD_LENGTH = 20;
-// No 0/O/1/I/l — avoids characters an owner reading this off a screen to
-// someone else could easily transcribe wrong.
-const TEMP_PASSWORD_CHARSET = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*";
-
-function generateTemporaryPassword(): string {
+// Exported so the "Generate Ulang" server action in the Add User form can
+// issue a fresh candidate using this exact same cryptographically secure
+// generator instead of a second, client-side implementation.
+export function generateTemporaryPassword(): string {
   let password = "";
-  for (let i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
-    password += TEMP_PASSWORD_CHARSET[randomInt(TEMP_PASSWORD_CHARSET.length)];
+  for (let i = 0; i < TEMPORARY_PASSWORD_LENGTH; i++) {
+    password += TEMPORARY_PASSWORD_CHARSET[randomInt(TEMPORARY_PASSWORD_CHARSET.length)];
   }
   return password;
 }
@@ -77,4 +76,59 @@ export async function setTemporaryPasswordAndConfirm(userId: string): Promise<Se
     return { error: error.message };
   }
   return { temporaryPassword };
+}
+
+export interface CreateUserWithTemporaryPasswordResult {
+  userId?: string;
+  error?: string;
+}
+
+// Used only by the "Tambah User Internal" direct-provisioning flow, for the
+// brand-new-email case — public.owner_resolve_provision_target has already
+// confirmed (read-only) that no auth.users row exists for this email, so
+// this is the one Admin API call that can create it. The temporary password
+// is set here directly (not via a follow-up setTemporaryPasswordAndConfirm
+// call) since createUser requires one password argument up front anyway —
+// there is no separate "set password" step needed afterward for this case.
+export async function createUserWithTemporaryPassword(
+  email: string,
+  displayName: string,
+  temporaryPassword: string,
+): Promise<CreateUserWithTemporaryPasswordResult> {
+  const admin = createSupabaseAdminClient();
+
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password: temporaryPassword,
+    email_confirm: true,
+    user_metadata: { display_name: displayName },
+    app_metadata: { must_change_password: true },
+  });
+
+  if (error || !data.user) {
+    return { error: error?.message ?? "Failed to create user" };
+  }
+  return { userId: data.user.id };
+}
+
+export interface ClearMustChangePasswordResult {
+  error?: string;
+}
+
+// Called only from the "forced" branch of updatePasswordAction (auth/actions.ts)
+// after the user has just successfully set their own new password — clearing
+// app_metadata is only reachable via the service-role Admin API, and
+// auth/actions.ts itself is guarded (no-service-role-exposure.test.ts)
+// against ever importing that client directly, so this is the one sanctioned
+// entry point it calls into instead.
+export async function clearMustChangePasswordFlag(userId: string): Promise<ClearMustChangePasswordResult> {
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    app_metadata: { must_change_password: false },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+  return {};
 }

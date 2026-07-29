@@ -74,6 +74,17 @@ export function mapUserManagementError(error: PostgrestError | null | undefined)
     return "Status undangan ini berubah secara tak terduga. Muat ulang halaman dan coba lagi.";
   }
 
+  // public.owner_authorize_member_password_reset's distinct STOP conditions
+  // (Gate 6G-H direct provisioning) — checked before the generic
+  // "Not authorized"/42501 fallbacks below, since both raise a message
+  // containing "authorized"-adjacent text handled separately here.
+  if (message.includes("Cannot reset your own temporary password")) {
+    return "Anda tidak dapat mereset kata sandi Anda sendiri.";
+  }
+  if (message.includes("Membership is not active")) {
+    return "Kata sandi sementara hanya dapat direset untuk anggota yang berstatus aktif.";
+  }
+
   switch (error.code) {
     case "P0002":
       return "Data tidak ditemukan.";

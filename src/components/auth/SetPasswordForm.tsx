@@ -9,18 +9,21 @@ import { Button } from "@/components/ui/Button";
 
 const initialState: SetPasswordActionState = {};
 
-// Shared by /reset-password (flow="recovery") and /invite/accept
-// (flow="invite") — both land here only after /auth/confirm's verifyOtp
-// call has already established a recovery-scoped session server-side.
-// `hasValidSession` reflects that check (done by the server-component page
-// via getAuthenticatedUser()) plus the confirm route's own `?error=expired`
-// query param — both cases render the same "request a new link" explanation
-// rather than a broken form.
+// Shared by /reset-password (flow="recovery" for a real forgot-password
+// email link, or flow="forced" when requireAuthenticatedUser() redirected
+// here for app_metadata.must_change_password) and /invite/accept
+// (flow="invite") — the first two land here only after /auth/confirm's
+// verifyOtp call has already established a recovery-scoped session
+// server-side; "forced" lands here via an already-authenticated session
+// instead (no email link involved). `hasValidSession` reflects that check
+// (done by the server-component page via getAuthenticatedUser()) plus the
+// confirm route's own `?error=expired` query param — both cases render the
+// same "request a new link" explanation rather than a broken form.
 export function SetPasswordForm({
   flow,
   hasValidSession,
 }: {
-  flow: "recovery" | "invite";
+  flow: "recovery" | "invite" | "forced";
   hasValidSession: boolean;
 }) {
   const boundAction = updatePasswordAction.bind(null, flow);

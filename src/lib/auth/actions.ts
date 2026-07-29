@@ -9,7 +9,7 @@ import {
   hasPendingInvitations,
   listActiveMemberships,
 } from "@/lib/auth/tenant";
-import { requireAuthenticatedUser } from "@/lib/auth/session";
+import { getAuthenticatedUser, requireAuthenticatedUser } from "@/lib/auth/session";
 import {
   GENERIC_LOGIN_ERROR,
   GENERIC_PASSWORD_RESET_REQUESTED_MESSAGE,
@@ -17,6 +17,7 @@ import {
   loginFormSchema,
   setPasswordFormSchema,
 } from "@/lib/auth/validation";
+import { clearMustChangePasswordFlag } from "@/lib/user-management/admin-repository";
 
 export interface LoginActionState {
   error?: string;
@@ -117,19 +118,23 @@ export interface SetPasswordActionState {
   fieldErrors?: Record<string, string[]>;
 }
 
-// Shared by both the recovery ("Lupa kata sandi?") and invite-acceptance
-// flows — both land here with an active session established by
-// /auth/confirm's verifyOtp call. `flow` is bound at the call site
-// (invite/accept vs reset-password), never read from client input.
+// Shared by the recovery ("Lupa kata sandi?"), invite-acceptance, and
+// forced (must_change_password) flows — all three land here with an active
+// session already established (verifyOtp for the first two, an ordinary
+// login with a temporary password for "forced"). `flow` is bound at the
+// call site (invite/accept vs reset-password), never read from client
+// input.
 //
-// Only the "recovery" flow signs the session out afterward. The "invite"
-// flow deliberately stays signed in and returns to /invite/accept: setting a
-// password is a prerequisite for a brand-new account, not the acceptance
-// itself — the user still has to explicitly accept the specific invitation
-// shown there (see public.accept_tenant_invitation), which requires an
-// active session to call.
+// Only "recovery" signs the session out afterward. "invite" deliberately
+// stays signed in and returns to /invite/accept: setting a password is a
+// prerequisite for a brand-new account, not the acceptance itself — the
+// user still has to explicitly accept the specific invitation shown there
+// (see public.accept_tenant_invitation), which requires an active session
+// to call. "forced" also stays signed in and goes straight to /app: the
+// LOGIN ENFORCEMENT contract (Gate 6G-H) is "change password once, then
+// proceed" — not a second sign-in step.
 export async function updatePasswordAction(
-  flow: "recovery" | "invite",
+  flow: "recovery" | "invite" | "forced",
   _prevState: SetPasswordActionState,
   formData: FormData,
 ): Promise<SetPasswordActionState> {
@@ -149,6 +154,27 @@ export async function updatePasswordAction(
 
   if (flow === "invite") {
     redirect("/invite/accept");
+  }
+
+  if (flow === "forced") {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      redirect("/login");
+    }
+
+    const cleared = await clearMustChangePasswordFlag(user.userId);
+    if (cleared.error) {
+      return { error: "Kata sandi tersimpan, tetapi gagal menghapus tanda wajib-ganti-kata-sandi. Silakan coba lagi." };
+    }
+
+    // The access token already in this session's cookies was minted before
+    // the app_metadata clear above, so it would still read
+    // must_change_password = true and bounce straight back to this page —
+    // forcing a refresh here re-mints it against the now-current auth.users
+    // row (this repo's convention: getClaims() is always re-verified from
+    // the current token, never a session-scoped cache) before redirecting.
+    await supabase.auth.refreshSession();
+    redirect("/app");
   }
 
   await supabase.rpc("log_own_password_reset_completed");

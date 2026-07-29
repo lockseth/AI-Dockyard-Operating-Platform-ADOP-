@@ -18,6 +18,7 @@ const NON_ADMIN_SOURCE_FILES = [
   "labels.ts",
   "service.ts",
   "actions.ts",
+  "temporary-password.ts",
 ];
 
 describe("user-management: admin client usage confined to admin-repository.ts", () => {

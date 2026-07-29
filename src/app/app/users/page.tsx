@@ -5,7 +5,7 @@ import { listMembersForActiveTenant, listPendingInvitationsForActiveTenant } fro
 import { AppShell } from "@/components/shell/AppShell";
 import { CollapsibleCreatePanel } from "@/components/master-data/CollapsibleCreatePanel";
 import { AccessDenied } from "./AccessDenied";
-import { InviteUserForm } from "./InviteUserForm";
+import { AddInternalUserForm } from "./AddInternalUserForm";
 import { MemberRow } from "./MemberRow";
 import { ProvisionInvitedMemberButton } from "./ProvisionInvitedMemberButton";
 
@@ -30,8 +30,8 @@ export default async function UsersPage() {
     <AppShell title="User & Hak Akses">
       <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-10">
         {canManage ? (
-          <CollapsibleCreatePanel label="Undang User">
-            <InviteUserForm />
+          <CollapsibleCreatePanel label="Tambah User Internal">
+            <AddInternalUserForm />
           </CollapsibleCreatePanel>
         ) : null}
 

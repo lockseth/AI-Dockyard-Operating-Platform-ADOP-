@@ -8,11 +8,19 @@ vi.mock("@/lib/auth/tenant", async (importOriginal) => {
 
 const inviteUserByEmail = vi.fn();
 const setTemporaryPasswordAndConfirm = vi.fn();
-vi.mock("./admin-repository", () => ({ inviteUserByEmail, setTemporaryPasswordAndConfirm }));
+const createUserWithTemporaryPassword = vi.fn();
+vi.mock("./admin-repository", () => ({
+  inviteUserByEmail,
+  setTemporaryPasswordAndConfirm,
+  createUserWithTemporaryPassword,
+}));
 
 const createTenantInvitationRpc = vi.fn();
 const acceptTenantInvitationRpc = vi.fn();
 const ownerProvisionInvitedMemberRpc = vi.fn();
+const ownerResolveProvisionTargetRpc = vi.fn();
+const ownerFinalizeMemberProvisioningRpc = vi.fn();
+const ownerAuthorizeMemberPasswordResetRpc = vi.fn();
 const setMembershipRoleRpc = vi.fn();
 const setMembershipStatusRpc = vi.fn();
 const listTenantMembers = vi.fn();
@@ -22,6 +30,9 @@ vi.mock("./repository", () => ({
   createTenantInvitationRpc,
   acceptTenantInvitationRpc,
   ownerProvisionInvitedMemberRpc,
+  ownerResolveProvisionTargetRpc,
+  ownerFinalizeMemberProvisioningRpc,
+  ownerAuthorizeMemberPasswordResetRpc,
   setMembershipRoleRpc,
   setMembershipStatusRpc,
   listTenantMembers,
@@ -213,6 +224,197 @@ describe("provisionInvitedMemberDirectly", () => {
     expect(result.temporaryPassword).toBeUndefined();
     expect(result.error).toBeTruthy();
     expect(JSON.stringify(result)).not.toMatch(/admin api unreachable/);
+  });
+});
+
+describe("provisionMemberDirectly", () => {
+  const INPUT = {
+    displayName: "Budi",
+    email: "budi@example.com",
+    role: "viewer" as const,
+    temporaryPassword: "Str0ngTempPass!",
+  };
+
+  it("rejects a non-owner actor before ever resolving the target", async () => {
+    requireTenantContext.mockResolvedValue(ADMIN_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { provisionMemberDirectly } = await import("./service");
+
+    await expect(provisionMemberDirectly(INPUT)).rejects.toThrow(UnauthorizedTenantRoleError);
+    expect(ownerResolveProvisionTargetRpc).not.toHaveBeenCalled();
+  });
+
+  it("stops before touching the Admin API when the target has a membership in another tenant", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerResolveProvisionTargetRpc.mockResolvedValue({
+      data: {
+        targetUserId: "existing-user-1",
+        sameTenantMembershipId: null,
+        sameTenantStatus: null,
+        crossTenantConflict: true,
+        pendingInvitationId: null,
+      },
+      error: null,
+    });
+    const { provisionMemberDirectly } = await import("./service");
+
+    const result = await provisionMemberDirectly(INPUT);
+
+    expect(result.error).toMatch(/tenant lain/);
+    expect(createUserWithTemporaryPassword).not.toHaveBeenCalled();
+    expect(ownerFinalizeMemberProvisioningRpc).not.toHaveBeenCalled();
+  });
+
+  it("stops as a duplicate when the target is already an active member of this tenant", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerResolveProvisionTargetRpc.mockResolvedValue({
+      data: {
+        targetUserId: "existing-user-1",
+        sameTenantMembershipId: "membership-1",
+        sameTenantStatus: "active",
+        crossTenantConflict: false,
+        pendingInvitationId: null,
+      },
+      error: null,
+    });
+    const { provisionMemberDirectly } = await import("./service");
+
+    const result = await provisionMemberDirectly(INPUT);
+
+    expect(result.error).toBe("Pengguna ini sudah menjadi anggota aktif pada tenant ini.");
+    expect(createUserWithTemporaryPassword).not.toHaveBeenCalled();
+    expect(ownerFinalizeMemberProvisioningRpc).not.toHaveBeenCalled();
+  });
+
+  it("creates a brand-new auth user for an email with no existing account, then finalizes with it", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerResolveProvisionTargetRpc.mockResolvedValue({
+      data: {
+        targetUserId: null,
+        sameTenantMembershipId: null,
+        sameTenantStatus: null,
+        crossTenantConflict: false,
+        pendingInvitationId: "invitation-1",
+      },
+      error: null,
+    });
+    createUserWithTemporaryPassword.mockResolvedValue({ userId: "new-user-1" });
+    ownerFinalizeMemberProvisioningRpc.mockResolvedValue({
+      data: { membershipId: "membership-1", reactivated: false },
+      error: null,
+    });
+    const { provisionMemberDirectly } = await import("./service");
+
+    const result = await provisionMemberDirectly(INPUT);
+
+    expect(createUserWithTemporaryPassword).toHaveBeenCalledWith("budi@example.com", "Budi", "Str0ngTempPass!");
+    expect(ownerFinalizeMemberProvisioningRpc).toHaveBeenCalledWith(
+      "tenant-1",
+      "new-user-1",
+      "viewer",
+      "invitation-1",
+      true,
+    );
+    expect(setTemporaryPasswordAndConfirm).not.toHaveBeenCalled();
+    expect(result).toEqual({ temporaryPassword: "Str0ngTempPass!" });
+  });
+
+  it("reuses an existing auth user without creating a duplicate, setting the password only after finalize succeeds", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerResolveProvisionTargetRpc.mockResolvedValue({
+      data: {
+        targetUserId: "existing-user-1",
+        sameTenantMembershipId: "membership-1",
+        sameTenantStatus: "suspended",
+        crossTenantConflict: false,
+        pendingInvitationId: null,
+      },
+      error: null,
+    });
+    ownerFinalizeMemberProvisioningRpc.mockResolvedValue({
+      data: { membershipId: "membership-1", reactivated: true },
+      error: null,
+    });
+    setTemporaryPasswordAndConfirm.mockResolvedValue({ temporaryPassword: "Fresh-Temp-1" });
+    const { provisionMemberDirectly } = await import("./service");
+
+    const result = await provisionMemberDirectly(INPUT);
+
+    expect(createUserWithTemporaryPassword).not.toHaveBeenCalled();
+    expect(ownerFinalizeMemberProvisioningRpc).toHaveBeenCalledWith(
+      "tenant-1",
+      "existing-user-1",
+      "viewer",
+      null,
+      false,
+    );
+    expect(setTemporaryPasswordAndConfirm).toHaveBeenCalledWith("existing-user-1");
+    expect(result).toEqual({ temporaryPassword: "Fresh-Temp-1" });
+  });
+
+  it("reports a recoverable error (pointing at Reset Password Sementara) when finalize succeeds but the password step fails", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerResolveProvisionTargetRpc.mockResolvedValue({
+      data: {
+        targetUserId: "existing-user-1",
+        sameTenantMembershipId: null,
+        sameTenantStatus: null,
+        crossTenantConflict: false,
+        pendingInvitationId: null,
+      },
+      error: null,
+    });
+    ownerFinalizeMemberProvisioningRpc.mockResolvedValue({
+      data: { membershipId: "membership-1", reactivated: false },
+      error: null,
+    });
+    setTemporaryPasswordAndConfirm.mockResolvedValue({ error: "admin api unreachable" });
+    const { provisionMemberDirectly } = await import("./service");
+
+    const result = await provisionMemberDirectly(INPUT);
+
+    expect(result.temporaryPassword).toBeUndefined();
+    expect(result.error).toMatch(/Reset Password Sementara/);
+    expect(JSON.stringify(result)).not.toMatch(/admin api unreachable/);
+  });
+});
+
+describe("resetMemberTemporaryPassword", () => {
+  it("rejects a non-owner actor before ever calling the RPC", async () => {
+    requireTenantContext.mockResolvedValue(ADMIN_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { resetMemberTemporaryPassword } = await import("./service");
+
+    await expect(resetMemberTemporaryPassword({ membershipId: "membership-1" })).rejects.toThrow(
+      UnauthorizedTenantRoleError,
+    );
+    expect(ownerAuthorizeMemberPasswordResetRpc).not.toHaveBeenCalled();
+  });
+
+  it("maps a thrown RPC error (e.g. self-target) via mapUserManagementError", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerAuthorizeMemberPasswordResetRpc.mockResolvedValue({
+      data: null,
+      error: { code: "42501", message: "Cannot reset your own temporary password" },
+    });
+    const { resetMemberTemporaryPassword } = await import("./service");
+
+    const result = await resetMemberTemporaryPassword({ membershipId: "membership-1" });
+
+    expect(result.error).toBe("Anda tidak dapat mereset kata sandi Anda sendiri.");
+    expect(setTemporaryPasswordAndConfirm).not.toHaveBeenCalled();
+  });
+
+  it("on success, sets a fresh temporary password for the authorized target and returns it", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerAuthorizeMemberPasswordResetRpc.mockResolvedValue({ data: "target-user-1", error: null });
+    setTemporaryPasswordAndConfirm.mockResolvedValue({ temporaryPassword: "Another-Fresh-1" });
+    const { resetMemberTemporaryPassword } = await import("./service");
+
+    const result = await resetMemberTemporaryPassword({ membershipId: "membership-1" });
+
+    expect(setTemporaryPasswordAndConfirm).toHaveBeenCalledWith("target-user-1");
+    expect(result).toEqual({ temporaryPassword: "Another-Fresh-1" });
   });
 });
 

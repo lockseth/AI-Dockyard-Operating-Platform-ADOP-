@@ -459,6 +459,241 @@ describe("user-management — real local Supabase", () => {
     expect(error).not.toBeNull();
   });
 
+  it("direct provisioning: brand-new email creates an auth user + active membership, and the resulting temporary password actually signs in (Gate 6G-H)", async () => {
+    const clientOwnerA = await signInAsMember(ownerA.email);
+    const email = `um-direct-new-${crypto.randomUUID()}@adop-integration.local`;
+
+    const resolved = await clientOwnerA
+      .rpc("owner_resolve_provision_target", { p_tenant_id: TENANT_A_ID, p_email: email })
+      .single();
+    expect(resolved.error).toBeNull();
+    const resolvedData = resolved.data as { target_user_id: string | null; cross_tenant_conflict: boolean } | null;
+    expect(resolvedData?.target_user_id).toBeNull();
+    expect(resolvedData?.cross_tenant_conflict).toBe(false);
+
+    const temporaryPassword = `Gate6GH-Direct-${crypto.randomUUID()}`;
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email,
+      password: temporaryPassword,
+      email_confirm: true,
+      user_metadata: { display_name: "Direct Provision Test" },
+      app_metadata: { must_change_password: true },
+    });
+    expect(createError).toBeNull();
+    createdUserIds.push(created!.user!.id);
+
+    const finalized = await clientOwnerA
+      .rpc("owner_finalize_member_provisioning", {
+        p_tenant_id: TENANT_A_ID,
+        p_target_user_id: created!.user!.id,
+        p_role: "viewer",
+        p_pending_invitation_id: null,
+        p_new_auth_account: true,
+      })
+      .single();
+    expect(finalized.error).toBeNull();
+    expect((finalized.data as { reactivated: boolean } | null)?.reactivated).toBe(false);
+
+    const { data: membership } = await admin
+      .from("tenant_memberships")
+      .select("id, status")
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("user_id", created!.user!.id)
+      .single();
+    expect(membership?.status).toBe("active");
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const rawClient = createClient(SUPABASE_URL!, ANON_KEY!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: signInData, error: signInError } = await rawClient.auth.signInWithPassword({
+      email,
+      password: temporaryPassword,
+    });
+    expect(signInError).toBeNull();
+    expect(signInData.session).toBeTruthy();
+  });
+
+  it("direct provisioning: reuses an existing auth user with no membership anywhere, without creating a duplicate account", async () => {
+    // A dedicated fixture, not the shared existingUserNoMembership — that
+    // one is deliberately consumed earlier in this same file (invited, then
+    // accepted into TENANT_A_ID by the accept_tenant_invitation tests
+    // above), so by this point it already has an active membership there.
+    const freshExistingUser = await createEphemeralMember({ emailPrefix: "um-direct-reuse", memberships: [] });
+    createdUserIds.push(freshExistingUser.id);
+
+    const clientOwnerA = await signInAsMember(ownerA.email);
+
+    const resolved = await clientOwnerA
+      .rpc("owner_resolve_provision_target", { p_tenant_id: TENANT_A_ID, p_email: freshExistingUser.email })
+      .single();
+    expect(resolved.error).toBeNull();
+    expect((resolved.data as { target_user_id: string } | null)?.target_user_id).toBe(freshExistingUser.id);
+
+    const finalized = await clientOwnerA
+      .rpc("owner_finalize_member_provisioning", {
+        p_tenant_id: TENANT_A_ID,
+        p_target_user_id: freshExistingUser.id,
+        p_role: "admin",
+        p_pending_invitation_id: null,
+        p_new_auth_account: false,
+      })
+      .single();
+    expect(finalized.error).toBeNull();
+
+    const { data: memberships } = await admin
+      .from("tenant_memberships")
+      .select("id")
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("user_id", freshExistingUser.id);
+    expect(memberships).toHaveLength(1);
+  });
+
+  it("direct provisioning: reactivates an existing suspended same-tenant membership and replaces its role", async () => {
+    const suspendedMember = await createEphemeralMember({
+      emailPrefix: "um-direct-suspended",
+      memberships: [{ tenantId: TENANT_A_ID, role: "viewer", status: "suspended" }],
+    });
+    createdUserIds.push(suspendedMember.id);
+
+    const clientOwnerA = await signInAsMember(ownerA.email);
+    const finalized = await clientOwnerA
+      .rpc("owner_finalize_member_provisioning", {
+        p_tenant_id: TENANT_A_ID,
+        p_target_user_id: suspendedMember.id,
+        p_role: "admin",
+        p_pending_invitation_id: null,
+        p_new_auth_account: false,
+      })
+      .single();
+    expect(finalized.error).toBeNull();
+    expect((finalized.data as { reactivated: boolean } | null)?.reactivated).toBe(true);
+
+    const { data: membership } = await admin
+      .from("tenant_memberships")
+      .select("id, status")
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("user_id", suspendedMember.id)
+      .single();
+    expect(membership?.status).toBe("active");
+
+    const { data: roleRow } = await admin
+      .from("membership_roles")
+      .select("role")
+      .eq("membership_id", membership!.id)
+      .single();
+    expect(roleRow?.role).toBe("admin");
+  });
+
+  it("direct provisioning: refuses a target already an active member of this tenant (STOP duplicate)", async () => {
+    const clientOwnerA = await signInAsMember(ownerA.email);
+
+    const { error } = await clientOwnerA
+      .rpc("owner_finalize_member_provisioning", {
+        p_tenant_id: TENANT_A_ID,
+        p_target_user_id: adminA.id,
+        p_role: "viewer",
+        p_pending_invitation_id: null,
+        p_new_auth_account: false,
+      })
+      .single();
+    expect(error).not.toBeNull();
+  });
+
+  it("direct provisioning: refuses a target with an active membership in another tenant (STOP cross-tenant conflict)", async () => {
+    const clientOwnerA = await signInAsMember(ownerA.email);
+
+    const resolved = await clientOwnerA
+      .rpc("owner_resolve_provision_target", { p_tenant_id: TENANT_A_ID, p_email: ownerB.email })
+      .single();
+    expect(resolved.error).toBeNull();
+    expect((resolved.data as { cross_tenant_conflict: boolean } | null)?.cross_tenant_conflict).toBe(true);
+
+    const { error } = await clientOwnerA
+      .rpc("owner_finalize_member_provisioning", {
+        p_tenant_id: TENANT_A_ID,
+        p_target_user_id: ownerB.id,
+        p_role: "viewer",
+        p_pending_invitation_id: null,
+        p_new_auth_account: false,
+      })
+      .single();
+    expect(error).not.toBeNull();
+  });
+
+  it("Reset Password Sementara: owner resets an active member's password, and the fresh password actually signs in", async () => {
+    const activeMember = await createEphemeralMember({
+      emailPrefix: "um-reset-active",
+      memberships: [{ tenantId: TENANT_A_ID, role: "viewer" }],
+    });
+    createdUserIds.push(activeMember.id);
+
+    const { data: membershipRow } = await admin
+      .from("tenant_memberships")
+      .select("id")
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("user_id", activeMember.id)
+      .single();
+
+    const clientOwnerA = await signInAsMember(ownerA.email);
+    const { data: targetUserId, error } = await clientOwnerA.rpc("owner_authorize_member_password_reset", {
+      p_membership_id: membershipRow!.id,
+    });
+    expect(error).toBeNull();
+    expect(targetUserId).toBe(activeMember.id);
+
+    const freshPassword = `Gate6GH-Reset-${crypto.randomUUID()}`;
+    const { error: updateError } = await admin.auth.admin.updateUserById(activeMember.id, {
+      password: freshPassword,
+      email_confirm: true,
+      app_metadata: { must_change_password: true },
+    });
+    expect(updateError).toBeNull();
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const rawClient = createClient(SUPABASE_URL!, ANON_KEY!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: signInData, error: signInError } = await rawClient.auth.signInWithPassword({
+      email: activeMember.email,
+      password: freshPassword,
+    });
+    expect(signInError).toBeNull();
+    expect(signInData.session).toBeTruthy();
+  });
+
+  it("Reset Password Sementara: owner cannot reset their own password, and cannot reset a suspended member's password", async () => {
+    const suspendedMember = await createEphemeralMember({
+      emailPrefix: "um-reset-suspended",
+      memberships: [{ tenantId: TENANT_A_ID, role: "viewer", status: "suspended" }],
+    });
+    createdUserIds.push(suspendedMember.id);
+
+    const clientOwnerA = await signInAsMember(ownerA.email);
+
+    const { data: ownRow } = await admin
+      .from("tenant_memberships")
+      .select("id")
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("user_id", ownerA.id)
+      .single();
+    const selfResult = await clientOwnerA.rpc("owner_authorize_member_password_reset", {
+      p_membership_id: ownRow!.id,
+    });
+    expect(selfResult.error).not.toBeNull();
+
+    const { data: suspendedRow } = await admin
+      .from("tenant_memberships")
+      .select("id")
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("user_id", suspendedMember.id)
+      .single();
+    const suspendedResult = await clientOwnerA.rpc("owner_authorize_member_password_reset", {
+      p_membership_id: suspendedRow!.id,
+    });
+    expect(suspendedResult.error).not.toBeNull();
+  });
+
   it("audit events for accepted invitations never contain a password or token value", async () => {
     const { data: events } = await admin
       .from("access_audit_events")

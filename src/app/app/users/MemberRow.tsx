@@ -8,6 +8,7 @@ import { SelectField } from "@/components/master-data/fields";
 import { FormError } from "@/components/master-data/FormError";
 import { useCloseEditOnSuccess } from "@/components/master-data/useCloseEditOnSuccess";
 import { Badge } from "@/components/ui/Badge";
+import { ResetMemberPasswordButton } from "./ResetMemberPasswordButton";
 
 const initialState: UserManagementActionResult = {};
 
@@ -105,6 +106,13 @@ export function MemberRow({ member, canManage, currentUserId }: {
               Ubah Role
             </button>
             {member.status !== "invited" ? <DeactivateReactivateForm member={member} /> : null}
+            {member.status === "active" ? (
+              <ResetMemberPasswordButton
+                membershipId={member.membershipId}
+                accountName={member.displayName ?? member.email ?? "-"}
+                accountEmail={member.email ?? ""}
+              />
+            ) : null}
           </div>
         ) : null}
       </td>

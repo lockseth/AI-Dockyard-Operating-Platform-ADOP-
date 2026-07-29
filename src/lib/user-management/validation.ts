@@ -59,6 +59,46 @@ export const provisionInvitedMemberInputSchema = z.object({
 });
 export type ProvisionInvitedMemberInput = z.infer<typeof provisionInvitedMemberInputSchema>;
 
+// Floor the owner can't type below, even though the generated default
+// (admin-repository.ts's generateTemporaryPassword, 20 chars) is well above
+// it — "dapat ... diganti Owner" means this has to accept an owner-edited
+// value, so server-side strength is re-checked here rather than trusted
+// from the client.
+export const temporaryPasswordSchema = z
+  .string()
+  .min(12, "Kata sandi sementara minimal 12 karakter.")
+  .max(72, "Kata sandi sementara maksimal 72 karakter.")
+  .regex(/[a-z]/, "Kata sandi sementara harus mengandung huruf kecil.")
+  .regex(/[A-Z]/, "Kata sandi sementara harus mengandung huruf besar.")
+  .regex(/[0-9]/, "Kata sandi sementara harus mengandung angka.");
+
+// "Tambah User Internal" only ever offers Admin or Viewer — deliberately a
+// narrower enum than tenantRoleSchema (which also allows owner/reviewer),
+// since this action is scoped to internal staff, not ownership transfer or
+// external reviewer access. Enforced here, not just in the UI's <select>,
+// so a hand-crafted request can't submit an owner/reviewer role through
+// this endpoint.
+export const internalUserRoleSchema = z.enum(["admin", "viewer"]);
+
+export const provisionMemberInputSchema = z.object({
+  displayName: requiredText(200, "Nama wajib diisi."),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email wajib diisi.")
+    .email("Format email tidak valid.")
+    .max(255)
+    .transform((value) => value.toLowerCase()),
+  role: internalUserRoleSchema,
+  temporaryPassword: temporaryPasswordSchema,
+});
+export type ProvisionMemberInput = z.infer<typeof provisionMemberInputSchema>;
+
+export const resetMemberTemporaryPasswordInputSchema = z.object({
+  membershipId: idSchema,
+});
+export type ResetMemberTemporaryPasswordInput = z.infer<typeof resetMemberTemporaryPasswordInputSchema>;
+
 export function parseInviteMemberFormData(formData: FormData) {
   return inviteMemberInputSchema.safeParse({
     displayName: formData.get("displayName"),
@@ -91,5 +131,20 @@ export function parseProvisionInvitedMemberFormData(formData: FormData) {
   return provisionInvitedMemberInputSchema.safeParse({
     invitationId: formData.get("invitationId"),
     expectedRole: formData.get("expectedRole"),
+  });
+}
+
+export function parseProvisionMemberFormData(formData: FormData) {
+  return provisionMemberInputSchema.safeParse({
+    displayName: formData.get("displayName"),
+    email: formData.get("email"),
+    role: formData.get("role"),
+    temporaryPassword: formData.get("temporaryPassword"),
+  });
+}
+
+export function parseResetMemberTemporaryPasswordFormData(formData: FormData) {
+  return resetMemberTemporaryPasswordInputSchema.safeParse({
+    membershipId: formData.get("membershipId"),
   });
 }

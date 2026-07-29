@@ -44,3 +44,11 @@ export interface UserManagementActionResult {
 export interface ProvisionInvitedMemberActionResult extends UserManagementActionResult {
   temporaryPassword?: string;
 }
+
+// Same shape, reused by both the "Tambah User Internal" direct-creation
+// flow and the owner-only "Reset Password Sementara" action — both surface
+// a one-time temporary password on success, displayed until the owner
+// explicitly acknowledges copying it.
+export interface ProvisionMemberActionResult extends UserManagementActionResult {
+  temporaryPassword?: string;
+}
