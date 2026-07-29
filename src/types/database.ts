@@ -4552,6 +4552,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      owner_provision_invited_member: {
+        Args: {
+          p_expected_role: Database["public"]["Enums"]["tenant_role"]
+          p_invitation_id: string
+        }
+        Returns: {
+          membership_id: string
+          target_user_id: string
+        }[]
+      }
       record_cash_pool_entry: {
         Args: {
           p_amount: number

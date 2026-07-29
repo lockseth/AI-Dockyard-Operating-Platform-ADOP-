@@ -48,6 +48,17 @@ export const acceptInvitationInputSchema = z.object({
 });
 export type AcceptInvitationInput = z.infer<typeof acceptInvitationInputSchema>;
 
+// `expectedRole` is the role the owner saw displayed for this pending
+// invitation, submitted back as an integrity check — not a role picker. The
+// RPC rejects the call if the invitation's actual current role has since
+// changed, catching a stale page rather than letting the owner choose an
+// arbitrary role at conversion time.
+export const provisionInvitedMemberInputSchema = z.object({
+  invitationId: idSchema,
+  expectedRole: tenantRoleSchema,
+});
+export type ProvisionInvitedMemberInput = z.infer<typeof provisionInvitedMemberInputSchema>;
+
 export function parseInviteMemberFormData(formData: FormData) {
   return inviteMemberInputSchema.safeParse({
     displayName: formData.get("displayName"),
@@ -73,5 +84,12 @@ export function parseSetMembershipStatusFormData(formData: FormData) {
 export function parseAcceptInvitationFormData(formData: FormData) {
   return acceptInvitationInputSchema.safeParse({
     invitationId: formData.get("invitationId"),
+  });
+}
+
+export function parseProvisionInvitedMemberFormData(formData: FormData) {
+  return provisionInvitedMemberInputSchema.safeParse({
+    invitationId: formData.get("invitationId"),
+    expectedRole: formData.get("expectedRole"),
   });
 }

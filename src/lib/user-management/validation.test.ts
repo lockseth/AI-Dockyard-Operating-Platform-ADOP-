@@ -3,6 +3,7 @@ import {
   parseAcceptInvitationFormData,
   parseChangeMembershipRoleFormData,
   parseInviteMemberFormData,
+  parseProvisionInvitedMemberFormData,
   parseSetMembershipStatusFormData,
 } from "./validation";
 
@@ -113,5 +114,28 @@ describe("parseAcceptInvitationFormData", () => {
     const formData = new FormData();
     formData.set("invitationId", "not-a-uuid");
     expect(parseAcceptInvitationFormData(formData).success).toBe(false);
+  });
+});
+
+describe("parseProvisionInvitedMemberFormData", () => {
+  it("accepts a valid invitationId + expectedRole", () => {
+    const formData = new FormData();
+    formData.set("invitationId", "123e4567-e89b-12d3-a456-426614174000");
+    formData.set("expectedRole", "admin");
+    expect(parseProvisionInvitedMemberFormData(formData).success).toBe(true);
+  });
+
+  it("rejects a non-uuid invitationId", () => {
+    const formData = new FormData();
+    formData.set("invitationId", "not-a-uuid");
+    formData.set("expectedRole", "admin");
+    expect(parseProvisionInvitedMemberFormData(formData).success).toBe(false);
+  });
+
+  it("rejects an expectedRole outside the tenant_role enum", () => {
+    const formData = new FormData();
+    formData.set("invitationId", "123e4567-e89b-12d3-a456-426614174000");
+    formData.set("expectedRole", "superadmin");
+    expect(parseProvisionInvitedMemberFormData(formData).success).toBe(false);
   });
 });

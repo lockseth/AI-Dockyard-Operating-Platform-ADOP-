@@ -37,3 +37,10 @@ export interface UserManagementActionResult {
   error?: string;
   fieldErrors?: Record<string, string[]>;
 }
+
+// Extends the common result shape with the one-time temporary password —
+// present only on a successful direct-provisioning conversion, and never
+// persisted anywhere beyond this single response.
+export interface ProvisionInvitedMemberActionResult extends UserManagementActionResult {
+  temporaryPassword?: string;
+}

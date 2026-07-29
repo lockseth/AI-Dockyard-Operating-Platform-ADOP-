@@ -1,6 +1,6 @@
 import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
-import { inviteUserByEmail } from "./admin-repository";
+import { inviteUserByEmail, setTemporaryPasswordAndConfirm } from "./admin-repository";
 import { mapUserManagementError } from "./errors";
 import {
   acceptTenantInvitationRpc,
@@ -8,13 +8,20 @@ import {
   listPendingInvitationsForCurrentUser as listPendingInvitationsForCurrentUserRepo,
   listPendingInvitationsForTenant,
   listTenantMembers,
+  ownerProvisionInvitedMemberRpc,
   setMembershipRoleRpc,
   setMembershipStatusRpc,
 } from "./repository";
-import type { ChangeMembershipRoleInput, InviteMemberInput, SetMembershipStatusInput } from "./validation";
+import type {
+  ChangeMembershipRoleInput,
+  InviteMemberInput,
+  ProvisionInvitedMemberInput,
+  SetMembershipStatusInput,
+} from "./validation";
 import type {
   PendingInvitationForTenant,
   PendingInvitationForUser,
+  ProvisionInvitedMemberActionResult,
   TenantMemberSummary,
   UserManagementActionResult,
 } from "./types";
@@ -100,6 +107,41 @@ export async function changeMembershipRole(input: ChangeMembershipRoleInput): Pr
     return { error: mapUserManagementError(error) };
   }
   return {};
+}
+
+// Owner-initiated recovery path for a pending invitation whose target
+// already has an auth.users account but never received a working accept
+// link (see 20260729000000_owner_direct_provisioning.sql for every safety
+// condition — authorization, cross-tenant conflicts, role match, identity
+// ambiguity, idempotent retry — all enforced inside the RPC, not here).
+//
+// The membership/role/invitation-state change happens first, in the RPC;
+// the temporary password is set second, via the admin client. If the RPC
+// succeeds but the password step fails, the membership already exists (the
+// RPC is idempotent on retry), so re-invoking this whole function is the
+// correct recovery — it will skip straight to issuing a fresh password.
+export async function provisionInvitedMemberDirectly(
+  input: ProvisionInvitedMemberInput,
+): Promise<ProvisionInvitedMemberActionResult> {
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner"]);
+
+  const { data, error } = await ownerProvisionInvitedMemberRpc(input.invitationId, input.expectedRole);
+  if (error) {
+    return { error: mapUserManagementError(error) };
+  }
+  if (!data) {
+    return { error: "Undangan tidak valid, sudah kedaluwarsa, atau bukan lagi berstatus pending." };
+  }
+
+  const passwordResult = await setTemporaryPasswordAndConfirm(data.targetUserId);
+  if (passwordResult.error || !passwordResult.temporaryPassword) {
+    return {
+      error: "Keanggotaan berhasil dibuat, tetapi gagal mengatur kata sandi sementara. Silakan coba lagi.",
+    };
+  }
+
+  return { temporaryPassword: passwordResult.temporaryPassword };
 }
 
 export async function setMembershipStatus(input: SetMembershipStatusInput): Promise<UserManagementActionResult> {

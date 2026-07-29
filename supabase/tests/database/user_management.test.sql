@@ -399,6 +399,147 @@ select is_empty(
 );
 
 -- =============================================================================
+-- owner_provision_invited_member (Gate 6G-H)
+-- =============================================================================
+-- Fresh fixture users/invitations — prospect@pgtap.local and
+-- stranger@pgtap.local were already consumed by the accept_tenant_invitation
+-- section above, and admin-c1 (c0000001-...0003) was deleted by the cascade
+-- test above, so owner-c1b (c0000001-...0002, demoted to 'admin' earlier in
+-- this file) stands in as the non-owner caller here.
+
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous
+) values
+  ('00000000-0000-0000-0000-000000000000', 'c0000009-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'stuck-invitee@pgtap.local', 'x', now(), now(), now(), '{}', '{}', false, false),
+  ('00000000-0000-0000-0000-000000000000', 'c0000009-0000-0000-0000-000000000004', 'authenticated', 'authenticated', 'cross-member@pgtap.local', 'x', now(), now(), now(), '{}', '{}', false, false),
+  ('00000000-0000-0000-0000-000000000000', 'c0000009-0000-0000-0000-000000000005', 'authenticated', 'authenticated', 'dual-pending@pgtap.local', 'x', now(), now(), now(), '{}', '{}', false, false);
+
+-- cross-member already has an ACTIVE membership in tenant C2.
+insert into public.tenant_memberships (id, tenant_id, user_id, status) values
+  ('d0000002-0000-0000-0000-000000000002', 'c2222222-2222-2222-2222-222222222222', 'c0000009-0000-0000-0000-000000000004', 'active');
+insert into public.membership_roles (membership_id, role) values
+  ('d0000002-0000-0000-0000-000000000002', 'viewer');
+
+insert into public.tenant_invitations (id, tenant_id, email, role, invited_by, status) values
+  ('e0000000-0000-0000-0000-000000000010', 'c1111111-1111-1111-1111-111111111111', 'stuck-invitee@pgtap.local', 'viewer', 'c0000001-0000-0000-0000-000000000001', 'pending'),
+  ('e0000000-0000-0000-0000-000000000011', 'c1111111-1111-1111-1111-111111111111', 'cross-member@pgtap.local', 'admin', 'c0000001-0000-0000-0000-000000000001', 'pending'),
+  ('e0000000-0000-0000-0000-000000000012', 'c1111111-1111-1111-1111-111111111111', 'dual-pending@pgtap.local', 'viewer', 'c0000001-0000-0000-0000-000000000001', 'pending'),
+  ('e0000000-0000-0000-0000-000000000013', 'c2222222-2222-2222-2222-222222222222', 'dual-pending@pgtap.local', 'admin', 'c0000002-0000-0000-0000-000000000001', 'pending');
+
+select set_config('request.jwt.claims', json_build_object('sub', 'c0000001-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
+select set_config('role', 'authenticated', true);
+
+select throws_ok(
+  $$ select * from public.owner_provision_invited_member('e0000000-0000-0000-0000-000000000010', 'viewer') $$,
+  '42501',
+  null,
+  'admin (non-owner) cannot call owner_provision_invited_member'
+);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select set_config('request.jwt.claims', json_build_object('sub', 'c0000001-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+select set_config('role', 'authenticated', true);
+
+select throws_ok(
+  $$ select * from public.owner_provision_invited_member('e0000000-0000-0000-0000-000000000010', 'admin') $$,
+  'Role mismatch with pending invitation',
+  'a submitted expectedRole that no longer matches the invitation''s actual role is rejected'
+);
+
+select throws_ok(
+  $$ select * from public.owner_provision_invited_member('e0000000-0000-0000-0000-000000000011', 'admin') $$,
+  'Target has membership in another tenant',
+  'a target with an active membership in a different tenant is rejected'
+);
+
+select throws_ok(
+  $$ select * from public.owner_provision_invited_member('e0000000-0000-0000-0000-000000000012', 'viewer') $$,
+  'cross_tenant_pending_invitation_conflict',
+  'a target with a still-pending invitation in a different tenant is rejected'
+);
+
+-- Neither rejected attempt above touched anything outside its own tenant/invitation.
+-- These rows belong to tenant C2, invisible to owner-c1 under RLS, so check
+-- them as superuser like every other raw-state assertion in this file.
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select status from public.tenant_invitations where id = 'e0000000-0000-0000-0000-000000000013'),
+  'pending'::public.tenant_invitation_status,
+  'the conflicting other-tenant invitation is untouched by the rejected attempt'
+);
+select is(
+  (select status from public.tenant_memberships where tenant_id = 'c2222222-2222-2222-2222-222222222222' and user_id = 'c0000009-0000-0000-0000-000000000004'),
+  'active'::public.membership_status,
+  'the cross-tenant member''s existing membership is untouched'
+);
+
+select set_config('request.jwt.claims', json_build_object('sub', 'c0000001-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+select set_config('role', 'authenticated', true);
+
+select lives_ok(
+  $$ select * from public.owner_provision_invited_member('e0000000-0000-0000-0000-000000000010', 'viewer') $$,
+  'owner can directly provision a stuck pending invitation for an existing auth.users account'
+);
+
+select is(
+  (select status from public.tenant_memberships where tenant_id = 'c1111111-1111-1111-1111-111111111111' and user_id = 'c0000009-0000-0000-0000-000000000003'),
+  'active'::public.membership_status,
+  'direct provisioning creates an active membership for the target'
+);
+select is(
+  (select role from public.membership_roles mr join public.tenant_memberships tm on tm.id = mr.membership_id
+     where tm.tenant_id = 'c1111111-1111-1111-1111-111111111111' and tm.user_id = 'c0000009-0000-0000-0000-000000000003'),
+  'viewer'::public.tenant_role,
+  'the invitation''s role (viewer) was assigned'
+);
+select is(
+  (select status from public.tenant_invitations where id = 'e0000000-0000-0000-0000-000000000010'),
+  'accepted'::public.tenant_invitation_status,
+  'the invitation is marked accepted'
+);
+select is(
+  (select accepted_by from public.tenant_invitations where id = 'e0000000-0000-0000-0000-000000000010'),
+  'c0000001-0000-0000-0000-000000000001'::uuid,
+  'accepted_by records the OWNER who performed the direct provisioning, not the target'
+);
+
+-- Idempotent retry: calling again with the same (now-accepted) invitation
+-- and the same expected role returns the same membership, not an error.
+select is(
+  (select membership_id from public.owner_provision_invited_member('e0000000-0000-0000-0000-000000000010', 'viewer')),
+  (select id from public.tenant_memberships where tenant_id = 'c1111111-1111-1111-1111-111111111111' and user_id = 'c0000009-0000-0000-0000-000000000003'),
+  'retrying an already-provisioned invitation is idempotent and returns the same membership_id'
+);
+
+select is(
+  (select count(*)::int from public.access_audit_events
+     where entity_type = 'tenant_membership' and action = 'member_direct_provisioned'
+       and entity_id = (select id from public.tenant_memberships where tenant_id = 'c1111111-1111-1111-1111-111111111111' and user_id = 'c0000009-0000-0000-0000-000000000003')),
+  1,
+  'exactly one member_direct_provisioned audit event exists even after the idempotent retry'
+);
+
+select ok(
+  exists (
+    select 1 from public.access_audit_events
+    where entity_type = 'tenant_membership'
+      and action = 'member_direct_provisioned'
+      and actor_user_id = 'c0000001-0000-0000-0000-000000000001'
+      and after_data->>'target_user_id' = 'c0000009-0000-0000-0000-000000000003'
+  ),
+  'member_direct_provisioned audit event is attributed to the owner and references the correct target'
+);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- =============================================================================
 -- AUDIT TRAIL
 -- =============================================================================
 

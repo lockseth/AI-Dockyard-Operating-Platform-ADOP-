@@ -318,6 +318,147 @@ describe("user-management — real local Supabase", () => {
     expect(error).not.toBeNull();
   });
 
+  it("owner directly provisions a stuck pending invitation for an existing account, and the resulting temporary password actually signs in (Gate 6G-H)", async () => {
+    const stuckInvitee = await createEphemeralMember({ emailPrefix: "um-stuck-invitee", memberships: [] });
+    createdUserIds.push(stuckInvitee.id);
+
+    const clientOwnerA = await signInAsMember(ownerA.email);
+    const { data: invitation, error: inviteError } = await createTenantInvitation(
+      clientOwnerA,
+      TENANT_A_ID,
+      stuckInvitee.email,
+      "viewer",
+    );
+    expect(inviteError).toBeNull();
+
+    const rpcResult = await clientOwnerA
+      .rpc("owner_provision_invited_member", {
+        p_invitation_id: invitation!.invitation_id,
+        p_expected_role: "viewer",
+      })
+      .single();
+    expect(rpcResult.error).toBeNull();
+    expect((rpcResult.data as { target_user_id: string } | null)?.target_user_id).toBe(stuckInvitee.id);
+
+    const { data: membership } = await admin
+      .from("tenant_memberships")
+      .select("id, status")
+      .eq("tenant_id", TENANT_A_ID)
+      .eq("user_id", stuckInvitee.id)
+      .single();
+    expect(membership?.status).toBe("active");
+
+    const { data: roleRow } = await admin
+      .from("membership_roles")
+      .select("role")
+      .eq("membership_id", membership!.id)
+      .single();
+    expect(roleRow?.role).toBe("viewer");
+
+    const { data: invitationRow } = await admin
+      .from("tenant_invitations")
+      .select("status, accepted_by")
+      .eq("id", invitation!.invitation_id)
+      .single();
+    expect(invitationRow?.status).toBe("accepted");
+    expect(invitationRow?.accepted_by).toBe(ownerA.id);
+
+    // The temp-password/email_confirm/app_metadata step is TS-side
+    // (admin-repository.ts's setTemporaryPasswordAndConfirm, unit-tested
+    // with mocks in service.test.ts) — here it's exercised for real against
+    // Supabase Auth, proving the actual contract: the freshly-set password
+    // must sign the target in, and must_change_password must be set.
+    const temporaryPassword = `Gate6GH-${crypto.randomUUID()}`;
+    const { error: updateError } = await admin.auth.admin.updateUserById(stuckInvitee.id, {
+      password: temporaryPassword,
+      email_confirm: true,
+      app_metadata: { must_change_password: true },
+    });
+    expect(updateError).toBeNull();
+
+    const { data: fetchedUser } = await admin.auth.admin.getUserById(stuckInvitee.id);
+    expect(fetchedUser.user?.app_metadata?.must_change_password).toBe(true);
+
+    const signInClient = await signInAsMember(stuckInvitee.email).catch(() => null);
+    // signInAsMember uses the shared EPHEMERAL_PASSWORD fixture, not the
+    // freshly-issued one — sign in directly with the temporary password
+    // instead to prove *that* password is the one that actually works now.
+    const { createClient } = await import("@supabase/supabase-js");
+    const rawClient = createClient(SUPABASE_URL!, ANON_KEY!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: signInData, error: signInError } = await rawClient.auth.signInWithPassword({
+      email: stuckInvitee.email,
+      password: temporaryPassword,
+    });
+    expect(signInError).toBeNull();
+    expect(signInData.session).toBeTruthy();
+    expect(signInClient).toBeNull(); // the old ephemeral password no longer works
+  });
+
+  it("retrying owner_provision_invited_member on an already-provisioned invitation is idempotent — same membership, exactly one audit event", async () => {
+    const idempotentInvitee = await createEphemeralMember({ emailPrefix: "um-idempotent-invitee", memberships: [] });
+    createdUserIds.push(idempotentInvitee.id);
+
+    const clientOwnerA = await signInAsMember(ownerA.email);
+    const { data: invitation } = await createTenantInvitation(
+      clientOwnerA,
+      TENANT_A_ID,
+      idempotentInvitee.email,
+      "admin",
+    );
+
+    const first = await clientOwnerA
+      .rpc("owner_provision_invited_member", {
+        p_invitation_id: invitation!.invitation_id,
+        p_expected_role: "admin",
+      })
+      .single();
+    expect(first.error).toBeNull();
+
+    const second = await clientOwnerA
+      .rpc("owner_provision_invited_member", {
+        p_invitation_id: invitation!.invitation_id,
+        p_expected_role: "admin",
+      })
+      .single();
+    expect(second.error).toBeNull();
+    expect((second.data as { membership_id: string } | null)?.membership_id).toBe(
+      (first.data as { membership_id: string } | null)?.membership_id,
+    );
+
+    const { count } = await admin
+      .from("access_audit_events")
+      .select("id", { count: "exact", head: true })
+      .eq("action", "member_direct_provisioned")
+      .eq("entity_id", (first.data as { membership_id: string }).membership_id);
+    expect(count).toBe(1);
+  });
+
+  it("owner cannot provision an invitation whose target already has an active membership in another tenant", async () => {
+    const crossTenantMember = await createEphemeralMember({
+      emailPrefix: "um-cross-tenant-member",
+      memberships: [{ tenantId: TENANT_B_ID, role: "viewer" }],
+    });
+    createdUserIds.push(crossTenantMember.id);
+
+    const clientOwnerA = await signInAsMember(ownerA.email);
+    const { data: invitation } = await createTenantInvitation(
+      clientOwnerA,
+      TENANT_A_ID,
+      crossTenantMember.email,
+      "viewer",
+    );
+
+    const { error } = await clientOwnerA
+      .rpc("owner_provision_invited_member", {
+        p_invitation_id: invitation!.invitation_id,
+        p_expected_role: "viewer",
+      })
+      .single();
+    expect(error).not.toBeNull();
+  });
+
   it("audit events for accepted invitations never contain a password or token value", async () => {
     const { data: events } = await admin
       .from("access_audit_events")

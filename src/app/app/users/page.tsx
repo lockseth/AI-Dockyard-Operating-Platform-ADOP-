@@ -7,6 +7,7 @@ import { CollapsibleCreatePanel } from "@/components/master-data/CollapsibleCrea
 import { AccessDenied } from "./AccessDenied";
 import { InviteUserForm } from "./InviteUserForm";
 import { MemberRow } from "./MemberRow";
+import { ProvisionInvitedMemberButton } from "./ProvisionInvitedMemberButton";
 
 export default async function UsersPage() {
   const context = await requireTenantContext();
@@ -73,6 +74,7 @@ export default async function UsersPage() {
                     <th className="px-4 py-3">Email</th>
                     <th className="px-4 py-3">Role</th>
                     <th className="px-4 py-3">Kedaluwarsa</th>
+                    {canManage ? <th className="px-4 py-3" /> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -83,6 +85,11 @@ export default async function UsersPage() {
                       <td className="px-4 py-3 text-neutral-500">
                         {new Date(invitation.expiresAt).toLocaleDateString("id-ID")}
                       </td>
+                      {canManage ? (
+                        <td className="px-4 py-3 text-right">
+                          <ProvisionInvitedMemberButton invitation={invitation} />
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>

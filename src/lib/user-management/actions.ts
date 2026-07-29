@@ -3,14 +3,21 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { UnauthorizedTenantRoleError } from "@/lib/auth/tenant";
-import { acceptInvitation, changeMembershipRole, inviteMember, setMembershipStatus } from "./service";
+import {
+  acceptInvitation,
+  changeMembershipRole,
+  inviteMember,
+  provisionInvitedMemberDirectly,
+  setMembershipStatus,
+} from "./service";
 import {
   parseAcceptInvitationFormData,
   parseChangeMembershipRoleFormData,
   parseInviteMemberFormData,
+  parseProvisionInvitedMemberFormData,
   parseSetMembershipStatusFormData,
 } from "./validation";
-import type { UserManagementActionResult } from "./types";
+import type { ProvisionInvitedMemberActionResult, UserManagementActionResult } from "./types";
 
 const USERS_PATH = "/app/users";
 
@@ -112,4 +119,29 @@ export async function acceptInvitationAction(
   // /app directly, multiple -> /select-tenant) — reuses the existing
   // resolver instead of re-implementing that branching here.
   redirect("/tenant/resolve");
+}
+
+// Deliberately does NOT redirect on success (unlike acceptInvitationAction)
+// — the owner stays on /app/users so the one-time temporary password in the
+// returned state can actually be displayed.
+export async function provisionInvitedMemberDirectlyAction(
+  _prevState: ProvisionInvitedMemberActionResult,
+  formData: FormData,
+): Promise<ProvisionInvitedMemberActionResult> {
+  const parsed = parseProvisionInvitedMemberFormData(formData);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  let result: ProvisionInvitedMemberActionResult;
+  try {
+    result = await provisionInvitedMemberDirectly(parsed.data);
+  } catch (error) {
+    return mapThrown(error);
+  }
+
+  if (!result.error) {
+    revalidatePath(USERS_PATH);
+  }
+  return result;
 }

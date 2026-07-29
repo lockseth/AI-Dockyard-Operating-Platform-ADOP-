@@ -59,6 +59,31 @@ describe("mapUserManagementError", () => {
     );
   });
 
+  it("maps every owner_provision_invited_member STOP condition (Gate 6G-H) to a distinct friendly message", () => {
+    expect(
+      mapUserManagementError(pgError("P000F", "cross_tenant_pending_invitation_conflict")),
+    ).toMatch(/tenant lain/);
+    expect(
+      mapUserManagementError(pgError("P000E", "Target has membership in another tenant")),
+    ).toBe("Pengguna ini sudah memiliki keanggotaan aktif atau nonaktif pada tenant lain.");
+    expect(mapUserManagementError(pgError("P000D", "Target identity is ambiguous"))).toBe(
+      "Identitas pengguna untuk email ini tidak dapat dipastikan.",
+    );
+    expect(
+      mapUserManagementError(pgError("P000C", "Role mismatch with pending invitation")),
+    ).toMatch(/Role yang diminta/);
+    expect(
+      mapUserManagementError(pgError("P000H", "Target already has a membership in this tenant")),
+    ).toBe("Pengguna ini sudah memiliki keanggotaan pada tenant ini.");
+    expect(
+      mapUserManagementError(pgError("P000B", "Invitation already accepted with a different outcome")),
+    ).toMatch(/hasil yang berbeda/);
+    expect(mapUserManagementError(pgError("P0004", "Invitation is not pending"))).toBe(
+      "Undangan ini tidak lagi berstatus tertunda.",
+    );
+    expect(mapUserManagementError(pgError("P000G", "Invitation state conflict"))).toMatch(/Muat ulang/);
+  });
+
   it("maps a generic 'Not authorized' RPC rejection to a permission message", () => {
     expect(mapUserManagementError(pgError("42501", "Not authorized to invite members to this tenant"))).toBe(
       "Anda tidak memiliki izin untuk melakukan aksi ini.",

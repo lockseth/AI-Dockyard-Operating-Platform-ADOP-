@@ -30,15 +30,48 @@ export function mapUserManagementError(error: PostgrestError | null | undefined)
   if (message.includes("does not belong to the current user")) {
     return "Undangan ini tidak berlaku untuk akun Anda.";
   }
+  // Checked before the generic "already accepted" match below — this
+  // message contains that same substring, but is a distinct
+  // owner_provision_invited_member outcome (Gate 6G-H) that needs its own
+  // text, not accept_tenant_invitation's.
+  if (message.includes("Invitation already accepted with a different outcome")) {
+    return "Undangan ini sudah diproses sebelumnya dengan hasil yang berbeda.";
+  }
   if (message.includes("already accepted")) {
     return "Undangan ini sudah diterima sebelumnya.";
   }
   // Note: the expired-but-still-pending case is never surfaced as a thrown
-  // Postgres error — accept_tenant_invitation returns NULL for it instead
-  // (see the migration comment), and service.ts's acceptInvitation() maps
-  // that null result to the "invalid/expired" message directly.
+  // Postgres error — accept_tenant_invitation and owner_provision_invited_
+  // member both return a NULL result for it instead (see their migration
+  // comments), and service.ts maps that null result to the "invalid/
+  // expired" message directly.
   if (message.includes("Not authorized")) {
     return "Anda tidak memiliki izin untuk melakukan aksi ini.";
+  }
+
+  // public.owner_provision_invited_member's distinct STOP conditions (Gate
+  // 6G-H) — each raised message is matched by substring the same way as the
+  // block above, so this can share the same generic fallback/switch below.
+  if (message.includes("cross_tenant_pending_invitation_conflict")) {
+    return "Email ini masih memiliki undangan tertunda pada tenant lain. Selesaikan konflik tersebut terlebih dahulu.";
+  }
+  if (message.includes("Target has membership in another tenant")) {
+    return "Pengguna ini sudah memiliki keanggotaan aktif atau nonaktif pada tenant lain.";
+  }
+  if (message.includes("Target identity is ambiguous")) {
+    return "Identitas pengguna untuk email ini tidak dapat dipastikan.";
+  }
+  if (message.includes("Role mismatch with pending invitation")) {
+    return "Role yang diminta tidak lagi sesuai dengan undangan yang tertunda. Muat ulang halaman.";
+  }
+  if (message.includes("Target already has a membership in this tenant")) {
+    return "Pengguna ini sudah memiliki keanggotaan pada tenant ini.";
+  }
+  if (message.includes("Invitation is not pending")) {
+    return "Undangan ini tidak lagi berstatus tertunda.";
+  }
+  if (message.includes("Invitation state conflict")) {
+    return "Status undangan ini berubah secara tak terduga. Muat ulang halaman dan coba lagi.";
   }
 
   switch (error.code) {

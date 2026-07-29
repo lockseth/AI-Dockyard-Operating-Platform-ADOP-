@@ -5,10 +5,12 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 const ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiJ9.fake-access-token-payload.signature";
 const REFRESH_TOKEN = "fake-refresh-token-value-should-never-leak";
 
-const setSession = vi.fn(async () => ({ error: null as { message: string } | null }));
+const setSession = vi.fn(async (_credentials: { access_token: string; refresh_token: string }) => ({
+  error: null as { message: string } | null,
+}));
 vi.mock("@/lib/supabase/client", () => ({
   createSupabaseBrowserClient: () => ({
-    auth: { setSession: (...args: [unknown]) => setSession(...args) },
+    auth: { setSession: (credentials: { access_token: string; refresh_token: string }) => setSession(credentials) },
   }),
 }));
 

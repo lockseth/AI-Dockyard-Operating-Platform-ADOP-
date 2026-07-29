@@ -7,10 +7,12 @@ vi.mock("@/lib/auth/tenant", async (importOriginal) => {
 });
 
 const inviteUserByEmail = vi.fn();
-vi.mock("./admin-repository", () => ({ inviteUserByEmail }));
+const setTemporaryPasswordAndConfirm = vi.fn();
+vi.mock("./admin-repository", () => ({ inviteUserByEmail, setTemporaryPasswordAndConfirm }));
 
 const createTenantInvitationRpc = vi.fn();
 const acceptTenantInvitationRpc = vi.fn();
+const ownerProvisionInvitedMemberRpc = vi.fn();
 const setMembershipRoleRpc = vi.fn();
 const setMembershipStatusRpc = vi.fn();
 const listTenantMembers = vi.fn();
@@ -19,6 +21,7 @@ const listPendingInvitationsForCurrentUser = vi.fn();
 vi.mock("./repository", () => ({
   createTenantInvitationRpc,
   acceptTenantInvitationRpc,
+  ownerProvisionInvitedMemberRpc,
   setMembershipRoleRpc,
   setMembershipStatusRpc,
   listTenantMembers,
@@ -141,6 +144,75 @@ describe("acceptInvitation", () => {
     const result = await acceptInvitation("invitation-1");
 
     expect(result).toEqual({});
+  });
+});
+
+describe("provisionInvitedMemberDirectly", () => {
+  it("rejects a non-owner actor before ever calling the RPC", async () => {
+    requireTenantContext.mockResolvedValue(ADMIN_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { provisionInvitedMemberDirectly } = await import("./service");
+
+    await expect(
+      provisionInvitedMemberDirectly({ invitationId: "invitation-1", expectedRole: "viewer" }),
+    ).rejects.toThrow(UnauthorizedTenantRoleError);
+    expect(ownerProvisionInvitedMemberRpc).not.toHaveBeenCalled();
+  });
+
+  it("maps a thrown RPC error (e.g. cross-tenant conflict) via mapUserManagementError", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerProvisionInvitedMemberRpc.mockResolvedValue({
+      data: null,
+      error: { code: "P000F", message: "cross_tenant_pending_invitation_conflict" },
+    });
+    const { provisionInvitedMemberDirectly } = await import("./service");
+
+    const result = await provisionInvitedMemberDirectly({ invitationId: "invitation-1", expectedRole: "viewer" });
+
+    expect(result.error).toMatch(/tenant lain/);
+    expect(setTemporaryPasswordAndConfirm).not.toHaveBeenCalled();
+  });
+
+  it("maps a null (non-error) result — expired-but-pending — to the invalid/expired message", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerProvisionInvitedMemberRpc.mockResolvedValue({ data: null, error: null });
+    const { provisionInvitedMemberDirectly } = await import("./service");
+
+    const result = await provisionInvitedMemberDirectly({ invitationId: "invitation-1", expectedRole: "viewer" });
+
+    expect(result.error).toBe("Undangan tidak valid, sudah kedaluwarsa, atau bukan lagi berstatus pending.");
+    expect(setTemporaryPasswordAndConfirm).not.toHaveBeenCalled();
+  });
+
+  it("on success, sets a temporary password for the resolved target and returns it", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerProvisionInvitedMemberRpc.mockResolvedValue({
+      data: { membershipId: "membership-1", targetUserId: "target-user-1" },
+      error: null,
+    });
+    setTemporaryPasswordAndConfirm.mockResolvedValue({ temporaryPassword: "Sup3r-Secret-Temp!" });
+    const { provisionInvitedMemberDirectly } = await import("./service");
+
+    const result = await provisionInvitedMemberDirectly({ invitationId: "invitation-1", expectedRole: "viewer" });
+
+    expect(result).toEqual({ temporaryPassword: "Sup3r-Secret-Temp!" });
+    expect(setTemporaryPasswordAndConfirm).toHaveBeenCalledWith("target-user-1");
+  });
+
+  it("reports a generic error and never surfaces a password when the membership succeeds but the password step fails", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerProvisionInvitedMemberRpc.mockResolvedValue({
+      data: { membershipId: "membership-1", targetUserId: "target-user-1" },
+      error: null,
+    });
+    setTemporaryPasswordAndConfirm.mockResolvedValue({ error: "admin api unreachable" });
+    const { provisionInvitedMemberDirectly } = await import("./service");
+
+    const result = await provisionInvitedMemberDirectly({ invitationId: "invitation-1", expectedRole: "viewer" });
+
+    expect(result.temporaryPassword).toBeUndefined();
+    expect(result.error).toBeTruthy();
+    expect(JSON.stringify(result)).not.toMatch(/admin api unreachable/);
   });
 });
 

@@ -134,6 +134,39 @@ export async function acceptTenantInvitationRpc(invitationId: string) {
   return supabase.rpc("accept_tenant_invitation", { p_invitation_id: invitationId });
 }
 
+export interface OwnerProvisionInvitedMemberRpcResult {
+  membershipId: string;
+  targetUserId: string;
+}
+
+// Wraps public.owner_provision_invited_member — the recovery path for a
+// pending invitation whose target already has an auth.users account but
+// never received a working accept link. Every safety check (authorization,
+// cross-tenant conflicts, role match, identity ambiguity, idempotent retry)
+// happens inside the RPC; this only translates the call. The RPC always
+// returns exactly one row (even for the expired case, as (null, null)) so
+// `.single()` never sees "no rows" — a null `data.membershipId` with no
+// error means the invitation was pending but expired (same non-error-NULL
+// convention as acceptTenantInvitationRpc, just table-shaped instead of
+// scalar-shaped).
+export async function ownerProvisionInvitedMemberRpc(
+  invitationId: string,
+  expectedRole: TenantRole,
+): Promise<{ data: OwnerProvisionInvitedMemberRpcResult | null; error: PostgrestError | null }> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .rpc("owner_provision_invited_member", { p_invitation_id: invitationId, p_expected_role: expectedRole })
+    .single();
+
+  if (error || !data || !data.membership_id) {
+    return { data: null, error };
+  }
+  return {
+    data: { membershipId: data.membership_id, targetUserId: data.target_user_id },
+    error: null,
+  };
+}
+
 // Wraps public.set_membership_role — authorization (owner of the
 // membership's tenant), self-target rejection, and the atomic
 // delete-existing-roles-then-insert-one all happen inside the RPC.
