@@ -44,20 +44,66 @@ const rawSenderToE164 = z
     return normalized;
   });
 
+// Fonnte's real inbound webhook has no verified stable message id (Gate
+// 6J-C1 audit: senderid is a sender identity/LID, inboxid can be 0/absent)
+// — normalized to a canonical decimal string (no leading zeros) so the
+// same instant always serializes identically, which the Gate 6J-C1
+// derive-provider-message-id.ts hash depends on for determinism.
+const UNIX_SECONDS_PATTERN = /^\d{1,10}$/;
+
+const providerTimestampSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .transform((value, ctx) => {
+    if (!UNIX_SECONDS_PATTERN.test(value)) {
+      ctx.addIssue({ code: "custom", message: "providerTimestamp must be a Unix-seconds numeric string." });
+      return z.NEVER;
+    }
+    return String(Number(value));
+  });
+
 // Canonical envelope n8n's HTTP Request node posts — minimum fields per
 // task LOCK A. Deliberately strict, small bounds: this is an internal
 // n8n-only contract, not a public form. messageText is capped well below
 // WhatsApp's own ~4096 character limit and is NEVER persisted or logged
 // (task LOCK: "jangan log messageText").
-export const assistantInboundEnvelopeSchema = z.object({
-  provider: z.string().trim().min(1).max(50),
-  providerMessageId: z.string().trim().min(1).max(200),
-  channel: z.literal("whatsapp"),
-  senderAddress: rawSenderToE164,
-  receiverAddress: rawSenderToE164.optional(),
-  messageText: z.string().max(4096),
-  providerTimestamp: z.string().trim().min(1).max(64),
-});
+//
+// providerMessageId is optional ONLY because Fonnte (Gate 6J-C1) has no
+// verified stable inbound message id — when n8n omits it, handler.ts
+// derives one server-side (deriveFonnteProviderMessageId) instead. The
+// superRefine below is the fail-closed gate for that: absence is only
+// legal for provider "fonnte" AND only when receiverAddress (the Fonnte
+// device id) is present, since the derivation needs it.
+export const assistantInboundEnvelopeSchema = z
+  .object({
+    provider: z.string().trim().min(1).max(50),
+    providerMessageId: z.string().trim().min(1).max(200).optional(),
+    channel: z.literal("whatsapp"),
+    senderAddress: rawSenderToE164,
+    receiverAddress: rawSenderToE164.optional(),
+    messageText: z.string().max(4096),
+    providerTimestamp: providerTimestampSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.providerMessageId) return;
+    if (value.provider !== "fonnte") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["providerMessageId"],
+        message: "providerMessageId is required unless provider is fonnte.",
+      });
+      return;
+    }
+    if (!value.receiverAddress) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["receiverAddress"],
+        message: "receiverAddress is required to derive a Fonnte providerMessageId.",
+      });
+    }
+  });
 export type AssistantInboundEnvelopeInput = z.infer<typeof assistantInboundEnvelopeSchema>;
 
 // Hard cap on the raw request body the route will even attempt to parse —

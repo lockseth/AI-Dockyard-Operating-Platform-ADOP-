@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { completeOwnerAdminPairing } from "@/lib/assistant-identity/admin-repository";
+import { deriveFonnteProviderMessageId } from "./derive-provider-message-id";
 import { parseAssistantInboundCommand } from "./parser";
 import {
   claimInboundAssistantEvent,
@@ -23,15 +24,13 @@ const RATE_LIMIT_MAX_PER_WINDOW = 10;
 // Digest of the VALIDATED envelope fields alone — never the raw request
 // body or messageText content (task LOCK A: "jangan simpan raw provider
 // payload"). Field order is fixed so the digest is deterministic across
-// retries of the exact same delivery.
-function payloadDigestOf(envelope: AssistantInboundEnvelopeInput): string {
-  const canonical = [
-    envelope.provider,
-    envelope.providerMessageId,
-    envelope.channel,
-    envelope.senderAddress,
-    envelope.providerTimestamp,
-  ].join("|");
+// retries of the exact same delivery. providerMessageId is passed in
+// explicitly (rather than read off envelope) because it may have been
+// derived server-side — see deriveFonnteProviderMessageId.
+function payloadDigestOf(envelope: AssistantInboundEnvelopeInput, providerMessageId: string): string {
+  const canonical = [envelope.provider, providerMessageId, envelope.channel, envelope.senderAddress, envelope.providerTimestamp].join(
+    "|",
+  );
   return createHash("sha256").update(canonical, "utf8").digest("hex");
 }
 
@@ -78,12 +77,18 @@ function mapVerificationOutcomeToSafeReply(outcome: string): SafeReplyCode {
 export async function handleAssistantInboundEvent(
   envelope: AssistantInboundEnvelopeInput,
 ): Promise<AssistantInboundOutcome> {
+  // n8n omits providerMessageId when Fonnte's inboxid is 0/absent — derive
+  // a deterministic id here rather than treating the delivery as unclaimable
+  // (Gate 6J-C1: derivation happens on the ADOP server, before the claim
+  // RPC, never in n8n).
+  const providerMessageId = envelope.providerMessageId ?? deriveFonnteProviderMessageId(envelope);
+
   const parsedCommand = parseAssistantInboundCommand(envelope.messageText);
 
   const { eventId, isNew } = await claimInboundAssistantEvent({
     provider: envelope.provider,
-    providerMessageId: envelope.providerMessageId,
-    payloadDigest: payloadDigestOf(envelope),
+    providerMessageId,
+    payloadDigest: payloadDigestOf(envelope, providerMessageId),
     channel: envelope.channel,
     senderAddress: envelope.senderAddress,
     commandType: parsedCommand.type,
@@ -92,7 +97,7 @@ export async function handleAssistantInboundEvent(
   if (!isNew) {
     return {
       httpResult: "duplicate",
-      reply: { replyRequired: false, safeReplyCode: "duplicate", providerMessageId: envelope.providerMessageId },
+      reply: { replyRequired: false, safeReplyCode: "duplicate", providerMessageId },
     };
   }
 
@@ -103,7 +108,7 @@ export async function handleAssistantInboundEvent(
       reply: {
         replyRequired: false,
         safeReplyCode: "ignored_unsupported_command",
-        providerMessageId: envelope.providerMessageId,
+        providerMessageId,
       },
     };
   }
@@ -119,7 +124,7 @@ export async function handleAssistantInboundEvent(
     await recordInboundAssistantEventResult({ eventId, resultCode: "rate_limited" });
     return {
       httpResult: "processed",
-      reply: { replyRequired: false, safeReplyCode: "rate_limited", providerMessageId: envelope.providerMessageId },
+      reply: { replyRequired: false, safeReplyCode: "rate_limited", providerMessageId },
     };
   }
 
@@ -148,7 +153,7 @@ export async function handleAssistantInboundEvent(
     reply: {
       replyRequired: isReplyRequired(safeReplyCode),
       safeReplyCode,
-      providerMessageId: envelope.providerMessageId,
+      providerMessageId,
     },
   };
 }

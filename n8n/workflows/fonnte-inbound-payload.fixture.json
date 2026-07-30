@@ -1,0 +1,32 @@
+{
+  "withInboxId": {
+    "device": "6289999999999",
+    "sender": "6281234567890",
+    "name": "Test User",
+    "message": "PAIR ABCDEF",
+    "text": "",
+    "senderid": "123456789012345@lid",
+    "inboxid": 482913,
+    "timestamp": "1783148400"
+  },
+  "withoutInboxId": {
+    "device": "6289999999999",
+    "sender": "6281234567890",
+    "name": "Test User",
+    "message": "VERIFY 234HJK",
+    "text": "",
+    "senderid": "123456789012345@lid",
+    "inboxid": 0,
+    "timestamp": "1783148460"
+  },
+  "buttonReplyShape": {
+    "device": "6289999999999",
+    "sender": "6281234567890",
+    "name": "Test User",
+    "message": "PAIR ABCDEF",
+    "text": "Ya, lanjutkan",
+    "senderid": "123456789012345@lid",
+    "inboxid": 0,
+    "timestamp": "1783148520"
+  }
+}

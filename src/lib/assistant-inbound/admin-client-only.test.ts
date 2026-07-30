@@ -22,6 +22,7 @@ describe("assistant-inbound admin client boundary", () => {
       "signature.ts",
       "safe-replies.ts",
       "handler.ts",
+      "derive-provider-message-id.ts",
     ]) {
       const source = readFileSync(path.resolve(__dirname, file), "utf8");
       expect(source).not.toMatch(/createSupabaseAdminClient/);

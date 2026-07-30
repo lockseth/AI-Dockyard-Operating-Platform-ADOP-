@@ -4,6 +4,13 @@ import { describe, expect, it } from "vitest";
 import { getSafeReplyText } from "@/lib/assistant-inbound/safe-replies";
 import type { SafeReplyCode } from "@/lib/assistant-inbound/types";
 
+// Gate 6J-C1 verified-capture fixture — synthetic field shape only, no real
+// number/credential (see fixture file header-less content; values mirror
+// the repeating-digit placeholders already used across this suite's other
+// tests, e.g. src/lib/assistant-inbound/validation.test.ts).
+const FONNTE_FIXTURE_PATH = path.resolve(__dirname, "fonnte-inbound-payload.fixture.json");
+const fonnteFixtures = JSON.parse(readFileSync(FONNTE_FIXTURE_PATH, "utf8")) as Record<string, Record<string, unknown>>;
+
 // Structural/security contract for the canonical n8n workflow — this gate
 // never imports/activates the hosted n8n runtime (task LOCK), so this test
 // can only validate the JSON graph itself: node uniqueness, connection
@@ -46,6 +53,18 @@ function findNode(name: string): WorkflowNode {
   const node = workflow.nodes.find((n) => n.name === name);
   if (!node) throw new Error(`node not found: ${name}`);
   return node;
+}
+
+// Actually executes the Normalize Provider Payload node's real jsCode
+// against a fixture payload (rather than regex-matching the source), the
+// same way n8n's Code node would run it: $input.item.json in, [{ json }]
+// out.
+function runNormalizeNode(payload: unknown): { envelope: Record<string, unknown>; canonicalBody: string } {
+  const node = findNode("Normalize Provider Payload");
+  const jsCode = node.parameters?.jsCode as string;
+  const fn = new Function("$input", jsCode) as (input: { item: { json: unknown } }) => Array<{ json: unknown }>;
+  const result = fn({ item: { json: payload } });
+  return result[0].json as { envelope: Record<string, unknown>; canonicalBody: string };
 }
 
 describe("gema-assistant-inbound-pair-verify.json — n8n workflow contract", () => {
@@ -153,5 +172,64 @@ describe("gema-assistant-inbound-pair-verify.json — n8n workflow contract", ()
     const bodyParameters = sendNode.parameters?.bodyParameters as { parameters: Array<{ name: string; value: string }> };
     const messageParam = bodyParameters.parameters.find((p) => p.name === "message");
     expect(messageParam?.value).toBe("={{ $json.replyText }}");
+  });
+
+  describe("Normalize Provider Payload — Gate 6J-C1 verified Fonnte payload shape", () => {
+    it("maps device -> receiverAddress, sender -> senderAddress, message -> messageText, timestamp -> providerTimestamp verbatim", () => {
+      const { envelope } = runNormalizeNode(fonnteFixtures.withInboxId);
+      expect(envelope.receiverAddress).toBe("6289999999999");
+      expect(envelope.senderAddress).toBe("6281234567890");
+      expect(envelope.messageText).toBe("PAIR ABCDEF");
+      expect(envelope.providerTimestamp).toBe("1783148400");
+    });
+
+    it("emits a namespaced fonnte:inbox:<id> providerMessageId when inboxid is a positive integer", () => {
+      const { envelope } = runNormalizeNode(fonnteFixtures.withInboxId);
+      expect(envelope.providerMessageId).toBe("fonnte:inbox:482913");
+    });
+
+    it("omits providerMessageId entirely (never an empty string) when inboxid is 0", () => {
+      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.withoutInboxId);
+      expect(envelope).not.toHaveProperty("providerMessageId");
+      expect(JSON.parse(canonicalBody)).not.toHaveProperty("providerMessageId");
+    });
+
+    it("never uses senderid as providerMessageId", () => {
+      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.withInboxId);
+      expect(envelope.providerMessageId).not.toContain("@lid");
+      expect(canonicalBody).not.toMatch(/@lid/);
+    });
+
+    it("never falls back to Fonnte's button-text field for messageText", () => {
+      const { envelope } = runNormalizeNode(fonnteFixtures.buttonReplyShape);
+      expect(envelope.messageText).toBe("PAIR ABCDEF");
+      expect(envelope.messageText).not.toBe("Ya, lanjutkan");
+    });
+
+    it("the canonicalBody sent to ADOP is the exact same object Sign Canonical Request will HMAC", () => {
+      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.withInboxId);
+      expect(JSON.parse(canonicalBody)).toEqual(envelope);
+    });
+  });
+
+  describe("Validate Required Fields — Gate 6J-C1", () => {
+    const validateNode = findNode("Validate Required Fields");
+
+    it("no longer requires providerMessageId (Fonnte legitimately omits it)", () => {
+      const conditions = (
+        validateNode.parameters?.conditions as { conditions: Array<{ id: string; leftValue: string }> }
+      ).conditions;
+      expect(conditions.some((c) => c.id === "has-provider-message-id")).toBe(false);
+    });
+
+    it("requires senderAddress, receiverAddress, messageText, and providerTimestamp", () => {
+      const conditions = (
+        validateNode.parameters?.conditions as { conditions: Array<{ id: string; leftValue: string }> }
+      ).conditions;
+      const ids = conditions.map((c) => c.id);
+      expect(ids).toEqual(
+        expect.arrayContaining(["has-sender-address", "has-receiver-address", "has-message-text", "has-provider-timestamp"]),
+      );
+    });
   });
 });

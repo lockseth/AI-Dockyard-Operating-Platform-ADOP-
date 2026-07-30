@@ -34,13 +34,15 @@ function buildRequest(
   });
 }
 
+// providerTimestamp is Unix seconds — Gate 6J-C1's verified Fonnte capture,
+// not the previously-assumed ISO-8601 string.
 const VALID_ENVELOPE = {
   provider: "fonnte",
-  providerMessageId: "wamid.1",
+  providerMessageId: "fonnte:inbox:482913",
   channel: "whatsapp",
   senderAddress: "+6281234567890",
   messageText: "PAIR ABCDEF",
-  providerTimestamp: "2026-07-30T07:00:00.000Z",
+  providerTimestamp: "1783148400",
 };
 
 describe("POST /api/internal/assistant/inbound", () => {
@@ -138,7 +140,7 @@ describe("POST /api/internal/assistant/inbound", () => {
   it("dispatches to handleAssistantInboundEvent and returns its outcome when every gate passes", async () => {
     handleAssistantInboundEvent.mockResolvedValue({
       httpResult: "processed",
-      reply: { replyRequired: true, safeReplyCode: "paired", providerMessageId: "wamid.1" },
+      reply: { replyRequired: true, safeReplyCode: "paired", providerMessageId: "fonnte:inbox:482913" },
     });
     const rawBody = JSON.stringify(VALID_ENVELOPE);
     const { POST } = await import("./route");
@@ -147,7 +149,7 @@ describe("POST /api/internal/assistant/inbound", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       result: "processed",
-      reply: { replyRequired: true, safeReplyCode: "paired", providerMessageId: "wamid.1" },
+      reply: { replyRequired: true, safeReplyCode: "paired", providerMessageId: "fonnte:inbox:482913" },
     });
     expect(handleAssistantInboundEvent).toHaveBeenCalledTimes(1);
   });
@@ -155,7 +157,7 @@ describe("POST /api/internal/assistant/inbound", () => {
   it("never accepts a forged tenantId field in the body — it is dropped before reaching the handler", async () => {
     handleAssistantInboundEvent.mockResolvedValue({
       httpResult: "processed",
-      reply: { replyRequired: true, safeReplyCode: "paired", providerMessageId: "wamid.1" },
+      reply: { replyRequired: true, safeReplyCode: "paired", providerMessageId: "fonnte:inbox:482913" },
     });
     const rawBody = JSON.stringify({ ...VALID_ENVELOPE, tenantId: "forged-tenant" });
     const { POST } = await import("./route");

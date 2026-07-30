@@ -152,6 +152,47 @@ describe("handleAssistantInboundEvent", () => {
     expect(outcome.reply.safeReplyCode).toBe(expected);
   });
 
+  it("derives a deterministic providerMessageId when Fonnte omits it (inboxid 0/absent), and uses it for the claim and reply", async () => {
+    completeOwnerAdminPairing.mockResolvedValue({
+      result: { outcome: "verified", identityId: "id-1", tenantId: "t-1", userId: "u-1", verifiedAt: "now" },
+    });
+    const { handleAssistantInboundEvent } = await import("./handler");
+    const envelopeWithoutId = { ...BASE_ENVELOPE, providerMessageId: undefined, receiverAddress: "+6289999999999" };
+
+    const outcome = await handleAssistantInboundEvent(envelopeWithoutId);
+
+    expect(outcome.reply.providerMessageId).toMatch(/^fonnte:derived:v1:[0-9a-f]{64}$/);
+    expect(claimInboundAssistantEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ providerMessageId: outcome.reply.providerMessageId }),
+    );
+  });
+
+  it("derives the exact same providerMessageId across two calls with an identical retried payload (idempotent by construction)", async () => {
+    completeOwnerAdminPairing.mockResolvedValue({
+      result: { outcome: "verified", identityId: "id-1", tenantId: "t-1", userId: "u-1", verifiedAt: "now" },
+    });
+    const { handleAssistantInboundEvent } = await import("./handler");
+    const envelopeWithoutId = { ...BASE_ENVELOPE, providerMessageId: undefined, receiverAddress: "+6289999999999" };
+
+    const first = await handleAssistantInboundEvent({ ...envelopeWithoutId });
+    const second = await handleAssistantInboundEvent({ ...envelopeWithoutId });
+
+    expect(first.reply.providerMessageId).toBe(second.reply.providerMessageId);
+  });
+
+  it("derives a different providerMessageId when only providerTimestamp changes between two otherwise-identical deliveries", async () => {
+    completeOwnerAdminPairing.mockResolvedValue({
+      result: { outcome: "verified", identityId: "id-1", tenantId: "t-1", userId: "u-1", verifiedAt: "now" },
+    });
+    const { handleAssistantInboundEvent } = await import("./handler");
+    const envelopeWithoutId = { ...BASE_ENVELOPE, providerMessageId: undefined, receiverAddress: "+6289999999999" };
+
+    const first = await handleAssistantInboundEvent({ ...envelopeWithoutId, providerTimestamp: "1783148400" });
+    const second = await handleAssistantInboundEvent({ ...envelopeWithoutId, providerTimestamp: "1783148401" });
+
+    expect(first.reply.providerMessageId).not.toBe(second.reply.providerMessageId);
+  });
+
   it("passes the claim a payload digest that never contains the message text itself", async () => {
     completeOwnerAdminPairing.mockResolvedValue({
       result: { outcome: "verified", identityId: "id-1", tenantId: "t-1", userId: "u-1", verifiedAt: "now" },

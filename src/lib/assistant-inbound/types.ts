@@ -41,7 +41,11 @@ export type SafeReplyCode =
 
 export interface AssistantInboundEnvelope {
   provider: string;
-  providerMessageId: string;
+  // Absent only for provider "fonnte" — Gate 6J-C1's real-payload audit
+  // found no verified stable inbound message id, so n8n omits this field
+  // when Fonnte's inboxid is 0/absent and ADOP derives one server-side
+  // (see derive-provider-message-id.ts).
+  providerMessageId?: string;
   channel: string;
   senderAddress: string;
   receiverAddress?: string;

@@ -37,13 +37,15 @@ describe("normalizeE164Address", () => {
 });
 
 describe("assistantInboundEnvelopeSchema", () => {
+  // Gate 6J-C1 verified capture: providerTimestamp is Unix seconds, not
+  // ISO-8601 — see the "providerTimestamp" describe block below.
   const validBase = {
     provider: "fonnte",
-    providerMessageId: "wamid.ABC123",
+    providerMessageId: "fonnte:inbox:482913",
     channel: "whatsapp" as const,
     senderAddress: "081234567890",
     messageText: "PAIR ABCDEF",
-    providerTimestamp: "2026-07-30T07:00:00.000Z",
+    providerTimestamp: "1783148400",
   };
 
   it("accepts a valid envelope and normalizes senderAddress to E.164", () => {
@@ -64,10 +66,26 @@ describe("assistantInboundEnvelopeSchema", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("rejects a missing providerMessageId", () => {
+  it("rejects a missing providerMessageId when receiverAddress is also absent (cannot derive one)", () => {
     const rest = { ...validBase, providerMessageId: undefined };
     const parsed = assistantInboundEnvelopeSchema.safeParse(rest);
     expect(parsed.success).toBe(false);
+  });
+
+  it("rejects a missing providerMessageId for a non-fonnte provider, even with receiverAddress present", () => {
+    const rest = { ...validBase, provider: "other-provider", providerMessageId: undefined, receiverAddress: "081299999999" };
+    const parsed = assistantInboundEnvelopeSchema.safeParse(rest);
+    expect(parsed.success).toBe(false);
+  });
+
+  it("accepts a fonnte envelope without providerMessageId when receiverAddress (device) is present — Gate 6J-C1 derived-id path", () => {
+    const rest = { ...validBase, providerMessageId: undefined, receiverAddress: "081299999999" };
+    const parsed = assistantInboundEnvelopeSchema.safeParse(rest);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.providerMessageId).toBeUndefined();
+      expect(parsed.data.receiverAddress).toBe("+6281299999999");
+    }
   });
 
   it("rejects messageText beyond the 4096-character cap", () => {
@@ -81,6 +99,44 @@ describe("assistantInboundEnvelopeSchema", () => {
     if (parsed.success) {
       expect(parsed.data).not.toHaveProperty("tenantId");
     }
+  });
+});
+
+describe("assistantInboundEnvelopeSchema — providerTimestamp (Gate 6J-C1 verified: Unix seconds)", () => {
+  const validBase = {
+    provider: "fonnte",
+    providerMessageId: "fonnte:inbox:482913",
+    channel: "whatsapp" as const,
+    senderAddress: "081234567890",
+    messageText: "PAIR ABCDEF",
+    providerTimestamp: "1783148400",
+  };
+
+  it("accepts a plain Unix-seconds digit string", () => {
+    const parsed = assistantInboundEnvelopeSchema.safeParse(validBase);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.providerTimestamp).toBe("1783148400");
+  });
+
+  it("normalizes away leading zeros deterministically", () => {
+    const parsed = assistantInboundEnvelopeSchema.safeParse({ ...validBase, providerTimestamp: "0178314840" });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.providerTimestamp).toBe("178314840");
+  });
+
+  it("rejects an ISO-8601 timestamp (the previous, unverified assumption)", () => {
+    const parsed = assistantInboundEnvelopeSchema.safeParse({
+      ...validBase,
+      providerTimestamp: "2026-07-30T07:00:00.000Z",
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects a non-numeric or empty providerTimestamp", () => {
+    expect(assistantInboundEnvelopeSchema.safeParse({ ...validBase, providerTimestamp: "" }).success).toBe(false);
+    expect(assistantInboundEnvelopeSchema.safeParse({ ...validBase, providerTimestamp: "not-a-number" }).success).toBe(
+      false,
+    );
   });
 });
 

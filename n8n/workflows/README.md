@@ -27,21 +27,38 @@ secret/phone/tenant-id scan.
 
 ### Deployment notes / known limitations
 
-- **Webhook payload field names are unverified against the real Fonnte
-  inbound webhook.** This gate was authored without access to the hosted
-  n8n/Fonnte runtime (explicitly out of scope for this gate — see the gate's
-  own CLOUD/RUNTIME BOUNDARY). The `Normalize Provider Payload` node assumes
-  plausible field names (`sender`/`message`/`id`) — confirm these against
-  Fonnte's actual inbound webhook documentation (or a real captured payload)
-  before enabling this workflow, and adjust that one node only.
+- **Webhook payload field names are verified against a real captured
+  Fonnte inbound webhook delivery (Gate 6J-C1).** The `Normalize Provider
+  Payload` node maps `device` -> `receiverAddress`, `sender` ->
+  `senderAddress`, `message` -> `messageText`, `timestamp` ->
+  `providerTimestamp` (Unix seconds, passed through verbatim — never
+  replaced with n8n's own receive time). `senderid` (a WhatsApp sender
+  identity/LID) is never used as a message id, and `text` (Fonnte's
+  BUTTON TEXT field) is never used as a plain-message fallback. See
+  `fonnte-inbound-payload.fixture.json` for the verified field shape
+  (synthetic values only) and `gema-assistant-inbound-pair-verify.test.ts`
+  for the mapping contract test that runs the real node code against it.
+- **Fonnte has no verified stable inbound message id (Gate 6J-C1).**
+  `inboxid` can be `0` or absent, so the node only trusts it as
+  `providerMessageId` (namespaced `fonnte:inbox:<id>`) when it is a
+  positive integer; otherwise `providerMessageId` is left off the envelope
+  entirely and ADOP derives a deterministic id server-side from
+  `receiverAddress` + `senderAddress` + `providerTimestamp` + `messageText`
+  (`src/lib/assistant-inbound/derive-provider-message-id.ts`) — never an
+  n8n execution id or receive-time, either of which would break idempotency
+  on a genuine provider retry. `Validate Required Fields` no longer requires
+  `providerMessageId`; it requires `senderAddress`, `receiverAddress`,
+  `messageText`, and `providerTimestamp` instead.
 - **HMAC signing requires the n8n Code node to have access to Node's
   `crypto` builtin** (self-hosted n8n: `NODE_FUNCTION_ALLOW_BUILTIN=crypto`
   or equivalent). If that is not configured, the `Sign Canonical Request`
   node throws and the workflow fails closed — it never falls back to
   calling ADOP unsigned, since `/api/internal/assistant/inbound` rejects any
   request without a valid signature regardless (`x-internal-secret` alone
-  is not sufficient). Confirm this setting on the actual hosted n8n instance
-  before relying on this workflow in production.
+  is not sufficient). **Still unverified against the actual hosted n8n
+  instance** (Gate 6J-C1's Audit B found no available access/credentials to
+  the hosted BOC n8n runtime) — confirm this setting before relying on this
+  workflow in production.
 - The `Map Safe Reply Text` node's template strings must be kept in sync
   with `src/lib/assistant-inbound/safe-replies.ts` — the workflow's own test
   file asserts they match exactly; update both together.
