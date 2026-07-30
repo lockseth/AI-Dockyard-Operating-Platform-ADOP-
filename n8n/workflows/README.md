@@ -111,6 +111,59 @@ secret/phone/tenant-id scan.
 - Existing outbound workflow (`owner-control-whatsapp-notification.json`,
   Gate 1L) is untouched by this gate.
 
+## gema-assistant-inbound-pair-verify.gate-6j-d5-native-crypto.json
+
+Gate 6J-D5/6J-D6 — a candidate replacement for the signing/auth mechanics of
+`gema-assistant-inbound-pair-verify.json` above, produced outside this repo
+through a supervised n8n editing session and reconciled locally (JSON-only
+review, no hosted n8n access) against the Founder's screenshot confirmation
+of the two node fields that cannot be verified from an export alone. It
+supersedes the two now-superseded review-only proposals
+(`*.proposal-v2-native-crypto.json` Gate 6J-D2, `*.proposal-v3-no-env-dependency.json`
+Gate 6J-D3 — left untouched, kept only as historical review artifacts) by
+also fixing the gap those two still had.
+
+What changed vs. the frozen `gema-assistant-inbound-pair-verify.json` graph:
+
+- **Signing**: the `Sign Canonical Request` Code node (`require('crypto')`,
+  disallowed on the hosted BOC n8n instance per Gate 6J-D1) is replaced by
+  n8n's native `Sign Canonical Request (Native Crypto)` node
+  (`n8n-nodes-base.crypto`), action `Hmac`, Type `SHA256`, Encoding `HEX`
+  (confirmed directly from the node's Parameters panel — these fields are
+  not present in the exported JSON, only Founder-screenshotted), secret
+  sourced from the n8n credential **`ADOP Assistant Inbound Signing Secret`**.
+- **Internal API auth**: `Post ADOP Inbound` no longer reads
+  `$env.ADOP_APP_URL` / `$env.ADOP_INTERNAL_API_SECRET` (the hosted instance
+  denies `$env` access entirely, confirmed Gate 6J-D1 retest). The URL is now
+  the literal production endpoint
+  (`https://adop-demo-gema.vercel.app/api/internal/assistant/inbound`), and
+  the `x-internal-secret` header is injected via a `genericCredentialType` /
+  `httpHeaderAuth` credential named **`ADOP Internal API Secret`** in this
+  export (Founder-confirmed to be the same credential referred to elsewhere
+  as "ADOP Internal API" — a label difference only).
+- **Fonnte auth (the gap the two prior proposals left unresolved)**: `Send
+  Safe Reply via Fonnte` no longer reads `$env.FONNTE_SENDER_DEVICE_TOKEN`.
+  Authorization is now a `genericCredentialType` / `httpHeaderAuth` credential
+  named **`ADOP Fonnte Sender Device Token`**.
+- Node names in this export carry a literal `1` suffix (e.g. `Webhook
+  Inbound1`, `Normalize Provider Payload1`) — an artifact of how the nodes
+  were assembled in the n8n canvas. Left as-is per Gate 6J-D6's scope
+  (no cosmetic renaming); the contract test references the real names.
+
+Everything NOT listed above — required-field validation, the Fonnte payload
+mapping (`sender`→`senderAddress`, `device`→`receiverAddress`,
+`message`→`messageText`, `timestamp`→`providerTimestamp`), `inboxid=0`
+handling, the safe-reply template allowlist, and the fail-closed graph shape
+— is byte-identical to `gema-assistant-inbound-pair-verify.json` and covered
+by `gema-assistant-inbound-pair-verify.gate-6j-d5-native-crypto.test.ts`.
+
+**Status: documentation/local-artifact reconciled only.** This file has never
+been imported into, or executed against, the hosted n8n instance; hosted
+credential bindings and secret validity remain unverified until a separate,
+explicitly-authorized supervised test (Gate 6J-D7). It does not replace
+`gema-assistant-inbound-pair-verify.json` as canonical — that decision is
+pending separate Founder authorization.
+
 ## owner-control-whatsapp-notification.json
 
 Gate 1L — claims one pending `notification_events` row from ADOP every

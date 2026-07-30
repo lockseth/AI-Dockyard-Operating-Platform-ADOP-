@@ -1,0 +1,475 @@
+{
+  "name": "ADOP Gate 6J-D5 — GEMA Assistant Inbound PAIR/VERIFY — Native Crypto",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "timestamp-assignment",
+              "name": "timestamp",
+              "type": "string",
+              "value": "={{ Math.floor($now.toSeconds()) }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a9785149-1bba-415f-a125-6f62b9fa792a",
+      "name": "Compute Timestamp",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1152,
+        -640
+      ],
+      "notes": "Timestamp Unix dibuat menggunakan expression bawaan n8n $now. Node ini tidak memerlukan credential atau konfigurasi eksternal."
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "value": "={{ $json.timestamp + \".\" + $json.canonicalBody }}",
+        "dataPropertyName": "signature"
+      },
+      "id": "cffed826-59d0-4dd6-83a3-d99f27bf4f56",
+      "name": "Sign Canonical Request (Native Crypto)",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        -944,
+        -640
+      ],
+      "credentials": {
+        "crypto": {
+          "id": "7xYJyBmaZPYWqpZ6",
+          "name": "ADOP Assistant Inbound Signing Secret"
+        }
+      },
+      "notes": "Signature HMAC-SHA256 dibuat menggunakan credential n8n \"ADOP Assistant Inbound Signing Secret\". Secret tidak disimpan langsung dalam workflow."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gema-assistant-inbound",
+        "options": {}
+      },
+      "id": "31253659-91a7-4146-95cc-de860b3fadaf",
+      "name": "Webhook Inbound1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1824,
+        -560
+      ],
+      "webhookId": "gema-assistant-inbound-pair-verify"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Maps Fonnte's real inbound webhook payload (Gate 6J-C1 verified capture)\n// to ADOP's canonical envelope shape (task LOCK A).\n//\n// Gate 6J-C1.1: n8n's real Webhook node output is\n// { headers, params, query, body, webhookUrl, executionMode } — Fonnte's\n// fields live under .body, never at the top level. Reading $input.item.json\n// directly (the pre-6J-C1.1 bug) picked up that wrapper instead of the\n// actual payload, so every field below silently resolved to ''. The\n// direct-body fallback (body = input when input.body is missing/non-object)\n// exists ONLY for compatibility/testing — e.g. this workflow's own contract\n// test invoking the node against a bare Fonnte payload with no wrapper. It\n// is a strict typeof check, not `||`, so a wrapper with a missing or\n// non-object .body falls through to an all-empty envelope rather than\n// throwing — Validate Required Fields (the next node) then fails it closed.\n//\n// senderid is a WhatsApp sender identity/LID, never a message id — never\n// used here. inboxid can be 0 or absent, so it is only trusted as a\n// providerMessageId when it is a positive integer; otherwise\n// providerMessageId is left OFF the envelope entirely so ADOP derives a\n// deterministic id server-side (Gate 6J-C1 IDEMPOTENCY LOCK — never an n8n\n// execution id or receive-time, which would break on a genuine retry).\n//\n// text is Fonnte's BUTTON TEXT field, never a plain-message fallback —\n// only body.message is the canonical message field.\nconst input = $input.item.json;\nconst body = input && input.body && typeof input.body === 'object' ? input.body : input;\n\nconst inboxId = Number(body.inboxid);\nconst providerMessageId = Number.isInteger(inboxId) && inboxId > 0 ? `fonnte:inbox:${inboxId}` : undefined;\n\nconst envelope = {\n  provider: 'fonnte',\n  channel: 'whatsapp',\n  senderAddress: String(body.sender || body.from || ''),\n  receiverAddress: String(body.device || ''),\n  messageText: String(body.message || ''),\n  providerTimestamp: String(body.timestamp || ''),\n};\nif (providerMessageId) {\n  envelope.providerMessageId = providerMessageId;\n}\n\nreturn [{ json: { envelope, canonicalBody: JSON.stringify(envelope) } }];"
+      },
+      "id": "dd9101d3-833a-4a54-a1f9-71d7aab6005c",
+      "name": "Normalize Provider Payload1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        -560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-sender-address",
+              "leftValue": "={{ $json.envelope.senderAddress }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "has-receiver-address",
+              "leftValue": "={{ $json.envelope.receiverAddress }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "has-message-text",
+              "leftValue": "={{ $json.envelope.messageText }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "has-provider-timestamp",
+              "leftValue": "={{ $json.envelope.providerTimestamp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bd2e06f1-f833-4950-96da-aba1264b60d3",
+      "name": "Validate Required Fields1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        -560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://adop-demo-gema.vercel.app/api/internal/assistant/inbound",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-assistant-signature-timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "x-assistant-signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.canonicalBody }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "0caae2dd-de5f-4716-be46-ba50b6e9cffb",
+      "name": "Post ADOP Inbound1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -720,
+        -640
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YmL5Z0fX1wTGu6Xx",
+          "name": "ADOP Internal API Secret"
+        }
+      },
+      "notes": "Request dikirim ke endpoint hosted ADOP menggunakan credential n8n \"ADOP Internal API Secret\". Header timestamp dan signature berasal dari jalur Native Crypto. Tidak ada secret yang disimpan langsung dalam workflow."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "reply-required",
+              "leftValue": "={{ $json.reply.replyRequired }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "800c949b-4d06-4308-ab42-88f8d0a26f4b",
+      "name": "Has Reply?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        -640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Closed allowlist — MUST mirror src/lib/assistant-inbound/safe-replies.ts\n// exactly (task LOCK H: only allowlisted static templates keyed by\n// safeReplyCode, never a raw error or messageText). Update both places\n// together if the reply vocabulary ever changes.\nconst TEMPLATES = {\n  paired: 'Nomor WhatsApp berhasil dipasangkan.',\n  verified: 'Nomor WhatsApp Anda berhasil diverifikasi.',\n  invalid_or_expired: 'Kode tidak valid atau sudah kedaluwarsa. Silakan minta kode baru.',\n  locked: 'Terlalu banyak percobaan salah. Silakan minta kode baru dari admin.',\n  ambiguous: 'Permintaan tidak dapat diproses saat ini. Silakan hubungi admin.',\n  duplicate: 'Permintaan ini sudah diproses sebelumnya.',\n  rate_limited: 'Terlalu banyak permintaan. Silakan coba lagi beberapa saat lagi.',\n};\n\nconst code = $json.reply && $json.reply.safeReplyCode;\nconst replyText = TEMPLATES[code] || '';\n\nreturn [{ json: { ...$json, replyText } }];"
+      },
+      "id": "1b3b660b-8e1d-4304-9963-55a3d3d59b75",
+      "name": "Map Safe Reply Text1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        -720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.fonnte.com/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "target",
+              "value": "={{ $('Normalize Provider Payload1').item.json.envelope.senderAddress }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.replyText }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "8143bdbb-fa17-468d-a03d-4a662224a788",
+      "name": "Send Safe Reply via Fonnte1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -64,
+        -720
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "v9aeW9GAy0JSAYG9",
+          "name": "ADOP Fonnte Sender Device Token"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Fonnte Authorization menggunakan credential n8n \"ADOP Fonnte Sender Device Token\" melalui Header Auth. Tidak ada token yang disimpan langsung pada workflow. Pengiriman WhatsApp nyata tetap dilarang sampai supervised end-to-end test diotorisasi."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "fonnte-send-ok",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b875a496-fc31-429a-9638-4d49abdf7b5f",
+      "name": "Fonnte Send Success?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -720
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1ad72143-729e-422e-8c9b-671b6d32a87d",
+      "name": "Reply Sent1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -800
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "cfc0de87-917b-47e6-bfc2-fffe402c2d49",
+      "name": "Reply Send Failed1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -640
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Compute Timestamp": {
+      "main": [
+        [
+          {
+            "node": "Sign Canonical Request (Native Crypto)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Canonical Request (Native Crypto)": {
+      "main": [
+        [
+          {
+            "node": "Post ADOP Inbound1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Inbound1": {
+      "main": [
+        [
+          {
+            "node": "Normalize Provider Payload1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Provider Payload1": {
+      "main": [
+        [
+          {
+            "node": "Validate Required Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Required Fields1": {
+      "main": [
+        [
+          {
+            "node": "Compute Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post ADOP Inbound1": {
+      "main": [
+        [
+          {
+            "node": "Has Reply?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Reply?1": {
+      "main": [
+        [
+          {
+            "node": "Map Safe Reply Text1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Safe Reply Text1": {
+      "main": [
+        [
+          {
+            "node": "Send Safe Reply via Fonnte1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Safe Reply via Fonnte1": {
+      "main": [
+        [
+          {
+            "node": "Fonnte Send Success?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fonnte Send Success?1": {
+      "main": [
+        [
+          {
+            "node": "Reply Sent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Send Failed1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "41779558-ea3c-48fa-ad05-19f442b20688",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a1c379086185c4f21d99b1e33606759b1c5d237cf6e44282c9019d7fc7341ade"
+  },
+  "nodeGroups": [],
+  "id": "JBN47vOEmDFNQ9fi",
+  "tags": []
+}
