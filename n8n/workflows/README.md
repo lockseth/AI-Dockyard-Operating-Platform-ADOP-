@@ -12,6 +12,43 @@ Fields -> Sign Canonical Request -> Post ADOP Inbound -> Has Reply? -> Map
 Safe Reply Text -> Send Safe Reply via Fonnte -> Fonnte Send Success? ->
 Reply Sent / Reply Send Failed`.
 
+### n8n Webhook node wrapper boundary (Gate 6J-C1.1)
+
+n8n's `n8n-nodes-base.webhook` node does not hand a Code node the raw
+provider payload — `$input.item.json` is n8n's own wrapper:
+
+```json
+{ "headers": {...}, "params": {...}, "query": {...}, "body": {...}, "webhookUrl": "...", "executionMode": "production" }
+```
+
+Fonnte's fields (`device`, `sender`, `message`, `text`, `senderid`,
+`inboxid`, `timestamp`) live under `.body`, never at the wrapper's top
+level. `Normalize Provider Payload` reads this deterministically:
+
+```js
+const input = $input.item.json;
+const body = input && input.body && typeof input.body === 'object' ? input.body : input;
+```
+
+`input.body` (an object) is the canonical production path. The
+direct-body fallback (`body = input`) exists only for compatibility/testing
+— e.g. this workflow's own contract test invoking the node against a bare
+Fonnte payload with no wrapper — and is a strict `typeof` check, never
+`||`, so a wrapper whose `.body` is missing or not an object (a raw string,
+for instance) falls through to an **all-empty envelope** rather than
+throwing. `Validate Required Fields` (the very next node) then fails that
+closed on its own required-field conditions — see
+`fonnte-inbound-payload.fixture.json`'s `malformed.missingBody` /
+`malformed.nonObjectBody` cases and their contract tests. A field faked at
+the wrapper's top level (e.g. a forged top-level `sender`) can never
+override the real nested `body.sender`, since `body` is fully replaced by
+`input.body` when present — never merged with the wrapper.
+
+`fonnte-inbound-payload.fixture.json` carries three shapes: `wrapped`
+(mirrors the real n8n Webhook node output — the canonical shape),
+`direct` (the bare Fonnte body, compatibility/testing only), and
+`malformed` (missing/non-object `.body`). All are synthetic values only.
+
 ### Required environment variables (set in n8n's own environment only)
 
 | Variable | Role |
@@ -28,16 +65,21 @@ secret/phone/tenant-id scan.
 ### Deployment notes / known limitations
 
 - **Webhook payload field names are verified against a real captured
-  Fonnte inbound webhook delivery (Gate 6J-C1).** The `Normalize Provider
-  Payload` node maps `device` -> `receiverAddress`, `sender` ->
-  `senderAddress`, `message` -> `messageText`, `timestamp` ->
-  `providerTimestamp` (Unix seconds, passed through verbatim — never
-  replaced with n8n's own receive time). `senderid` (a WhatsApp sender
+  Fonnte inbound webhook delivery (Gate 6J-C1), read through n8n's real
+  Webhook node wrapper (Gate 6J-C1.1 — see "n8n Webhook node wrapper
+  boundary" above).** The `Normalize Provider Payload` node maps
+  `device` -> `receiverAddress`, `sender` -> `senderAddress`, `message` ->
+  `messageText`, `timestamp` -> `providerTimestamp` (Unix seconds, passed
+  through verbatim — never replaced with n8n's own receive time), reading
+  all of these off `$input.item.json.body`, not `$input.item.json` itself
+  (Gate 6J-C1.1 fixed an earlier bug that read the wrapper directly and so
+  never actually saw Fonnte's fields). `senderid` (a WhatsApp sender
   identity/LID) is never used as a message id, and `text` (Fonnte's
   BUTTON TEXT field) is never used as a plain-message fallback. See
   `fonnte-inbound-payload.fixture.json` for the verified field shape
-  (synthetic values only) and `gema-assistant-inbound-pair-verify.test.ts`
-  for the mapping contract test that runs the real node code against it.
+  (synthetic values only, both wrapped and direct-body forms) and
+  `gema-assistant-inbound-pair-verify.test.ts` for the mapping contract
+  test that runs the real node code against it.
 - **Fonnte has no verified stable inbound message id (Gate 6J-C1).**
   `inboxid` can be `0` or absent, so the node only trusts it as
   `providerMessageId` (namespaced `fonnte:inbox:<id>`) when it is a

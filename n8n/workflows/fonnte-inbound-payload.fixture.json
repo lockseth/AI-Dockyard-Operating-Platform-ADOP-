@@ -1,32 +1,125 @@
 {
-  "withInboxId": {
-    "device": "6289999999999",
-    "sender": "6281234567890",
-    "name": "Test User",
-    "message": "PAIR ABCDEF",
-    "text": "",
-    "senderid": "123456789012345@lid",
-    "inboxid": 482913,
-    "timestamp": "1783148400"
+  "wrapped": {
+    "withInboxId": {
+      "headers": { "content-type": "application/json", "user-agent": "Fonnte-Webhook/synthetic" },
+      "params": {},
+      "query": {},
+      "body": {
+        "device": "6289999999999",
+        "sender": "6281234567890",
+        "name": "Test User",
+        "message": "PAIR ABCDEF",
+        "text": "",
+        "senderid": "123456789012345@lid",
+        "inboxid": 482913,
+        "timestamp": "1783148400"
+      },
+      "webhookUrl": "https://n8n.example.invalid/webhook/gema-assistant-inbound-pair-verify",
+      "executionMode": "production"
+    },
+    "withoutInboxId": {
+      "headers": { "content-type": "application/json", "user-agent": "Fonnte-Webhook/synthetic" },
+      "params": {},
+      "query": {},
+      "body": {
+        "device": "6289999999999",
+        "sender": "6281234567890",
+        "name": "Test User",
+        "message": "VERIFY 234HJK",
+        "text": "",
+        "senderid": "123456789012345@lid",
+        "inboxid": 0,
+        "timestamp": "1783148460"
+      },
+      "webhookUrl": "https://n8n.example.invalid/webhook/gema-assistant-inbound-pair-verify",
+      "executionMode": "production"
+    },
+    "buttonReplyShape": {
+      "headers": { "content-type": "application/json", "user-agent": "Fonnte-Webhook/synthetic" },
+      "params": {},
+      "query": {},
+      "body": {
+        "device": "6289999999999",
+        "sender": "6281234567890",
+        "name": "Test User",
+        "message": "PAIR ABCDEF",
+        "text": "Ya, lanjutkan",
+        "senderid": "123456789012345@lid",
+        "inboxid": 0,
+        "timestamp": "1783148520"
+      },
+      "webhookUrl": "https://n8n.example.invalid/webhook/gema-assistant-inbound-pair-verify",
+      "executionMode": "production"
+    },
+    "topLevelOverrideAttempt": {
+      "headers": { "content-type": "application/json", "user-agent": "Fonnte-Webhook/synthetic" },
+      "params": {},
+      "query": {},
+      "sender": "6280000000000",
+      "message": "HACKED",
+      "device": "6280000000001",
+      "inboxid": 999999999,
+      "body": {
+        "device": "6289999999999",
+        "sender": "6281234567890",
+        "name": "Test User",
+        "message": "PAIR ABCDEF",
+        "text": "",
+        "senderid": "123456789012345@lid",
+        "inboxid": 482913,
+        "timestamp": "1783148400"
+      },
+      "webhookUrl": "https://n8n.example.invalid/webhook/gema-assistant-inbound-pair-verify",
+      "executionMode": "production"
+    }
   },
-  "withoutInboxId": {
-    "device": "6289999999999",
-    "sender": "6281234567890",
-    "name": "Test User",
-    "message": "VERIFY 234HJK",
-    "text": "",
-    "senderid": "123456789012345@lid",
-    "inboxid": 0,
-    "timestamp": "1783148460"
+  "direct": {
+    "withInboxId": {
+      "device": "6289999999999",
+      "sender": "6281234567890",
+      "name": "Test User",
+      "message": "PAIR ABCDEF",
+      "text": "",
+      "senderid": "123456789012345@lid",
+      "inboxid": 482913,
+      "timestamp": "1783148400"
+    },
+    "withoutInboxId": {
+      "device": "6289999999999",
+      "sender": "6281234567890",
+      "name": "Test User",
+      "message": "VERIFY 234HJK",
+      "text": "",
+      "senderid": "123456789012345@lid",
+      "inboxid": 0,
+      "timestamp": "1783148460"
+    },
+    "buttonReplyShape": {
+      "device": "6289999999999",
+      "sender": "6281234567890",
+      "name": "Test User",
+      "message": "PAIR ABCDEF",
+      "text": "Ya, lanjutkan",
+      "senderid": "123456789012345@lid",
+      "inboxid": 0,
+      "timestamp": "1783148520"
+    }
   },
-  "buttonReplyShape": {
-    "device": "6289999999999",
-    "sender": "6281234567890",
-    "name": "Test User",
-    "message": "PAIR ABCDEF",
-    "text": "Ya, lanjutkan",
-    "senderid": "123456789012345@lid",
-    "inboxid": 0,
-    "timestamp": "1783148520"
+  "malformed": {
+    "missingBody": {
+      "headers": { "content-type": "application/json" },
+      "params": {},
+      "query": {},
+      "webhookUrl": "https://n8n.example.invalid/webhook/gema-assistant-inbound-pair-verify",
+      "executionMode": "production"
+    },
+    "nonObjectBody": {
+      "headers": { "content-type": "text/plain" },
+      "params": {},
+      "query": {},
+      "body": "not-json-shaped-raw-text",
+      "webhookUrl": "https://n8n.example.invalid/webhook/gema-assistant-inbound-pair-verify",
+      "executionMode": "production"
+    }
   }
 }

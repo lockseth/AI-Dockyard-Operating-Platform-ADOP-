@@ -4,12 +4,20 @@ import { describe, expect, it } from "vitest";
 import { getSafeReplyText } from "@/lib/assistant-inbound/safe-replies";
 import type { SafeReplyCode } from "@/lib/assistant-inbound/types";
 
-// Gate 6J-C1 verified-capture fixture — synthetic field shape only, no real
-// number/credential (see fixture file header-less content; values mirror
-// the repeating-digit placeholders already used across this suite's other
-// tests, e.g. src/lib/assistant-inbound/validation.test.ts).
+// Gate 6J-C1/6J-C1.1 verified-capture fixture — synthetic field shape only,
+// no real number/credential (values mirror the repeating-digit placeholders
+// already used across this suite's other tests, e.g.
+// src/lib/assistant-inbound/validation.test.ts). "wrapped" mirrors n8n's
+// real Webhook node output ({ headers, params, query, body, webhookUrl,
+// executionMode }) — the canonical production shape (Gate 6J-C1.1). "direct"
+// is the bare Fonnte body with no wrapper — compatibility/testing shape
+// only. "malformed" covers a missing/non-object .body.
 const FONNTE_FIXTURE_PATH = path.resolve(__dirname, "fonnte-inbound-payload.fixture.json");
-const fonnteFixtures = JSON.parse(readFileSync(FONNTE_FIXTURE_PATH, "utf8")) as Record<string, Record<string, unknown>>;
+const fonnteFixtures = JSON.parse(readFileSync(FONNTE_FIXTURE_PATH, "utf8")) as {
+  wrapped: Record<string, unknown>;
+  direct: Record<string, unknown>;
+  malformed: Record<string, unknown>;
+};
 
 // Structural/security contract for the canonical n8n workflow — this gate
 // never imports/activates the hosted n8n runtime (task LOCK), so this test
@@ -174,40 +182,74 @@ describe("gema-assistant-inbound-pair-verify.json — n8n workflow contract", ()
     expect(messageParam?.value).toBe("={{ $json.replyText }}");
   });
 
-  describe("Normalize Provider Payload — Gate 6J-C1 verified Fonnte payload shape", () => {
-    it("maps device -> receiverAddress, sender -> senderAddress, message -> messageText, timestamp -> providerTimestamp verbatim", () => {
-      const { envelope } = runNormalizeNode(fonnteFixtures.withInboxId);
+  describe("Normalize Provider Payload — Gate 6J-C1.1 real n8n webhook wrapper", () => {
+    it("maps device -> receiverAddress, sender -> senderAddress, message -> messageText, timestamp -> providerTimestamp from the WRAPPED body (real n8n Webhook node output)", () => {
+      const { envelope } = runNormalizeNode(fonnteFixtures.wrapped.withInboxId);
       expect(envelope.receiverAddress).toBe("6289999999999");
       expect(envelope.senderAddress).toBe("6281234567890");
       expect(envelope.messageText).toBe("PAIR ABCDEF");
       expect(envelope.providerTimestamp).toBe("1783148400");
     });
 
+    it("maps identically whether the payload is wrapped ({ body: {...} }) or the bare Fonnte body directly (compatibility path)", () => {
+      const wrapped = runNormalizeNode(fonnteFixtures.wrapped.withInboxId).envelope;
+      const direct = runNormalizeNode(fonnteFixtures.direct.withInboxId).envelope;
+      expect(wrapped).toEqual(direct);
+    });
+
+    it("a fake sender/message/device/inboxid at the wrapper's TOP LEVEL can never override the real nested body", () => {
+      const { envelope } = runNormalizeNode(fonnteFixtures.wrapped.topLevelOverrideAttempt);
+      expect(envelope.senderAddress).toBe("6281234567890");
+      expect(envelope.receiverAddress).toBe("6289999999999");
+      expect(envelope.messageText).toBe("PAIR ABCDEF");
+      expect(envelope.providerMessageId).toBe("fonnte:inbox:482913");
+      expect(envelope.senderAddress).not.toBe("6280000000000");
+      expect(envelope.messageText).not.toBe("HACKED");
+    });
+
+    it("a missing .body on the wrapper produces an all-empty envelope, never a thrown error — the next node (Validate Required Fields) fails it closed", () => {
+      const { envelope } = runNormalizeNode(fonnteFixtures.malformed.missingBody);
+      expect(envelope.senderAddress).toBe("");
+      expect(envelope.receiverAddress).toBe("");
+      expect(envelope.messageText).toBe("");
+      expect(envelope.providerTimestamp).toBe("");
+      expect(envelope).not.toHaveProperty("providerMessageId");
+    });
+
+    it("a non-object .body on the wrapper (e.g. raw text) also produces an all-empty envelope, never a thrown error", () => {
+      expect(() => runNormalizeNode(fonnteFixtures.malformed.nonObjectBody)).not.toThrow();
+      const { envelope } = runNormalizeNode(fonnteFixtures.malformed.nonObjectBody);
+      expect(envelope.senderAddress).toBe("");
+      expect(envelope.receiverAddress).toBe("");
+      expect(envelope.messageText).toBe("");
+      expect(envelope.providerTimestamp).toBe("");
+    });
+
     it("emits a namespaced fonnte:inbox:<id> providerMessageId when inboxid is a positive integer", () => {
-      const { envelope } = runNormalizeNode(fonnteFixtures.withInboxId);
+      const { envelope } = runNormalizeNode(fonnteFixtures.wrapped.withInboxId);
       expect(envelope.providerMessageId).toBe("fonnte:inbox:482913");
     });
 
-    it("omits providerMessageId entirely (never an empty string) when inboxid is 0", () => {
-      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.withoutInboxId);
+    it("omits providerMessageId entirely (never an empty string) when inboxid is 0 — the derived-id path stays reachable through the wrapper", () => {
+      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.wrapped.withoutInboxId);
       expect(envelope).not.toHaveProperty("providerMessageId");
       expect(JSON.parse(canonicalBody)).not.toHaveProperty("providerMessageId");
     });
 
     it("never uses senderid as providerMessageId", () => {
-      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.withInboxId);
+      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.wrapped.withInboxId);
       expect(envelope.providerMessageId).not.toContain("@lid");
       expect(canonicalBody).not.toMatch(/@lid/);
     });
 
     it("never falls back to Fonnte's button-text field for messageText", () => {
-      const { envelope } = runNormalizeNode(fonnteFixtures.buttonReplyShape);
+      const { envelope } = runNormalizeNode(fonnteFixtures.wrapped.buttonReplyShape);
       expect(envelope.messageText).toBe("PAIR ABCDEF");
       expect(envelope.messageText).not.toBe("Ya, lanjutkan");
     });
 
     it("the canonicalBody sent to ADOP is the exact same object Sign Canonical Request will HMAC", () => {
-      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.withInboxId);
+      const { envelope, canonicalBody } = runNormalizeNode(fonnteFixtures.wrapped.withInboxId);
       expect(JSON.parse(canonicalBody)).toEqual(envelope);
     });
   });
