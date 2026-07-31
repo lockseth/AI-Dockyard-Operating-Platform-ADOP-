@@ -2,6 +2,8 @@ import "server-only";
 import { requireTenantContext, requireTenantRole } from "@/lib/auth/tenant";
 import {
   createUserWithTemporaryPassword,
+  generateInviteAccessLink,
+  generateRecoveryAccessLink,
   inviteUserByEmail,
   setTemporaryPasswordAndConfirm,
 } from "./admin-repository";
@@ -9,6 +11,7 @@ import { GENERIC_USER_MANAGEMENT_ERROR, mapUserManagementError } from "./errors"
 import {
   acceptTenantInvitationRpc,
   createTenantInvitationRpc,
+  getMemberEmailByUserId,
   listPendingInvitationsForCurrentUser as listPendingInvitationsForCurrentUserRepo,
   listPendingInvitationsForTenant,
   listTenantMembers,
@@ -28,6 +31,7 @@ import type {
   SetMembershipStatusInput,
 } from "./validation";
 import type {
+  GenerateAccessLinkActionResult,
   PendingInvitationForTenant,
   PendingInvitationForUser,
   ProvisionInvitedMemberActionResult,
@@ -37,6 +41,7 @@ import type {
 } from "./types";
 
 const INVITE_ACCEPT_PATH = "/invite/accept";
+const RESET_PASSWORD_PATH = "/reset-password";
 
 export async function listMembersForActiveTenant(): Promise<TenantMemberSummary[]> {
   const context = await requireTenantContext();
@@ -257,4 +262,73 @@ export async function setMembershipStatus(input: SetMembershipStatusInput): Prom
     return { error: mapUserManagementError(error) };
   }
   return {};
+}
+
+// Gate 6J-D9-B "Simplified Internal Access" — owner-only. The link-based
+// alternative to inviteMember() above, for pilots that want to deliver the
+// access link themselves (e.g. forwarding it manually via WhatsApp) instead
+// of relying on Supabase's own invite email. Reuses create_tenant_invitation
+// for the exact same authorization/duplicate/idempotent-retry guarantees;
+// only the final "how does the target find out" step differs. When the
+// email already has an account, no link is generated here either (same as
+// inviteMember()'s no-email branch) — use
+// generateMemberRecoveryAccessLink for an existing member who cannot sign
+// in, not this function.
+export async function generateMemberInviteAccessLink(
+  input: InviteMemberInput,
+): Promise<GenerateAccessLinkActionResult> {
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner"]);
+
+  const { data, error } = await createTenantInvitationRpc(context.tenantId, input.email, input.role);
+  if (error || !data) {
+    return { error: mapUserManagementError(error) };
+  }
+
+  if (data.targetUserExists) {
+    return {
+      error: "Pengguna ini sudah memiliki akun. Gunakan Pemulihan Akses jika mereka tidak bisa masuk.",
+    };
+  }
+
+  const generated = await generateInviteAccessLink(input.email, input.displayName, INVITE_ACCEPT_PATH);
+  if (generated.error || !generated.actionLink) {
+    return { error: "Undangan dibuat, tetapi gagal membuat tautan akses. Silakan coba lagi." };
+  }
+
+  return { actionLink: generated.actionLink };
+}
+
+// Gate 6J-D9-B — owner-only. The link-based alternative to
+// resetMemberTemporaryPassword() above, for an already-active member who
+// cannot sign in. Authorization, self-target rejection, active-only
+// enforcement, and the audit event all happen inside
+// owner_authorize_member_password_reset exactly as they do for the
+// temporary-password flow; only the final Admin API call differs (a
+// recovery link instead of a new password).
+export async function generateMemberRecoveryAccessLink(
+  input: ResetMemberTemporaryPasswordInput,
+): Promise<GenerateAccessLinkActionResult> {
+  const context = await requireTenantContext();
+  requireTenantRole(context, ["owner"]);
+
+  const { data: targetUserId, error } = await ownerAuthorizeMemberPasswordResetRpc(input.membershipId);
+  if (error) {
+    return { error: mapUserManagementError(error) };
+  }
+  if (!targetUserId) {
+    return { error: GENERIC_USER_MANAGEMENT_ERROR };
+  }
+
+  const email = await getMemberEmailByUserId(targetUserId);
+  if (!email) {
+    return { error: GENERIC_USER_MANAGEMENT_ERROR };
+  }
+
+  const generated = await generateRecoveryAccessLink(email, RESET_PASSWORD_PATH);
+  if (generated.error || !generated.actionLink) {
+    return { error: "Gagal membuat tautan pemulihan akses. Silakan coba lagi." };
+  }
+
+  return { actionLink: generated.actionLink };
 }

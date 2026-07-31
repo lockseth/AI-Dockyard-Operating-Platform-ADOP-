@@ -111,6 +111,76 @@ export async function createUserWithTemporaryPassword(
   return { userId: data.user.id };
 }
 
+export interface GenerateInviteAccessLinkResult {
+  userId?: string;
+  actionLink?: string;
+  error?: string;
+}
+
+// Gate 6J-D9-B "Simplified Internal Access" — the link-generation sibling of
+// inviteUserByEmail above, for a brand-new email. admin.generateLink({type:
+// "invite"}) creates the auth.users row exactly like inviteUserByEmail does,
+// but — unlike inviteUserByEmail — Supabase never sends any email itself; it
+// only returns the one-click action_link. Delivering that link (WhatsApp,
+// read aloud, whatever the owner has on hand) is entirely the caller's
+// responsibility and never happens inside this function. redirectTo is
+// always built from the same server-only APP_URL + /auth/implicit-confirm
+// callback the rest of this module uses — never a caller-supplied origin —
+// so the link can only ever land the browser back on this app's own
+// allowlisted post-auth routes (see isAllowedPostAuthRedirect).
+export async function generateInviteAccessLink(
+  email: string,
+  displayName: string,
+  nextPath: string,
+): Promise<GenerateInviteAccessLinkResult> {
+  const admin = createSupabaseAdminClient();
+  const server = getServerEnv();
+  const redirectTo = `${server.APP_URL}/auth/implicit-confirm?next=${encodeURIComponent(nextPath)}`;
+
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { data: { display_name: displayName }, redirectTo },
+  });
+
+  if (error || !data.user) {
+    return { error: error?.message ?? "Failed to generate invite link" };
+  }
+  return { userId: data.user.id, actionLink: data.properties.action_link };
+}
+
+export interface GenerateRecoveryAccessLinkResult {
+  actionLink?: string;
+  error?: string;
+}
+
+// Gate 6J-D9-B — the link-generation sibling of setTemporaryPasswordAndConfirm
+// above, for an email that already has an auth.users account. Never mutates
+// the account (no password is set, no metadata changed) — the returned
+// action_link is itself a one-time, time-limited credential; issuing a new
+// one does not revoke a previously issued one still in flight, mirroring
+// Supabase's own recovery-link semantics. Same fixed-origin redirectTo
+// contract as generateInviteAccessLink above.
+export async function generateRecoveryAccessLink(
+  email: string,
+  nextPath: string,
+): Promise<GenerateRecoveryAccessLinkResult> {
+  const admin = createSupabaseAdminClient();
+  const server = getServerEnv();
+  const redirectTo = `${server.APP_URL}/auth/implicit-confirm?next=${encodeURIComponent(nextPath)}`;
+
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo },
+  });
+
+  if (error || !data.properties?.action_link) {
+    return { error: error?.message ?? "Failed to generate recovery link" };
+  }
+  return { actionLink: data.properties.action_link };
+}
+
 export interface ClearMustChangePasswordResult {
   error?: string;
 }

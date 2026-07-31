@@ -9,10 +9,14 @@ vi.mock("@/lib/auth/tenant", async (importOriginal) => {
 const inviteUserByEmail = vi.fn();
 const setTemporaryPasswordAndConfirm = vi.fn();
 const createUserWithTemporaryPassword = vi.fn();
+const generateInviteAccessLink = vi.fn();
+const generateRecoveryAccessLink = vi.fn();
 vi.mock("./admin-repository", () => ({
   inviteUserByEmail,
   setTemporaryPasswordAndConfirm,
   createUserWithTemporaryPassword,
+  generateInviteAccessLink,
+  generateRecoveryAccessLink,
 }));
 
 const createTenantInvitationRpc = vi.fn();
@@ -26,6 +30,7 @@ const setMembershipStatusRpc = vi.fn();
 const listTenantMembers = vi.fn();
 const listPendingInvitationsForTenant = vi.fn();
 const listPendingInvitationsForCurrentUser = vi.fn();
+const getMemberEmailByUserId = vi.fn();
 vi.mock("./repository", () => ({
   createTenantInvitationRpc,
   acceptTenantInvitationRpc,
@@ -38,6 +43,7 @@ vi.mock("./repository", () => ({
   listTenantMembers,
   listPendingInvitationsForTenant,
   listPendingInvitationsForCurrentUser,
+  getMemberEmailByUserId,
 }));
 
 const OWNER_CONTEXT = {
@@ -484,5 +490,165 @@ describe("setMembershipStatus", () => {
 
     expect(result).toEqual({});
     expect(setMembershipStatusRpc).toHaveBeenCalledWith("membership-x", "suspended");
+  });
+});
+
+describe("generateMemberInviteAccessLink", () => {
+  it("rejects a non-owner actor before ever calling the RPC", async () => {
+    requireTenantContext.mockResolvedValue(ADMIN_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { generateMemberInviteAccessLink } = await import("./service");
+
+    await expect(
+      generateMemberInviteAccessLink({ displayName: "Budi", email: "budi@example.com", role: "viewer" }),
+    ).rejects.toThrow(UnauthorizedTenantRoleError);
+    expect(createTenantInvitationRpc).not.toHaveBeenCalled();
+  });
+
+  it("maps a create_tenant_invitation error via mapUserManagementError", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    createTenantInvitationRpc.mockResolvedValue({
+      data: null,
+      error: { code: "P0005", message: "This user is already an active member of this tenant" },
+    });
+    const { generateMemberInviteAccessLink } = await import("./service");
+
+    const result = await generateMemberInviteAccessLink({
+      displayName: "Budi",
+      email: "budi@example.com",
+      role: "viewer",
+    });
+
+    expect(result.error).toBe("Pengguna ini sudah menjadi anggota aktif pada tenant ini.");
+    expect(generateInviteAccessLink).not.toHaveBeenCalled();
+  });
+
+  it("does not generate a link — and reports no error verdict as a link — when the target account already exists", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    createTenantInvitationRpc.mockResolvedValue({
+      data: { invitationId: "invitation-1", targetUserExists: true },
+      error: null,
+    });
+    const { generateMemberInviteAccessLink } = await import("./service");
+
+    const result = await generateMemberInviteAccessLink({
+      displayName: "Budi",
+      email: "budi@example.com",
+      role: "viewer",
+    });
+
+    expect(generateInviteAccessLink).not.toHaveBeenCalled();
+    expect(result.actionLink).toBeUndefined();
+    expect(result.error).toBeTruthy();
+  });
+
+  it("generates a link (via admin.generateLink, never an email send) for a brand-new email, redirecting only to /invite/accept", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    createTenantInvitationRpc.mockResolvedValue({
+      data: { invitationId: "invitation-1", targetUserExists: false },
+      error: null,
+    });
+    generateInviteAccessLink.mockResolvedValue({ userId: "new-user-1", actionLink: "https://supabase.example/verify?token=abc" });
+    const { generateMemberInviteAccessLink } = await import("./service");
+
+    const result = await generateMemberInviteAccessLink({
+      displayName: "Budi",
+      email: "budi@example.com",
+      role: "admin",
+    });
+
+    expect(generateInviteAccessLink).toHaveBeenCalledWith("budi@example.com", "Budi", "/invite/accept");
+    expect(inviteUserByEmail).not.toHaveBeenCalled();
+    expect(result).toEqual({ actionLink: "https://supabase.example/verify?token=abc" });
+  });
+
+  it("surfaces a friendly error and never leaks the provider's raw error text when link generation fails", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    createTenantInvitationRpc.mockResolvedValue({
+      data: { invitationId: "invitation-1", targetUserExists: false },
+      error: null,
+    });
+    generateInviteAccessLink.mockResolvedValue({ error: "service-role key rejected: internal-secret-detail" });
+    const { generateMemberInviteAccessLink } = await import("./service");
+
+    const result = await generateMemberInviteAccessLink({
+      displayName: "Budi",
+      email: "budi@example.com",
+      role: "admin",
+    });
+
+    expect(result.actionLink).toBeUndefined();
+    expect(result.error).toBeTruthy();
+    expect(JSON.stringify(result)).not.toMatch(/internal-secret-detail/);
+  });
+});
+
+describe("generateMemberRecoveryAccessLink", () => {
+  it("rejects a non-owner actor before ever calling the RPC", async () => {
+    requireTenantContext.mockResolvedValue(ADMIN_CONTEXT);
+    const { UnauthorizedTenantRoleError } = await import("@/lib/auth/tenant");
+    const { generateMemberRecoveryAccessLink } = await import("./service");
+
+    await expect(generateMemberRecoveryAccessLink({ membershipId: "membership-1" })).rejects.toThrow(
+      UnauthorizedTenantRoleError,
+    );
+    expect(ownerAuthorizeMemberPasswordResetRpc).not.toHaveBeenCalled();
+  });
+
+  it("maps a thrown RPC error (e.g. self-target) via mapUserManagementError", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerAuthorizeMemberPasswordResetRpc.mockResolvedValue({
+      data: null,
+      error: { code: "42501", message: "Cannot reset your own temporary password" },
+    });
+    const { generateMemberRecoveryAccessLink } = await import("./service");
+
+    const result = await generateMemberRecoveryAccessLink({ membershipId: "membership-1" });
+
+    expect(result.error).toBe("Anda tidak dapat mereset kata sandi Anda sendiri.");
+    expect(getMemberEmailByUserId).not.toHaveBeenCalled();
+    expect(generateRecoveryAccessLink).not.toHaveBeenCalled();
+  });
+
+  it("generates a link (via admin.generateLink, never a password set) for the authorized target, redirecting only to /reset-password", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerAuthorizeMemberPasswordResetRpc.mockResolvedValue({ data: "target-user-1", error: null });
+    getMemberEmailByUserId.mockResolvedValue("budi@example.com");
+    generateRecoveryAccessLink.mockResolvedValue({ actionLink: "https://supabase.example/verify?token=xyz" });
+    const { generateMemberRecoveryAccessLink } = await import("./service");
+
+    const result = await generateMemberRecoveryAccessLink({ membershipId: "membership-1" });
+
+    expect(getMemberEmailByUserId).toHaveBeenCalledWith("target-user-1");
+    expect(generateRecoveryAccessLink).toHaveBeenCalledWith("budi@example.com", "/reset-password");
+    expect(setTemporaryPasswordAndConfirm).not.toHaveBeenCalled();
+    expect(result).toEqual({ actionLink: "https://supabase.example/verify?token=xyz" });
+  });
+
+  it("reports a generic error when the target's email cannot be resolved, without calling the Admin API", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerAuthorizeMemberPasswordResetRpc.mockResolvedValue({ data: "target-user-1", error: null });
+    getMemberEmailByUserId.mockResolvedValue(null);
+    const { generateMemberRecoveryAccessLink } = await import("./service");
+
+    const result = await generateMemberRecoveryAccessLink({ membershipId: "membership-1" });
+
+    expect(generateRecoveryAccessLink).not.toHaveBeenCalled();
+    expect(result.actionLink).toBeUndefined();
+    expect(result.error).toBeTruthy();
+  });
+
+  it("surfaces a friendly error and never leaks the provider's raw error text when link generation fails", async () => {
+    requireTenantContext.mockResolvedValue(OWNER_CONTEXT);
+    ownerAuthorizeMemberPasswordResetRpc.mockResolvedValue({ data: "target-user-1", error: null });
+    getMemberEmailByUserId.mockResolvedValue("budi@example.com");
+    generateRecoveryAccessLink.mockResolvedValue({ error: "provider down: internal-secret-detail" });
+    const { generateMemberRecoveryAccessLink } = await import("./service");
+
+    const result = await generateMemberRecoveryAccessLink({ membershipId: "membership-1" });
+
+    expect(result.actionLink).toBeUndefined();
+    expect(result.error).toBeTruthy();
+    expect(JSON.stringify(result)).not.toMatch(/internal-secret-detail/);
   });
 });

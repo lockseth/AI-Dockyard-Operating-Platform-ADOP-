@@ -52,3 +52,12 @@ export interface ProvisionInvitedMemberActionResult extends UserManagementAction
 export interface ProvisionMemberActionResult extends UserManagementActionResult {
   temporaryPassword?: string;
 }
+
+// Gate 6J-D9-B "Simplified Internal Access" — shared result shape for both
+// generateMemberInviteAccessLink and generateMemberRecoveryAccessLink. The
+// action_link is a sensitive, one-time credential: like temporaryPassword
+// above, it must never be logged or persisted, only ever returned in this
+// single response.
+export interface GenerateAccessLinkActionResult extends UserManagementActionResult {
+  actionLink?: string;
+}

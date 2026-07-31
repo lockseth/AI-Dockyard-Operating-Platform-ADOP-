@@ -252,6 +252,21 @@ export async function ownerAuthorizeMemberPasswordResetRpc(membershipId: string)
   return supabase.rpc("owner_authorize_member_password_reset", { p_membership_id: membershipId });
 }
 
+// Gate 6J-D9-B — resolves the email address admin.generateLink(type:
+// "recovery") needs (it takes an email, never a user id) for a target
+// already authorized by ownerAuthorizeMemberPasswordResetRpc above. Reuses
+// the exact same profiles_select_tenant_owner_admin RLS policy
+// listTenantMembers relies on, so this can only ever resolve emails for
+// members of the caller's own tenant — never an arbitrary user id.
+export async function getMemberEmailByUserId(userId: string): Promise<string | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.from("profiles").select("email").eq("user_id", userId).maybeSingle();
+  if (error || !data) {
+    return null;
+  }
+  return data.email;
+}
+
 // Wraps public.set_membership_role — authorization (owner of the
 // membership's tenant), self-target rejection, and the atomic
 // delete-existing-roles-then-insert-one all happen inside the RPC.
