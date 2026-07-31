@@ -107,7 +107,14 @@ function pairEnvelope(senderAddress: string, code: string, providerMessageId?: s
     channel: "whatsapp",
     senderAddress,
     messageText: `PAIR ${code}`,
-    providerTimestamp: new Date().toISOString(),
+    providerTimestamp: String(Math.floor(Date.now() / 1000)),
+  };
+}
+
+function barePairEnvelope(senderAddress: string, code: string, providerMessageId?: string) {
+  return {
+    ...pairEnvelope(senderAddress, code, providerMessageId),
+    messageText: code,
   };
 }
 
@@ -118,7 +125,7 @@ function verifyEnvelope(senderAddress: string, code: string, providerMessageId?:
     channel: "whatsapp",
     senderAddress,
     messageText: `VERIFY ${code}`,
-    providerTimestamp: new Date().toISOString(),
+    providerTimestamp: String(Math.floor(Date.now() / 1000)),
   };
 }
 
@@ -191,6 +198,31 @@ describe("assistant inbound gateway — real local Supabase + real route handler
     // Free ownerA's one-verified-binding-per-(tenant,user,channel) slot
     // (assistant_channel_identities_verified_user_uidx) so later tests that
     // reuse ownerA for a fresh PAIR completion don't hit ambiguous_binding.
+    await ownerAClient.rpc("assistant_revoke_pairing", { p_identity_id: identityId });
+  });
+
+  it("valid bare pairing code: real POST completes pairing without requiring a technical prefix", async () => {
+    const ownerAClient = await signInAsMember(ownerA.email);
+    const address = randomFakeE164();
+    const { data: issued } = await ownerAClient.rpc("assistant_issue_pairing_challenge", {
+      p_tenant_id: TENANT_A_ID,
+      p_channel: "whatsapp",
+      p_normalized_address: address,
+    });
+    const { identity_id: identityId, challenge_code: code } = issued![0];
+
+    const { status, body } = await postInbound(barePairEnvelope(address, code));
+
+    expect(status).toBe(200);
+    expect(body.reply!).toMatchObject({ replyRequired: true, safeReplyCode: "paired" });
+
+    const { data: row } = await admin
+      .from("assistant_channel_identities")
+      .select("status")
+      .eq("id", identityId)
+      .single();
+    expect(row!.status).toBe("verified");
+
     await ownerAClient.rpc("assistant_revoke_pairing", { p_identity_id: identityId });
   });
 
@@ -404,7 +436,7 @@ describe("assistant inbound gateway — real local Supabase + real route handler
       channel: "whatsapp",
       senderAddress: address,
       messageText: "halo, apa kabar?",
-      providerTimestamp: new Date().toISOString(),
+      providerTimestamp: String(Math.floor(Date.now() / 1000)),
     });
 
     expect(status).toBe(200);

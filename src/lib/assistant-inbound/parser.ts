@@ -10,15 +10,19 @@ export type ParsedAssistantInboundCommand =
 // hashing.
 const CODE_PATTERN = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/i;
 
-// Deliberately closed command surface (task LOCK D): exactly one keyword
-// token followed by exactly one code token, nothing else. No
-// natural-language approximation, no LLM — anything that doesn't match this
-// exact shape is "unsupported", never a best-effort guess.
+// Deliberately closed command surface (task LOCK D): either a pairing code
+// by itself (the client-friendly default), or exactly one explicit PAIR /
+// VERIFY keyword followed by exactly one code token. No natural-language
+// approximation, no LLM — anything outside these exact shapes is
+// "unsupported", never a best-effort guess.
 export function parseAssistantInboundCommand(messageText: string): ParsedAssistantInboundCommand {
   const trimmed = messageText.trim();
   if (!trimmed) return { type: "unsupported" };
 
   const tokens = trimmed.split(/\s+/);
+  if (tokens.length === 1) {
+    return CODE_PATTERN.test(tokens[0]) ? { type: "pair", code: tokens[0] } : { type: "unsupported" };
+  }
   if (tokens.length !== 2) return { type: "unsupported" };
 
   const [rawKeyword, code] = tokens;
