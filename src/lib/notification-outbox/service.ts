@@ -1,7 +1,12 @@
 import "server-only";
 import { getServerEnv } from "@/lib/env/server";
-import { claimNextNotificationEvent, completeNotificationEvent, failNotificationEvent } from "./repository";
-import type { ClaimedNotification, NotificationEventPayload } from "./types";
+import {
+  claimNextNotificationEvent,
+  completeNotificationEvent,
+  enqueueAndClaimMorningBriefNotification,
+  failNotificationEvent,
+} from "./repository";
+import type { ClaimedNotification, NotificationEventPayload, NotificationEventRow } from "./types";
 
 export class NotificationClaimMismatchError extends Error {
   constructor() {
@@ -74,4 +79,30 @@ export async function failNotificationDelivery(input: {
     }
     throw error;
   }
+}
+
+export interface MorningBriefClaimResult {
+  row: NotificationEventRow;
+  claimedByThisCall: boolean;
+}
+
+// Gate 6J-E1. enqueue_and_claim_morning_brief_notification always returns
+// the CURRENT row for (tenant, businessDate) — whether this call is the one
+// that just (re)claimed it, or a duplicate call that found it already
+// claimed/sent/failed, has to be derived by the caller. That derivation
+// lives here once, so both the internal route and any future caller share
+// the exact same "is this a duplicate" rule instead of re-deriving it.
+export async function enqueueAndClaimMorningBriefDelivery(input: {
+  tenantId: string;
+  businessDate: string;
+  workerId: string;
+  messageLine1: string;
+  linkPath?: string;
+  leaseSeconds?: number;
+}): Promise<MorningBriefClaimResult> {
+  const row = await enqueueAndClaimMorningBriefNotification(input);
+  return {
+    row,
+    claimedByThisCall: row.status === "processing" && row.claimed_by === input.workerId,
+  };
 }

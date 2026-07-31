@@ -53,3 +53,33 @@ export async function failNotificationEvent(params: {
   if (error) throw error;
   return data;
 }
+
+// Gate 6J-E1 — Morning Brief. Unlike the three RPCs above (which only ever
+// touch a row some other domain RPC already enqueued), this one both
+// enqueues (idempotent per tenant+business_date) and claims in the same
+// call, since Morning Brief has no separate domain transaction to piggyback
+// an enqueue onto — see 20260731000000_morning_brief_notification_outbox_
+// extension.sql. Whether THIS call is the one that (re)claimed the row is
+// the caller's responsibility to check (compare the returned claimed_by to
+// the worker id it just sent) — the RPC always returns the current row,
+// claimed or not.
+export async function enqueueAndClaimMorningBriefNotification(params: {
+  tenantId: string;
+  businessDate: string;
+  workerId: string;
+  messageLine1: string;
+  linkPath?: string;
+  leaseSeconds?: number;
+}): Promise<NotificationEventRow> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc("enqueue_and_claim_morning_brief_notification", {
+    p_tenant_id: params.tenantId,
+    p_business_date: params.businessDate,
+    p_worker_id: params.workerId,
+    p_message_line1: params.messageLine1,
+    p_link_path: params.linkPath,
+    p_lease_seconds: params.leaseSeconds,
+  });
+  if (error) throw error;
+  return data;
+}

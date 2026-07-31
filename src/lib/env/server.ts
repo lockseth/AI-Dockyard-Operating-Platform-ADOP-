@@ -39,6 +39,11 @@ const serverEnvSchema = z.object({
   // replacement for it. Empty fails closed, same posture as every other
   // secret here.
   INTERNAL_ASSISTANT_INBOUND_SIGNING_SECRET: z.string().default(""),
+  // Gate 6J-E1 — the single pilot tenant Morning Brief composes for. A slug
+  // (tenants.slug is unique), never a raw tenant UUID, so no tenant id ever
+  // has to appear in deployment config or n8n. Empty fails closed: the
+  // internal route refuses to compose/enqueue anything until this is set.
+  MORNING_BRIEF_PILOT_TENANT_SLUG: z.string().default(""),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

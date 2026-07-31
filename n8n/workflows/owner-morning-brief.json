@@ -1,0 +1,246 @@
+{
+  "name": "ADOP Gate 6J-E1 — Owner Morning Brief",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every Morning 07:00 WIB",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "notes": "Anchored by this workflow's settings.timezone (Asia/Jakarta), not $env — $env is unavailable on the hosted BOC n8n instance (Gate 6J-D1 finding)."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://adop-demo-gema.vercel.app/api/internal/morning-brief",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workerId: \"n8n-\" + $execution.id, leaseSeconds: 300 }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "compose-morning-brief",
+      "name": "Compose Morning Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "ADOP Internal API Secret"
+        }
+      },
+      "notes": "x-internal-secret header is injected by the \"ADOP Internal API Secret\" credential, not a literal value in this workflow. dryRun is omitted (defaults to false) — this is the real, once-per-business_date compose+enqueue+claim call."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-event",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-event",
+      "name": "Has Event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0],
+      "notes": "false when today's Morning Brief was already sent/is already in flight (duplicate=true) or when the pilot tenant is unconfigured (503) — either way, nothing is sent."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.fonnte.com/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "target", "value": "" },
+            { "name": "message", "value": "={{ $('Compose Morning Brief').item.json.event.message }}" }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send-via-fonnte",
+      "name": "Send via Fonnte (PT-controlled device -> Pak Hanafi)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, -80],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "ADOP Fonnte Sender Device Token"
+        }
+      },
+      "notes": "Authorization header via the \"ADOP Fonnte Sender Device Token\" credential — never a literal token in this file. Message text comes verbatim from Compose Morning Brief's response; this node never composes or edits it. target is deliberately left empty here (no phone number in the repo, no $env available) — the operator must set Pak Hanafi's WhatsApp number directly on this parameter in the hosted n8n editor before activation. Single-tenant pilot scope: one fixed recipient, no per-tenant routing."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "fonnte-ok",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fonnte-success",
+      "name": "Fonnte Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://adop-demo-gema.vercel.app/api/internal/notifications/complete",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $('Compose Morning Brief').item.json.event.id, workerId: \"n8n-\" + $execution.id, providerMessageId: String($json.id || '') }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "complete-notification",
+      "name": "Complete Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -160],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "ADOP Internal API Secret"
+        }
+      },
+      "notes": "Reuses the existing, unmodified Gate 1L completion endpoint — no second delivery-completion mechanism was built for Morning Brief."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://adop-demo-gema.vercel.app/api/internal/notifications/fail",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $('Compose Morning Brief').item.json.event.id, workerId: \"n8n-\" + $execution.id, error: String(($json.reason || $json.message || 'fonnte send failed')).slice(0, 2000) }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "fail-notification",
+      "name": "Fail Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "ADOP Internal API Secret"
+        }
+      },
+      "notes": "Reuses the existing, unmodified Gate 1L failure endpoint — bounded retry (max_attempts) and lease-based reclaim are exactly the shared outbox's, not reimplemented here."
+    }
+  ],
+  "connections": {
+    "Every Morning 07:00 WIB": {
+      "main": [[{ "node": "Compose Morning Brief", "type": "main", "index": 0 }]]
+    },
+    "Compose Morning Brief": {
+      "main": [[{ "node": "Has Event?", "type": "main", "index": 0 }]]
+    },
+    "Has Event?": {
+      "main": [
+        [{ "node": "Send via Fonnte (PT-controlled device -> Pak Hanafi)", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Send via Fonnte (PT-controlled device -> Pak Hanafi)": {
+      "main": [[{ "node": "Fonnte Success?", "type": "main", "index": 0 }]]
+    },
+    "Fonnte Success?": {
+      "main": [
+        [{ "node": "Complete Notification", "type": "main", "index": 0 }],
+        [{ "node": "Fail Notification", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta"
+  }
+}

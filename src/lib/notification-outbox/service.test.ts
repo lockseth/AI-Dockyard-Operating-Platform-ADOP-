@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const claimNextNotificationEvent = vi.fn();
 const completeNotificationEvent = vi.fn();
 const failNotificationEvent = vi.fn();
+const enqueueAndClaimMorningBriefNotification = vi.fn();
 
 vi.mock("./repository", () => ({
   claimNextNotificationEvent: (...args: unknown[]) => claimNextNotificationEvent(...args),
   completeNotificationEvent: (...args: unknown[]) => completeNotificationEvent(...args),
   failNotificationEvent: (...args: unknown[]) => failNotificationEvent(...args),
+  enqueueAndClaimMorningBriefNotification: (...args: unknown[]) => enqueueAndClaimMorningBriefNotification(...args),
 }));
 
 describe("notification-outbox service", () => {
@@ -17,6 +19,7 @@ describe("notification-outbox service", () => {
     claimNextNotificationEvent.mockReset();
     completeNotificationEvent.mockReset();
     failNotificationEvent.mockReset();
+    enqueueAndClaimMorningBriefNotification.mockReset();
     vi.stubEnv("APP_URL", "https://adop.example.com");
   });
 
@@ -116,5 +119,64 @@ describe("notification-outbox service", () => {
     const { completeNotificationDelivery } = await import("./service");
 
     await expect(completeNotificationDelivery({ id: "evt-1", workerId: "w1" })).resolves.toEqual({ status: "sent" });
+  });
+
+  describe("enqueueAndClaimMorningBriefDelivery", () => {
+    it("reports claimedByThisCall=true when the row is processing under this exact worker id", async () => {
+      enqueueAndClaimMorningBriefNotification.mockResolvedValue({
+        id: "evt-mb-1",
+        status: "processing",
+        claimed_by: "worker-a",
+      });
+      const { enqueueAndClaimMorningBriefDelivery } = await import("./service");
+
+      const result = await enqueueAndClaimMorningBriefDelivery({
+        tenantId: "tenant-1",
+        businessDate: "2026-07-31",
+        workerId: "worker-a",
+        messageLine1: "Ringkasan ADOP pagi ini.",
+      });
+
+      expect(result).toEqual({
+        row: { id: "evt-mb-1", status: "processing", claimed_by: "worker-a" },
+        claimedByThisCall: true,
+      });
+    });
+
+    it("reports claimedByThisCall=false when another worker still holds an active claim", async () => {
+      enqueueAndClaimMorningBriefNotification.mockResolvedValue({
+        id: "evt-mb-1",
+        status: "processing",
+        claimed_by: "worker-a",
+      });
+      const { enqueueAndClaimMorningBriefDelivery } = await import("./service");
+
+      const result = await enqueueAndClaimMorningBriefDelivery({
+        tenantId: "tenant-1",
+        businessDate: "2026-07-31",
+        workerId: "worker-b",
+        messageLine1: "Ringkasan ADOP pagi ini.",
+      });
+
+      expect(result.claimedByThisCall).toBe(false);
+    });
+
+    it("reports claimedByThisCall=false once the row is already sent (terminal)", async () => {
+      enqueueAndClaimMorningBriefNotification.mockResolvedValue({
+        id: "evt-mb-1",
+        status: "sent",
+        claimed_by: "worker-a",
+      });
+      const { enqueueAndClaimMorningBriefDelivery } = await import("./service");
+
+      const result = await enqueueAndClaimMorningBriefDelivery({
+        tenantId: "tenant-1",
+        businessDate: "2026-07-31",
+        workerId: "worker-a",
+        messageLine1: "Ringkasan ADOP pagi ini.",
+      });
+
+      expect(result.claimedByThisCall).toBe(false);
+    });
   });
 });

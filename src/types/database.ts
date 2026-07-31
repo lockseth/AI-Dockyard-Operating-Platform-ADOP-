@@ -2347,6 +2347,7 @@ export type Database = {
       notification_events: {
         Row: {
           attempt_count: number
+          business_date: string | null
           channel: string
           claimed_at: string | null
           claimed_by: string | null
@@ -2368,6 +2369,7 @@ export type Database = {
         }
         Insert: {
           attempt_count?: number
+          business_date?: string | null
           channel?: string
           claimed_at?: string | null
           claimed_by?: string | null
@@ -2389,6 +2391,7 @@ export type Database = {
         }
         Update: {
           attempt_count?: number
+          business_date?: string | null
           channel?: string
           claimed_at?: string | null
           claimed_by?: string | null
@@ -4307,6 +4310,7 @@ export type Database = {
         Args: { p_lease_seconds?: number; p_worker_id: string }
         Returns: {
           attempt_count: number
+          business_date: string | null
           channel: string
           claimed_at: string | null
           claimed_by: string | null
@@ -4341,6 +4345,45 @@ export type Database = {
         }
         Returns: {
           attempt_count: number
+          business_date: string | null
+          channel: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          sent_at: string | null
+          source_event_id: string
+          status: Database["public"]["Enums"]["notification_status"]
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      enqueue_and_claim_morning_brief_notification: {
+        Args: {
+          p_business_date: string
+          p_lease_seconds?: number
+          p_link_path?: string
+          p_message_line1: string
+          p_tenant_id: string
+          p_worker_id: string
+        }
+        Returns: {
+          attempt_count: number
+          business_date: string | null
           channel: string
           claimed_at: string | null
           claimed_by: string | null
@@ -4516,6 +4559,7 @@ export type Database = {
         Args: { p_error: string; p_event_id: string; p_worker_id: string }
         Returns: {
           attempt_count: number
+          business_date: string | null
           channel: string
           claimed_at: string | null
           claimed_by: string | null
@@ -6110,7 +6154,7 @@ export type Database = {
       invoice_status: "draft" | "issued" | "void"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
-      notification_event_type: "import_review_requested" | "import_approved"
+      notification_event_type: "import_review_requested" | "import_approved" | "morning_brief"
       notification_status: "pending" | "processing" | "sent" | "failed"
       project_cost_ledger_entry_kind: "expense" | "reversal" | "refund"
       project_cost_ledger_entry_scope: "project" | "shared_overhead"
@@ -6359,7 +6403,7 @@ export const Constants = {
       invoice_status: ["draft", "issued", "void"],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
-      notification_event_type: ["import_review_requested", "import_approved"],
+      notification_event_type: ["import_review_requested", "import_approved", "morning_brief"],
       notification_status: ["pending", "processing", "sent", "failed"],
       project_cost_ledger_entry_kind: ["expense", "reversal", "refund"],
       project_cost_ledger_entry_scope: ["project", "shared_overhead"],

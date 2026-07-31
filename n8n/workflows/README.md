@@ -232,3 +232,63 @@ never calls any ADOP approve/reject/import endpoint.
 6. Runtime stays inactive until an internal dry run is approved.
 7. Pak Hanafi's number must not be used before an internal test to
    Hendro's number PASSes and the Founder gives explicit approval.
+
+## owner-morning-brief.json
+
+Gate 6J-E1 — daily 07:00 Asia/Jakarta trigger that calls ADOP's own
+`POST /api/internal/morning-brief` (composes and enqueues+claims the
+canonical Morning Brief server-side, from trusted ADOP read-models only —
+never in n8n, never by an LLM), sends the returned text via Fonnte, then
+reports success/failure back through the **existing, unmodified**
+`/api/internal/notifications/{complete,fail}` routes. Same graph shape as
+`owner-control-whatsapp-notification.json` (claim/compose → Has Event? →
+Fonnte send → success? → complete/fail) — only the first call differs.
+
+**Does not touch `owner-control-whatsapp-notification.json`.** That workflow
+keeps its own separate 1-minute schedule for cash-import notifications;
+Morning Brief is a second, independent schedule against the same shared
+`notification_events` outbox (see
+`20260731000000_morning_brief_notification_outbox_extension.sql`), never a
+replacement.
+
+### Credential-based auth, not `$env` (unlike Gate 1L)
+
+The hosted BOC n8n instance denies `$env` access entirely (Gate 6J-D1
+finding, confirmed again for the inbound gateway workflow above) — this
+workflow was authored credential-first from the start, following the same
+pattern as `gema-assistant-inbound-pair-verify.gate-6j-d5-native-crypto.json`:
+
+| Credential (n8n, hosted instance only) | Type          | Used by                                                    |
+| --------------------------------------- | ------------- | ----------------------------------------------------------- |
+| `ADOP Internal API Secret`              | `httpHeaderAuth` | Compose Morning Brief, Complete Notification, Fail Notification (`x-internal-secret`) |
+| `ADOP Fonnte Sender Device Token`       | `httpHeaderAuth` | Send via Fonnte (`Authorization`) — same PT-controlled sender device as Gate 1L, not a second device |
+
+The ADOP endpoint URLs are literal (`https://adop-demo-gema.vercel.app/...`),
+same reasoning as Gate 6J-D5's `Post ADOP Inbound` node — no `$env.ADOP_APP_URL`
+available.
+
+### Recipient number — open question, not yet resolved
+
+Gate 1L solved "recipient number, hosted config, not in the repo" with
+`$env.RECIPIENT_OWNER_WHATSAPP_NUMBER`, which is no longer viable on the
+hosted instance. This workflow has **no equivalent credential mechanism for
+a body field** (`httpHeaderAuth` only injects headers, not the Fonnte
+`target` body parameter) and does not assume the hosted instance's n8n plan
+includes the separate "Variables" (`$vars`) feature — that has not been
+verified, the same caution already applied to `$env` and Code-node `crypto`
+in earlier gates. The checked-in JSON therefore ships the Fonnte send node's
+`target` parameter **empty**; an operator must set Pak Hanafi's real number
+directly on that node in the hosted n8n editor before activation, which
+satisfies "never in the repo" but does not yet satisfy "from hosted
+config" in the same structured way `ADOP Internal API Secret` does. Resolving
+this properly (a real `$vars` entry, or a small internal ADOP lookup instead
+of a literal target) is left for the same supervised-dry-run gate that
+activates this workflow, not decided here.
+
+### Pilot constraints (same as Gate 1L)
+
+Single tenant (`MORNING_BRIEF_PILOT_TENANT_SLUG`, server-only ADOP env, not
+a UUID and not in this repo), at-least-once delivery semantics, must be
+monitored during the pilot, stays **inactive** until an internal dry run
+(Hendro's test number first, Pak Hanafi's number only after explicit Founder
+approval) passes — identical posture to Gate 1L §"Pilot constraints" above.

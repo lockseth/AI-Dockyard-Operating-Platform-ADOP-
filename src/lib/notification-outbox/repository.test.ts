@@ -57,3 +57,56 @@ describe("claimNextNotificationEvent", () => {
     await expect(claimNextNotificationEvent("worker-1")).rejects.toThrow("db unavailable");
   });
 });
+
+describe("enqueueAndClaimMorningBriefNotification", () => {
+  it("calls the RPC with the exact p_-prefixed argument names the migration defines", async () => {
+    rpc.mockResolvedValue({ data: { id: "evt-mb-1", status: "processing" }, error: null });
+    const { enqueueAndClaimMorningBriefNotification } = await import("./repository");
+
+    await enqueueAndClaimMorningBriefNotification({
+      tenantId: "tenant-1",
+      businessDate: "2026-07-31",
+      workerId: "worker-a",
+      messageLine1: "Ringkasan ADOP pagi ini.",
+      linkPath: "/app/executive-report",
+      leaseSeconds: 300,
+    });
+
+    expect(rpc).toHaveBeenCalledWith("enqueue_and_claim_morning_brief_notification", {
+      p_tenant_id: "tenant-1",
+      p_business_date: "2026-07-31",
+      p_worker_id: "worker-a",
+      p_message_line1: "Ringkasan ADOP pagi ini.",
+      p_link_path: "/app/executive-report",
+      p_lease_seconds: 300,
+    });
+  });
+
+  it("returns the row on success", async () => {
+    rpc.mockResolvedValue({ data: { id: "evt-mb-1", status: "processing", claimed_by: "worker-a" }, error: null });
+    const { enqueueAndClaimMorningBriefNotification } = await import("./repository");
+
+    await expect(
+      enqueueAndClaimMorningBriefNotification({
+        tenantId: "tenant-1",
+        businessDate: "2026-07-31",
+        workerId: "worker-a",
+        messageLine1: "Ringkasan ADOP pagi ini.",
+      }),
+    ).resolves.toEqual({ id: "evt-mb-1", status: "processing", claimed_by: "worker-a" });
+  });
+
+  it("throws on an RPC error", async () => {
+    rpc.mockResolvedValue({ data: null, error: new Error("db unavailable") });
+    const { enqueueAndClaimMorningBriefNotification } = await import("./repository");
+
+    await expect(
+      enqueueAndClaimMorningBriefNotification({
+        tenantId: "tenant-1",
+        businessDate: "2026-07-31",
+        workerId: "worker-a",
+        messageLine1: "Ringkasan ADOP pagi ini.",
+      }),
+    ).rejects.toThrow("db unavailable");
+  });
+});
