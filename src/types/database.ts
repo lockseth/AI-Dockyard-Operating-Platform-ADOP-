@@ -1758,6 +1758,53 @@ export type Database = {
           },
         ]
       }
+      first_owner_bootstrap_tokens: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          status: Database["public"]["Enums"]["first_owner_bootstrap_status"]
+          tenant_id: string
+          token_hash: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["first_owner_bootstrap_status"]
+          tenant_id: string
+          token_hash: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["first_owner_bootstrap_status"]
+          tenant_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "first_owner_bootstrap_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_delivery_events: {
         Row: {
           acknowledgment_note: string | null
@@ -4292,6 +4339,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_first_owner_bootstrap: {
+        Args: { p_token_hash: string; p_user_id: string }
+        Returns: {
+          membership_id: string
+          tenant_id: string
+        }[]
+      }
       claim_inbound_assistant_event: {
         Args: {
           p_channel: string
@@ -4341,44 +4395,6 @@ export type Database = {
         Args: {
           p_event_id: string
           p_provider_message_id?: string
-          p_worker_id: string
-        }
-        Returns: {
-          attempt_count: number
-          business_date: string | null
-          channel: string
-          claimed_at: string | null
-          claimed_by: string | null
-          created_at: string
-          event_type: Database["public"]["Enums"]["notification_event_type"]
-          id: string
-          last_error: string | null
-          lease_expires_at: string | null
-          max_attempts: number
-          payload: Json
-          provider_message_id: string | null
-          sent_at: string | null
-          source_event_id: string
-          status: Database["public"]["Enums"]["notification_status"]
-          subject_id: string
-          subject_type: string
-          tenant_id: string
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "notification_events"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      enqueue_and_claim_morning_brief_notification: {
-        Args: {
-          p_business_date: string
-          p_lease_seconds?: number
-          p_link_path?: string
-          p_message_line1: string
-          p_tenant_id: string
           p_worker_id: string
         }
         Returns: {
@@ -4554,6 +4570,44 @@ export type Database = {
           invitation_id: string
           target_user_exists: boolean
         }[]
+      }
+      enqueue_and_claim_morning_brief_notification: {
+        Args: {
+          p_business_date: string
+          p_lease_seconds?: number
+          p_link_path?: string
+          p_message_line1: string
+          p_tenant_id: string
+          p_worker_id: string
+        }
+        Returns: {
+          attempt_count: number
+          business_date: string | null
+          channel: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["notification_event_type"]
+          id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          sent_at: string | null
+          source_event_id: string
+          status: Database["public"]["Enums"]["notification_status"]
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       fail_notification_event: {
         Args: { p_error: string; p_event_id: string; p_worker_id: string }
@@ -5552,6 +5606,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_first_owner_bootstrap_token: {
+        Args: { p_token_hash: string }
+        Returns: {
+          email: string
+          tenant_display_name: string
+          tenant_id: string
+          token_id: string
+        }[]
+      }
       reverse_cash_pool_entry: {
         Args: { p_entry_id: string; p_reason: string }
         Returns: {
@@ -6133,6 +6196,7 @@ export type Database = {
         | "rejected"
         | "needs_correction"
         | "cancelled"
+      first_owner_bootstrap_status: "pending" | "claimed" | "revoked"
       invoice_billing_completeness_status:
         | "DRAFT_INCOMPLETE"
         | "DRAFT_READY_TO_ISSUE"
@@ -6154,7 +6218,10 @@ export type Database = {
       invoice_status: "draft" | "issued" | "void"
       legal_entity_status: "active" | "inactive"
       membership_status: "invited" | "active" | "suspended"
-      notification_event_type: "import_review_requested" | "import_approved" | "morning_brief"
+      notification_event_type:
+        | "import_review_requested"
+        | "import_approved"
+        | "morning_brief"
       notification_status: "pending" | "processing" | "sent" | "failed"
       project_cost_ledger_entry_kind: "expense" | "reversal" | "refund"
       project_cost_ledger_entry_scope: "project" | "shared_overhead"
@@ -6380,6 +6447,7 @@ export const Constants = {
         "needs_correction",
         "cancelled",
       ],
+      first_owner_bootstrap_status: ["pending", "claimed", "revoked"],
       invoice_billing_completeness_status: [
         "DRAFT_INCOMPLETE",
         "DRAFT_READY_TO_ISSUE",
@@ -6403,7 +6471,11 @@ export const Constants = {
       invoice_status: ["draft", "issued", "void"],
       legal_entity_status: ["active", "inactive"],
       membership_status: ["invited", "active", "suspended"],
-      notification_event_type: ["import_review_requested", "import_approved", "morning_brief"],
+      notification_event_type: [
+        "import_review_requested",
+        "import_approved",
+        "morning_brief",
+      ],
       notification_status: ["pending", "processing", "sent", "failed"],
       project_cost_ledger_entry_kind: ["expense", "reversal", "refund"],
       project_cost_ledger_entry_scope: ["project", "shared_overhead"],

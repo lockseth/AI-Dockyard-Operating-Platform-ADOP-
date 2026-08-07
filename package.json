@@ -16,7 +16,8 @@
     "db:lint": "supabase db lint",
     "db:types": "supabase gen types typescript --local > src/types/database.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "demo:owner-bootstrap": "jiti src/lib/demo-owner-bootstrap/cli.ts"
+    "demo:owner-bootstrap": "jiti src/lib/demo-owner-bootstrap/cli.ts",
+    "first-owner-bootstrap:issue": "jiti src/lib/first-owner-bootstrap/cli.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
