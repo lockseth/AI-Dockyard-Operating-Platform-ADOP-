@@ -20,6 +20,68 @@ function projectRow(index: number, totalCost: number): ActiveProjectCostRow {
   return { projectId: `project-${index}`, label: `Kapal ${index}`, totalCost };
 }
 
+// TailAdmin-inspired restyle: the plain <dl> summary rows were replaced with
+// a StatCard KPI grid + status Badge row — this proves every pre-existing
+// summary field still renders somewhere on the page, just in the new shape.
+describe("OwnerSummarySection — executive summary KPI cards", () => {
+  it("renders every existing summary field with its existing formatted value", () => {
+    render(
+      <OwnerSummarySection
+        summary={{
+          ...BASE_SUMMARY,
+          openingCash: 1_000_000,
+          totalCashIn: 250_000,
+          totalCashOutApproved: 400_000,
+          expectedClosingCash: 850_000,
+          expensesPendingReviewCount: 3,
+          duplicateCandidatesPendingCount: 1,
+          activeProjectCount: 7,
+        }}
+        activeProjectCostRows={[]}
+        unbilledIndicator={null}
+      />,
+    );
+
+    expect(screen.getByText("Opening Cash")).toBeInTheDocument();
+    expect(screen.getByText(/Rp\s?1\.000\.000/)).toBeInTheDocument();
+    expect(screen.getByText("Total Cash-In")).toBeInTheDocument();
+    expect(screen.getByText(/Rp\s?250\.000/)).toBeInTheDocument();
+    expect(screen.getByText("Total Cash-Out (Approved)")).toBeInTheDocument();
+    expect(screen.getByText(/Rp\s?400\.000/)).toBeInTheDocument();
+    expect(screen.getByText("Expected Closing Cash")).toBeInTheDocument();
+    expect(screen.getByText(/Rp\s?850\.000/)).toBeInTheDocument();
+    expect(screen.getByText("Pengeluaran Menunggu Review")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("Kandidat Duplikasi Pending")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("Project Kapal Aktif")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
+  });
+
+  it("shows a 'Perlu review' badge on pending-count cards only when the count is > 0", () => {
+    render(
+      <OwnerSummarySection
+        summary={{ ...BASE_SUMMARY, expensesPendingReviewCount: 0, duplicateCandidatesPendingCount: 2 }}
+        activeProjectCostRows={[]}
+        unbilledIndicator={null}
+      />,
+    );
+    expect(screen.getAllByText("Perlu review")).toHaveLength(1);
+  });
+
+  it("renders the daily-close and EOD reconciliation status as badges using the existing label functions", () => {
+    render(
+      <OwnerSummarySection
+        summary={{ ...BASE_SUMMARY, dailyCloseStatus: "open", eodReconciliationStatus: "submitted" }}
+        activeProjectCostRows={[]}
+        unbilledIndicator={null}
+      />,
+    );
+    expect(screen.getByText(/Kas:/)).toBeInTheDocument();
+    expect(screen.getByText(/EOD:/)).toBeInTheDocument();
+  });
+});
+
 // Regression coverage for the Gate 3B wiring gap: buildUnbilledVesselIndicator
 // was already fully unit-tested (owner-control/view-model.test.ts) but was
 // never rendered by Owner Control — this proves the page's own presentation

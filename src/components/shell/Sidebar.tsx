@@ -44,7 +44,7 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-5 text-white">
-      <div className="flex items-center gap-3 px-2">
+      <div className="flex items-center gap-3 border-b border-white/10 px-2 pb-5">
         {identity.logoPath ? (
           <Image
             src={identity.logoPath}
@@ -91,16 +91,16 @@ function SidebarContent({
                     onClick={onNavigate}
                     aria-current={isActive ? "page" : undefined}
                     title={collapsed ? item.label : undefined}
-                    className={`flex items-center gap-3 rounded-md border-l-[3px] py-2.5 text-[14.5px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                    className={`flex items-center gap-3 rounded-md border-l-[3px] py-2.5 text-[14.5px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                       collapsed ? "justify-center px-2" : "pr-2 pl-[11px]"
                     } ${
                       isOwnerGroup
                         ? isActive
-                          ? "border-brand-gold bg-brand-gold/20 text-white"
-                          : "border-transparent text-brand-gold/85 hover:bg-brand-gold/10 hover:text-white"
+                          ? "border-brand-gold bg-brand-gold/20 font-semibold text-white shadow-sm"
+                          : "border-transparent font-medium text-brand-gold/85 hover:bg-brand-gold/10 hover:text-white"
                         : isActive
-                          ? "border-adop-accent bg-adop-accent/30 text-white"
-                          : "border-transparent text-white/70 hover:bg-white/5 hover:text-white"
+                          ? "border-adop-accent bg-adop-accent/30 font-semibold text-white shadow-sm"
+                          : "border-transparent font-medium text-white/70 hover:bg-white/5 hover:text-white"
                     }`}
                   >
                     {Icon ? (

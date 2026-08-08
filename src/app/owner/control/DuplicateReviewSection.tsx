@@ -1,5 +1,6 @@
 import type { ExpenseDuplicateCandidateCurrentRow } from "@/lib/expense-duplicate-detection/repository";
 import { Card } from "@/components/ui/Card";
+import { SectionIcon } from "./SectionIcon";
 import { DuplicateReviewRow } from "./DuplicateReviewRow";
 
 export interface DuplicateReviewItem {
@@ -18,7 +19,10 @@ export function DuplicateReviewSection({ items }: { items: DuplicateReviewItem[]
   return (
     <section id="tinjauan-duplikasi">
       <Card tone={items.length > 0 ? "warning" : "default"}>
-        <h2 className="text-lg font-semibold tracking-tight">3. Tinjauan Kandidat Duplikasi ({items.length})</h2>
+        <div className="flex items-center gap-2.5">
+          <SectionIcon tone={items.length > 0 ? "warning" : "neutral"} kind="duplicate" />
+          <h2 className="text-lg font-semibold tracking-tight">3. Tinjauan Kandidat Duplikasi ({items.length})</h2>
+        </div>
         <p className="mt-1 text-xs text-neutral-500">
           Kandidat duplikasi hanya indikasi, bukan bukti kecurangan — setiap kandidat membutuhkan keputusan Anda.
         </p>

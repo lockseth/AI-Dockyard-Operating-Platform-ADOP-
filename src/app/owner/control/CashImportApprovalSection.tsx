@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/Card";
 import { TextLink } from "@/components/ui/TextLink";
 import { formatBusinessDateLabel } from "@/lib/operations-daily/format";
 import type { CashImportBatchRow } from "@/lib/cash-import-staging/repository";
+import { SectionIcon } from "./SectionIcon";
 
 // Discoverability only — the actual approve/reject controls live on the
 // batch detail page (/operations/import/[batchId]), which already has the
@@ -18,7 +19,10 @@ export function CashImportApprovalSection({ batches }: { batches: CashImportBatc
   return (
     <section id="import-kas">
       <Card tone="warning">
-        <h2 className="text-lg font-semibold tracking-tight">Import Kas Menunggu Persetujuan ({pending.length})</h2>
+        <div className="flex items-center gap-2.5">
+          <SectionIcon tone="warning" kind="import" />
+          <h2 className="text-lg font-semibold tracking-tight">Import Kas Menunggu Persetujuan ({pending.length})</h2>
+        </div>
         <ul className="mt-2 flex flex-col gap-2 text-sm">
           {pending.map((batch) => (
             <li
