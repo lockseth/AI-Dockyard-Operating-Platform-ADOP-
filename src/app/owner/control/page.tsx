@@ -3,12 +3,15 @@ import { AppShell } from "@/components/shell/AppShell";
 import { canAccessOwnerControl } from "@/lib/owner-control/access";
 import { canApproveCashImportStaging } from "@/lib/cash-import-staging/access";
 import { listCashImportBatchesForActiveTenant } from "@/lib/cash-import-staging/service";
+import { canAccessBillingWorkspace } from "@/lib/billing-workspace/access";
+import { listBillingWorkspaceForActiveTenant } from "@/lib/billing-workspace/service";
 import { formatBusinessDateLabel, getJakartaBusinessDate } from "@/lib/operations-daily/format";
 import { buildVesselProjectLabelMap } from "@/lib/operations-daily/view-model";
 import {
   buildActiveProjectCostRows,
   buildCashPoolBusinessDateMap,
   buildOwnerControlSummary,
+  buildUnbilledVesselIndicator,
   getExpenseSubmissionsPendingReview,
   getLatestReconciliationIdsByPool,
 } from "@/lib/owner-control/view-model";
@@ -68,6 +71,7 @@ export default async function OwnerControlPage() {
     vendors,
     costSummaries,
     cashImportBatches,
+    billingRows,
   ] = await Promise.all([
     pool ? getDailyCashPoolSummaryForActiveTenant(businessDate) : Promise.resolve(null),
     pool ? getCashPoolReconciliationForActiveTenant(pool.id) : Promise.resolve(null),
@@ -81,6 +85,11 @@ export default async function OwnerControlPage() {
     listVendorsForActiveTenant(),
     listVesselProjectCostSummaryForActiveTenant(),
     canApproveCashImportStaging(context.roles) ? listCashImportBatchesForActiveTenant() : Promise.resolve([]),
+    // Same read/role gate as Billing Workspace itself (owner/admin only) —
+    // Owner Control is owner-only, so this always resolves for the roles
+    // that reach this page; the canAccessBillingWorkspace guard below keeps
+    // buildUnbilledVesselIndicator's own null-safety contract intact.
+    canAccessBillingWorkspace(context.roles) ? listBillingWorkspaceForActiveTenant() : Promise.resolve([]),
   ]);
 
   const businessDateByPoolId = buildCashPoolBusinessDateMap(allPools);
@@ -152,6 +161,11 @@ export default async function OwnerControlPage() {
     todayReconciliation,
     activeProjectCount: activeProjectCostRows.length,
   });
+  // Gate 3B built this indicator specifically for Owner Control ("Owner
+  // Dashboard") but it was only ever wired into /app and the Executive
+  // Report — Owner Control itself never rendered it. Same canonical read
+  // model as those two pages, no new engine.
+  const unbilledIndicator = buildUnbilledVesselIndicator(context.roles, billingRows);
 
   return (
     <AppShell
@@ -169,7 +183,11 @@ export default async function OwnerControlPage() {
           </p>
         </div>
 
-        <OwnerSummarySection summary={ownerSummary} activeProjectCostRows={activeProjectCostRows} />
+        <OwnerSummarySection
+          summary={ownerSummary}
+          activeProjectCostRows={activeProjectCostRows}
+          unbilledIndicator={unbilledIndicator}
+        />
         <CashImportApprovalSection batches={cashImportBatches} />
         <ExpenseReviewSection items={expenseReviewItems} />
         <DuplicateReviewSection items={duplicateReviewItems} />
