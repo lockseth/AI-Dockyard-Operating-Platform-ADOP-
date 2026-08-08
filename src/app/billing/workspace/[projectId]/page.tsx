@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { TextLink } from "@/components/ui/TextLink";
 import { canAccessBillingWorkspace } from "@/lib/billing-workspace/access";
 import { getBillingRecordDetailForActiveTenant } from "@/lib/billing-workspace/service";
+import { formatInvoiceMetadataDate } from "@/lib/invoice-evidence/labels";
 import { formatRupiah } from "@/lib/operations-daily/format";
 import { getVesselProjectLifecycleStatusLabel } from "@/lib/vessel-projects/labels";
 import { AccessDenied } from "../../invoices/AccessDenied";
@@ -84,11 +85,11 @@ export default async function BillingRecordDetailPage({
                 </div>
                 <div>
                   <dt className="text-xs text-neutral-500">Tanggal Invoice</dt>
-                  <dd className="font-medium">{activeInvoice.invoice_date ?? "-"}</dd>
+                  <dd className="font-medium">{formatInvoiceMetadataDate(activeInvoice.invoice_date)}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-neutral-500">Jatuh Tempo</dt>
-                  <dd className="font-medium">{activeInvoice.due_date ?? "-"}</dd>
+                  <dd className="font-medium">{formatInvoiceMetadataDate(activeInvoice.due_date)}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-neutral-500">Jumlah Transaksi</dt>

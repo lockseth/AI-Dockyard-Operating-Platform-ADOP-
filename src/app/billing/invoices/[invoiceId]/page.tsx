@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireTenantContext } from "@/lib/auth/tenant";
 import { AppShell } from "@/components/shell/AppShell";
 import { canAccessInvoiceEvidence } from "@/lib/invoice-evidence/access";
+import { formatInvoiceMetadataDate } from "@/lib/invoice-evidence/labels";
 import { getInvoiceDetailForActiveTenant, listInvoiceEligibleTransactionsForActiveTenant } from "@/lib/invoice-evidence/service";
 import { listInvoiceDeliveryEventsForActiveTenant } from "@/lib/invoice-delivery/service";
 import type { InvoiceDeliveryEventRow } from "@/lib/invoice-delivery/types";
@@ -96,13 +97,13 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               {invoice.invoice_date ? (
                 <div>
                   <dt className="text-xs text-neutral-500">Tanggal Invoice</dt>
-                  <dd className="font-medium">{new Date(invoice.invoice_date).toLocaleDateString("id-ID")}</dd>
+                  <dd className="font-medium">{formatInvoiceMetadataDate(invoice.invoice_date)}</dd>
                 </div>
               ) : null}
               {invoice.due_date ? (
                 <div>
                   <dt className="text-xs text-neutral-500">Jatuh Tempo</dt>
-                  <dd className="font-medium">{new Date(invoice.due_date).toLocaleDateString("id-ID")}</dd>
+                  <dd className="font-medium">{formatInvoiceMetadataDate(invoice.due_date)}</dd>
                 </div>
               ) : null}
               {invoice.issued_at ? (
