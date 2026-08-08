@@ -8,14 +8,22 @@ export interface EodReviewItem {
 }
 
 export function EodReviewSection({ items }: { items: EodReviewItem[] }) {
+  // "Pending" here mirrors EodReviewRow's own canDecide gate — the latest
+  // reconciliation per pool still awaiting an owner decision. items itself
+  // also includes historical/non-latest reconciliations, so items.length
+  // alone would overcount the backlog.
+  const pendingCount = items.filter(
+    (item) => item.isLatestForPool && item.reconciliation.status === "submitted",
+  ).length;
+
   return (
-    <section id="tinjauan-eod" className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
-      <h2 className="text-lg font-semibold tracking-tight">4. Tinjauan Rekonsiliasi Akhir Hari (EOD)</h2>
+    <section id="tinjauan-eod" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+      <h2 className="text-lg font-semibold tracking-tight">4. Tinjauan Rekonsiliasi Akhir Hari (EOD) ({pendingCount})</h2>
 
       {items.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">Belum ada rekonsiliasi kas yang tercatat.</p>
+        <p className="mt-2 text-sm text-neutral-500">Belum ada rekonsiliasi kas yang tercatat.</p>
       ) : (
-        <ul className="mt-4 flex flex-col gap-4">
+        <ul className="mt-3 flex flex-col gap-3">
           {items.map((item) => (
             <EodReviewRow key={item.reconciliation.reconciliation_id ?? ""} item={item} />
           ))}

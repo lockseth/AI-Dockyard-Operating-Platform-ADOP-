@@ -14,13 +14,13 @@ export interface ExpenseReviewItem {
 
 export function ExpenseReviewSection({ items }: { items: ExpenseReviewItem[] }) {
   return (
-    <section id="tinjauan-biaya" className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
-      <h2 className="text-lg font-semibold tracking-tight">2. Tinjauan Pengajuan Biaya</h2>
+    <section id="tinjauan-biaya" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+      <h2 className="text-lg font-semibold tracking-tight">2. Tinjauan Pengajuan Biaya ({items.length})</h2>
 
       {items.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">Tidak ada pengajuan biaya yang menunggu review.</p>
+        <p className="mt-2 text-sm text-neutral-500">Tidak ada pengajuan biaya yang menunggu review.</p>
       ) : (
-        <ul className="mt-4 flex flex-col gap-4">
+        <ul className="mt-3 flex flex-col gap-3">
           {items.map((item) => (
             <ExpenseReviewRow key={item.submission.submission_id ?? ""} item={item} />
           ))}

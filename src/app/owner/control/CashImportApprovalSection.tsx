@@ -15,9 +15,9 @@ export function CashImportApprovalSection({ batches }: { batches: CashImportBatc
   }
 
   return (
-    <section id="import-kas" className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
+    <section id="import-kas" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
       <h2 className="text-lg font-semibold tracking-tight">Import Kas Menunggu Persetujuan ({pending.length})</h2>
-      <ul className="mt-3 flex flex-col gap-2 text-sm">
+      <ul className="mt-2 flex flex-col gap-2 text-sm">
         {pending.map((batch) => (
           <li
             key={batch.id}

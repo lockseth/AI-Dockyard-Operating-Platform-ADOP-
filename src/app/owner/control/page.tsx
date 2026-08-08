@@ -174,8 +174,8 @@ export default async function OwnerControlPage() {
       operationalDateLabel={formatBusinessDateLabel(businessDate)}
       showMobileTitle={false}
     >
-    <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-6 py-10">
-      <main className="flex flex-1 flex-col gap-6 pb-16">
+    <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-4 px-6 py-6">
+      <main className="flex flex-1 flex-col gap-4 pb-10">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Owner Control</h1>
           <p className="mt-1 text-sm font-medium text-neutral-600 dark:text-neutral-300">

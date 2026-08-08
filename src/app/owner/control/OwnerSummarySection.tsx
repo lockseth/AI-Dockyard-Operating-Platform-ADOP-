@@ -22,10 +22,10 @@ export function OwnerSummarySection({
   unbilledIndicator: UnbilledVesselIndicator | null;
 }) {
   return (
-    <section id="ringkasan" className="rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
+    <section id="ringkasan" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
       <h2 className="text-lg font-semibold tracking-tight">1. Ringkasan Owner Control</h2>
 
-      <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+      <dl className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
         <SummaryRow label="Opening Cash" value={formatRupiah(summary.openingCash)} />
         <SummaryRow label="Total Cash-In" value={formatRupiah(summary.totalCashIn)} />
         <SummaryRow label="Total Cash-Out (Approved)" value={formatRupiah(summary.totalCashOutApproved)} />
@@ -57,7 +57,7 @@ export function OwnerSummarySection({
         </Link>
       ) : null}
 
-      <div className="mt-4">
+      <div className="mt-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium text-neutral-500">Biaya per Project Kapal Aktif</h3>
           <Link
