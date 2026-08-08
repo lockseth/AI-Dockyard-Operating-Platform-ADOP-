@@ -176,12 +176,17 @@ export default async function OwnerControlPage() {
     >
     <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-4 px-6 py-6">
       <main className="flex flex-1 flex-col gap-4 pb-10">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Owner Control</h1>
-          <p className="mt-1 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+        <header className="flex flex-col gap-1 border-b border-neutral-200 pb-4 dark:border-neutral-800">
+          <p className="text-[11px] font-bold tracking-widest text-adop-accent-700 uppercase dark:text-adop-accent-cyan">
+            Dashboard Owner
+          </p>
+          <h1 className="text-[26px] font-extrabold tracking-tight text-neutral-900 dark:text-neutral-50">
+            Owner Control
+          </h1>
+          <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
             {formatBusinessDateLabel(businessDate)}
           </p>
-        </div>
+        </header>
 
         <OwnerSummarySection
           summary={ownerSummary}

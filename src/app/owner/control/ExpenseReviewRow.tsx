@@ -9,6 +9,7 @@ import {
 import { formatBusinessDateLabel, formatRupiah } from "@/lib/operations-daily/format";
 import { getExpenseSubmissionStatusLabel } from "@/lib/operations-daily/labels";
 import { FieldError, FormError } from "@/components/master-data/FormError";
+import { Button } from "@/components/ui/Button";
 import { Disclosure } from "@/components/ui/Disclosure";
 import type { ExpenseSubmissionActionResult } from "@/lib/expense-approvals/service";
 import type { ExpenseReviewItem } from "./ExpenseReviewSection";
@@ -88,7 +89,7 @@ export function ExpenseReviewRow({ item }: { item: ExpenseReviewItem }) {
         <button
           type="button"
           onClick={() => setShowRevisions((prev) => !prev)}
-          className="mt-3 text-xs text-neutral-500 underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"
+          className="mt-3 rounded text-xs text-neutral-500 underline underline-offset-4 outline-none transition-colors hover:text-neutral-800 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:hover:text-neutral-100"
         >
           {showRevisions ? "Sembunyikan riwayat revisi" : `Lihat riwayat revisi (${revisionHistory.length})`}
         </button>
@@ -113,36 +114,34 @@ export function ExpenseReviewRow({ item }: { item: ExpenseReviewItem }) {
             }}
           >
             <input type="hidden" name="submissionId" value={submissionId} />
-            <button
-              type="submit"
-              disabled={hasPendingDuplicate || isApproving}
-              className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-            >
+            <Button type="submit" variant="primary" size="sm" loading={isApproving} disabled={hasPendingDuplicate || isApproving}>
               {isApproving ? "Memproses..." : "Setujui"}
-            </button>
+            </Button>
           </form>
 
-          <button
+          <Button
             type="button"
+            variant="destructive"
+            size="sm"
             onClick={() => {
               setIsRejecting((prev) => !prev);
               setIsCorrecting(false);
             }}
-            className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:border-red-400 dark:border-red-800 dark:text-red-400"
           >
             {isRejecting ? "Batal" : "Tolak"}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setIsCorrecting((prev) => !prev);
               setIsRejecting(false);
             }}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:border-neutral-400 dark:border-neutral-700"
           >
             {isCorrecting ? "Batal" : "Minta Koreksi"}
-          </button>
+          </Button>
         </div>
 
         <FormError error={approveState.error} />
@@ -176,13 +175,9 @@ export function ExpenseReviewRow({ item }: { item: ExpenseReviewItem }) {
             <FieldError messages={rejectState.fieldErrors?.reason} />
             <FormError error={rejectState.error} />
             <div>
-              <button
-                type="submit"
-                disabled={isRejectingRequest}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              >
+              <Button type="submit" variant="destructive" loading={isRejectingRequest} disabled={isRejectingRequest}>
                 {isRejectingRequest ? "Menolak..." : "Konfirmasi Tolak"}
-              </button>
+              </Button>
             </div>
           </form>
         ) : null}
@@ -216,13 +211,9 @@ export function ExpenseReviewRow({ item }: { item: ExpenseReviewItem }) {
             <FieldError messages={correctionState.fieldErrors?.reason} />
             <FormError error={correctionState.error} />
             <div>
-              <button
-                type="submit"
-                disabled={isCorrectingRequest}
-                className="rounded-md border border-neutral-400 px-4 py-2 text-sm font-medium disabled:opacity-60"
-              >
+              <Button type="submit" variant="secondary" loading={isCorrectingRequest} disabled={isCorrectingRequest}>
                 {isCorrectingRequest ? "Mengirim..." : "Konfirmasi Minta Koreksi"}
-              </button>
+              </Button>
             </div>
           </form>
         ) : null}

@@ -91,7 +91,7 @@ function ChevronIcon({ open }: { open: boolean }) {
     <svg
       viewBox="0 0 20 20"
       aria-hidden="true"
-      className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`}
+      className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
     >
       <path
         fillRule="evenodd"

@@ -10,6 +10,7 @@ import {
 import { formatBusinessDateLabel, formatRupiah } from "@/lib/operations-daily/format";
 import { getCashReconciliationStatusLabel } from "@/lib/operations-daily/labels";
 import { FieldError, FormError } from "@/components/master-data/FormError";
+import { Button } from "@/components/ui/Button";
 import { Disclosure } from "@/components/ui/Disclosure";
 import type { CashPoolResult, CashReconciliationResult } from "@/lib/cash-reconciliation/service";
 import type { EodReviewItem } from "./EodReviewSection";
@@ -119,30 +120,28 @@ export function EodReviewRow({ item }: { item: EodReviewItem }) {
                 }}
               >
                 <input type="hidden" name="reconciliationId" value={reconciliationId} />
-                <button
-                  type="submit"
-                  disabled={isApproving}
-                  className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
-                >
+                <Button type="submit" variant="primary" size="sm" loading={isApproving} disabled={isApproving}>
                   {isApproving ? "Memproses..." : "Setujui Penutupan"}
-                </button>
+                </Button>
               </form>
 
-              <button
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 onClick={() => setActiveDecision((prev) => (prev === "reject" ? null : "reject"))}
-                className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:border-red-400 dark:border-red-800 dark:text-red-400"
               >
                 {activeDecision === "reject" ? "Batal" : "Tolak"}
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => setActiveDecision((prev) => (prev === "correction" ? null : "correction"))}
-                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:border-neutral-400 dark:border-neutral-700"
               >
                 {activeDecision === "correction" ? "Batal" : "Minta Koreksi"}
-              </button>
+              </Button>
             </div>
 
             <FormError error={approveState.error} />
@@ -176,13 +175,9 @@ export function EodReviewRow({ item }: { item: EodReviewItem }) {
                 <FieldError messages={rejectState.fieldErrors?.reason} />
                 <FormError error={rejectState.error} />
                 <div>
-                  <button
-                    type="submit"
-                    disabled={isRejecting}
-                    className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-                  >
+                  <Button type="submit" variant="destructive" loading={isRejecting} disabled={isRejecting}>
                     {isRejecting ? "Menolak..." : "Konfirmasi Tolak"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : null}
@@ -216,13 +211,9 @@ export function EodReviewRow({ item }: { item: EodReviewItem }) {
                 <FieldError messages={correctionState.fieldErrors?.reason} />
                 <FormError error={correctionState.error} />
                 <div>
-                  <button
-                    type="submit"
-                    disabled={isCorrecting}
-                    className="rounded-md border border-neutral-400 px-4 py-2 text-sm font-medium disabled:opacity-60"
-                  >
+                  <Button type="submit" variant="secondary" loading={isCorrecting} disabled={isCorrecting}>
                     {isCorrecting ? "Mengirim..." : "Konfirmasi Minta Koreksi"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : null}
@@ -234,7 +225,7 @@ export function EodReviewRow({ item }: { item: EodReviewItem }) {
             <button
               type="button"
               onClick={() => setIsReopening((prev) => !prev)}
-              className="rounded-md border border-amber-400 px-3 py-1.5 text-sm text-amber-700 hover:border-amber-500 dark:border-amber-700 dark:text-amber-400"
+              className="rounded-md border border-amber-400 px-3 py-1.5 text-sm text-amber-700 transition-colors hover:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 dark:border-amber-700 dark:text-amber-400"
             >
               {isReopening ? "Batal" : "Buka Kembali Kas Ini"}
             </button>
@@ -279,7 +270,7 @@ export function EodReviewRow({ item }: { item: EodReviewItem }) {
                   <button
                     type="submit"
                     disabled={isReopeningRequest}
-                    className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                    className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 disabled:opacity-60"
                   >
                     {isReopeningRequest ? "Membuka..." : "Konfirmasi Buka Kembali"}
                   </button>

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Card } from "@/components/ui/Card";
+import { TextLink } from "@/components/ui/TextLink";
 import { formatBusinessDateLabel } from "@/lib/operations-daily/format";
 import type { CashImportBatchRow } from "@/lib/cash-import-staging/repository";
 
@@ -15,27 +16,26 @@ export function CashImportApprovalSection({ batches }: { batches: CashImportBatc
   }
 
   return (
-    <section id="import-kas" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <h2 className="text-lg font-semibold tracking-tight">Import Kas Menunggu Persetujuan ({pending.length})</h2>
-      <ul className="mt-2 flex flex-col gap-2 text-sm">
-        {pending.map((batch) => (
-          <li
-            key={batch.id}
-            className="flex items-center justify-between gap-4 rounded-md bg-neutral-50 px-3 py-2 dark:bg-neutral-900"
-          >
-            <div>
-              <p className="font-medium">{batch.source_filename}</p>
-              <p className="text-xs text-neutral-500">{formatBusinessDateLabel(batch.business_date)}</p>
-            </div>
-            <Link
-              href={`/operations/import/${batch.id}`}
-              className="text-xs underline underline-offset-4 hover:text-neutral-800 dark:hover:text-neutral-200"
+    <section id="import-kas">
+      <Card tone="warning">
+        <h2 className="text-lg font-semibold tracking-tight">Import Kas Menunggu Persetujuan ({pending.length})</h2>
+        <ul className="mt-2 flex flex-col gap-2 text-sm">
+          {pending.map((batch) => (
+            <li
+              key={batch.id}
+              className="flex items-center justify-between gap-4 rounded-md bg-neutral-50 px-3 py-2 dark:bg-neutral-900"
             >
-              Review &amp; Setujui
-            </Link>
-          </li>
-        ))}
-      </ul>
+              <div>
+                <p className="font-medium">{batch.source_filename}</p>
+                <p className="text-xs text-neutral-500">{formatBusinessDateLabel(batch.business_date)}</p>
+              </div>
+              <TextLink href={`/operations/import/${batch.id}`} tone="brand" className="text-xs">
+                Review &amp; Setujui
+              </TextLink>
+            </li>
+          ))}
+        </ul>
+      </Card>
     </section>
   );
 }

@@ -1,4 +1,5 @@
 import type { ExpenseDuplicateCandidateCurrentRow } from "@/lib/expense-duplicate-detection/repository";
+import { Card } from "@/components/ui/Card";
 import { DuplicateReviewRow } from "./DuplicateReviewRow";
 
 export interface DuplicateReviewItem {
@@ -15,21 +16,23 @@ export interface DuplicateReviewItem {
 
 export function DuplicateReviewSection({ items }: { items: DuplicateReviewItem[] }) {
   return (
-    <section id="tinjauan-duplikasi" className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <h2 className="text-lg font-semibold tracking-tight">3. Tinjauan Kandidat Duplikasi ({items.length})</h2>
-      <p className="mt-1 text-xs text-neutral-500">
-        Kandidat duplikasi hanya indikasi, bukan bukti kecurangan — setiap kandidat membutuhkan keputusan Anda.
-      </p>
+    <section id="tinjauan-duplikasi">
+      <Card tone={items.length > 0 ? "warning" : "default"}>
+        <h2 className="text-lg font-semibold tracking-tight">3. Tinjauan Kandidat Duplikasi ({items.length})</h2>
+        <p className="mt-1 text-xs text-neutral-500">
+          Kandidat duplikasi hanya indikasi, bukan bukti kecurangan — setiap kandidat membutuhkan keputusan Anda.
+        </p>
 
-      {items.length === 0 ? (
-        <p className="mt-2 text-sm text-neutral-500">Tidak ada kandidat duplikasi yang menunggu keputusan.</p>
-      ) : (
-        <ul className="mt-3 flex flex-col gap-3">
-          {items.map((item) => (
-            <DuplicateReviewRow key={item.candidate.candidate_id ?? ""} item={item} />
-          ))}
-        </ul>
-      )}
+        {items.length === 0 ? (
+          <p className="mt-2 text-sm text-neutral-500">Tidak ada kandidat duplikasi yang menunggu keputusan.</p>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-3">
+            {items.map((item) => (
+              <DuplicateReviewRow key={item.candidate.candidate_id ?? ""} item={item} />
+            ))}
+          </ul>
+        )}
+      </Card>
     </section>
   );
 }

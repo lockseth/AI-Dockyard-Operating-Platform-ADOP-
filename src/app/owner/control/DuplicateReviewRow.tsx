@@ -5,6 +5,7 @@ import { resolveExpenseDuplicateCandidateOwnerAction } from "@/lib/owner-control
 import { formatBusinessDateLabel, formatRupiah } from "@/lib/operations-daily/format";
 import { getExpenseDuplicateReasonLabel } from "@/lib/owner-control/labels";
 import { FieldError, FormError } from "@/components/master-data/FormError";
+import { Button } from "@/components/ui/Button";
 import { Disclosure } from "@/components/ui/Disclosure";
 import type { ExpenseDuplicateCandidateActionResult } from "@/lib/expense-duplicate-detection/service";
 import type { DuplicateReviewItem } from "./DuplicateReviewSection";
@@ -113,22 +114,24 @@ export function DuplicateReviewRow({ item }: { item: DuplicateReviewItem }) {
           </div>
         ) : (
           <div className="mt-3 flex flex-wrap gap-2 border-t border-neutral-200 pt-3 dark:border-neutral-800">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => setPendingResolution((prev) => (prev === "not_duplicate" ? null : "not_duplicate"))}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:border-neutral-400 dark:border-neutral-700"
             >
               {pendingResolution === "not_duplicate" ? "Batal" : "Bukan Duplikat"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="destructive"
+              size="sm"
               onClick={() =>
                 setPendingResolution((prev) => (prev === "confirmed_duplicate" ? null : "confirmed_duplicate"))
               }
-              className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:border-red-400 dark:border-red-800 dark:text-red-400"
             >
               {pendingResolution === "confirmed_duplicate" ? "Batal" : "Terkonfirmasi Duplikat"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -166,13 +169,14 @@ export function DuplicateReviewRow({ item }: { item: DuplicateReviewItem }) {
             <FieldError messages={state.fieldErrors?.reason} />
             <FormError error={state.error} />
             <div>
-              <button
+              <Button
                 type="submit"
+                variant={pendingResolution === "confirmed_duplicate" ? "destructive" : "secondary"}
+                loading={isSubmitting}
                 disabled={isSubmitting}
-                className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
               >
                 {isSubmitting ? "Menyimpan..." : "Konfirmasi Keputusan"}
-              </button>
+              </Button>
             </div>
           </form>
         ) : null}
