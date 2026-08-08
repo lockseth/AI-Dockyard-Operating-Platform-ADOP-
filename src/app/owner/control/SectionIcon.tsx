@@ -11,7 +11,7 @@ const ICON_TONE_CLASSES: Record<Tone, string> = {
   info: "text-blue-600 dark:text-blue-400",
 };
 
-export type SectionIconKind = "expense" | "duplicate" | "eod" | "import";
+export type SectionIconKind = "expense" | "duplicate" | "eod" | "import" | "vessel" | "billing";
 
 export function SectionIcon({ kind, tone }: { kind: SectionIconKind; tone: Tone }) {
   return (
@@ -19,6 +19,39 @@ export function SectionIcon({ kind, tone }: { kind: SectionIconKind; tone: Tone 
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         {ICON_PATHS[kind]}
       </svg>
+    </span>
+  );
+}
+
+// Sharp/minimal-radius chip (rounded-lg, not a circle) behind an icon — same
+// tone token set as Badge, shared by every Owner Control surface that pairs
+// a colored icon container with a value (approval group headers, KPI action
+// tiles, the billing attention card, project watchlist rows).
+export const ICON_CONTAINER_TONE_CLASSES: Record<Tone, string> = {
+  success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  warning: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  danger: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  neutral: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400",
+  info: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+};
+
+const CHIP_SIZE_CLASSES = { sm: "h-8 w-8", md: "h-9 w-9", lg: "h-11 w-11" } as const;
+
+export function SectionIconChip({
+  kind,
+  tone,
+  size = "md",
+}: {
+  kind: SectionIconKind;
+  tone: Tone;
+  size?: keyof typeof CHIP_SIZE_CLASSES;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={`flex shrink-0 items-center justify-center rounded-lg ${CHIP_SIZE_CLASSES[size]} ${ICON_CONTAINER_TONE_CLASSES[tone]}`}
+    >
+      <SectionIcon kind={kind} tone={tone} />
     </span>
   );
 }
@@ -53,5 +86,20 @@ const ICON_PATHS: Record<SectionIconKind, React.ReactNode> = {
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  ),
+  vessel: (
+    <path
+      d="M4 15h16l-1.8 4.2a2 2 0 0 1-1.84 1.3H7.64a2 2 0 0 1-1.84-1.3L4 15Zm2-4V6a1 1 0 0 1 1-1h3v6M13 5v6m5 4V9.5a1 1 0 0 0-.4-.8L13 5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
+  billing: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 9h8M8 12.5h8M8 16h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </>
   ),
 };

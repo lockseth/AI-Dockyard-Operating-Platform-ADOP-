@@ -108,14 +108,22 @@ describe("DuplicateReviewSection — full backlog renders, rows toggle independe
     cleanup();
   });
 
-  it("shows the pending count in the header and renders every pending candidate", () => {
+  it("shows the pending count in the header and renders every pending candidate", async () => {
+    const user = userEvent.setup();
     const items = [
       item({ candidate: candidate({ candidate_id: "cand-1" }), projectLabel1: "Kapal 1" }),
       item({ candidate: candidate({ candidate_id: "cand-2" }), projectLabel1: "Kapal 2" }),
     ];
     render(<DuplicateReviewSection items={items} />);
 
-    expect(screen.getByText("3. Tinjauan Kandidat Duplikasi (2)")).toBeInTheDocument();
+    // Group-level collapse (R2): the section itself starts collapsed —
+    // open it before its item rows are reachable.
+    expect(screen.getByRole("button", { name: /3\. Tinjauan Kandidat Duplikasi \(2\)/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await user.click(screen.getByRole("button", { name: /3\. Tinjauan Kandidat Duplikasi \(2\)/ }));
+
     expect(screen.getByRole("button", { name: /Kapal 1 vs/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Kapal 2 vs/ })).toBeInTheDocument();
   });
@@ -128,6 +136,7 @@ describe("DuplicateReviewSection — full backlog renders, rows toggle independe
     ];
     render(<DuplicateReviewSection items={items} />);
 
+    await user.click(screen.getByRole("button", { name: /3\. Tinjauan Kandidat Duplikasi \(2\)/ }));
     await user.click(screen.getByRole("button", { name: /Kapal 1 vs/ }));
 
     expect(screen.getByRole("button", { name: /Kapal 1 vs/ })).toHaveAttribute("aria-expanded", "true");

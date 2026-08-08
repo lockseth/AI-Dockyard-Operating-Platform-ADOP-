@@ -82,6 +82,25 @@ describe("OwnerSummarySection — executive summary KPI cards", () => {
   });
 });
 
+// R2 Founder UAT: the three owner action indicators (Pengeluaran Menunggu
+// Review, Kandidat Duplikasi Pending, Project Kapal Aktif) now double as
+// quick-jump links — proves the routes/anchors are the existing ones, not
+// invented destinations.
+describe("OwnerSummarySection — action indicator routes", () => {
+  it("links Pengeluaran Menunggu Review and Kandidat Duplikasi Pending to their existing in-page sections", () => {
+    render(<OwnerSummarySection summary={BASE_SUMMARY} activeProjectCostRows={[]} unbilledIndicator={null} />);
+
+    expect(screen.getByText("Pengeluaran Menunggu Review").closest("a")).toHaveAttribute("href", "#tinjauan-biaya");
+    expect(screen.getByText("Kandidat Duplikasi Pending").closest("a")).toHaveAttribute("href", "#tinjauan-duplikasi");
+  });
+
+  it("links Project Kapal Aktif to the existing unbounded Project Kapal list", () => {
+    render(<OwnerSummarySection summary={BASE_SUMMARY} activeProjectCostRows={[]} unbilledIndicator={null} />);
+
+    expect(screen.getByText("Project Kapal Aktif").closest("a")).toHaveAttribute("href", "/app/vessel-projects");
+  });
+});
+
 // Regression coverage for the Gate 3B wiring gap: buildUnbilledVesselIndicator
 // was already fully unit-tested (owner-control/view-model.test.ts) but was
 // never rendered by Owner Control — this proves the page's own presentation

@@ -1,6 +1,5 @@
 import type { CashPoolReconciliationCurrentRow } from "@/lib/cash-reconciliation/repository";
-import { Card } from "@/components/ui/Card";
-import { SectionIcon } from "./SectionIcon";
+import { ApprovalGroupCard } from "./ApprovalGroupCard";
 import { EodReviewRow } from "./EodReviewRow";
 
 export interface EodReviewItem {
@@ -20,22 +19,21 @@ export function EodReviewSection({ items }: { items: EodReviewItem[] }) {
 
   return (
     <section id="tinjauan-eod">
-      <Card tone={pendingCount > 0 ? "warning" : "default"}>
-        <div className="flex items-center gap-2.5">
-          <SectionIcon tone={pendingCount > 0 ? "warning" : "neutral"} kind="eod" />
-          <h2 className="text-lg font-semibold tracking-tight">4. Tinjauan Rekonsiliasi Akhir Hari (EOD) ({pendingCount})</h2>
-        </div>
-
+      <ApprovalGroupCard
+        icon="eod"
+        title={`4. Tinjauan Rekonsiliasi Akhir Hari (EOD) (${pendingCount})`}
+        pendingCount={pendingCount}
+      >
         {items.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-500">Belum ada rekonsiliasi kas yang tercatat.</p>
+          <p className="text-sm text-neutral-500">Belum ada rekonsiliasi kas yang tercatat.</p>
         ) : (
-          <ul className="mt-3 flex flex-col gap-3">
+          <ul className="flex flex-col gap-3">
             {items.map((item) => (
               <EodReviewRow key={item.reconciliation.reconciliation_id ?? ""} item={item} />
             ))}
           </ul>
         )}
-      </Card>
+      </ApprovalGroupCard>
     </section>
   );
 }

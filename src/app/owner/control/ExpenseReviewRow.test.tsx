@@ -111,7 +111,8 @@ describe("ExpenseReviewSection — full backlog renders, rows toggle independent
     cleanup();
   });
 
-  it("shows the pending count in the header and renders every pending item, not a truncated preview", () => {
+  it("shows the pending count in the header and renders every pending item, not a truncated preview", async () => {
+    const user = userEvent.setup();
     const items = [
       item({ submission: submission({ submission_id: "sub-1" }), projectLabel: "Kapal 1" }),
       item({ submission: submission({ submission_id: "sub-2" }), projectLabel: "Kapal 2" }),
@@ -119,7 +120,14 @@ describe("ExpenseReviewSection — full backlog renders, rows toggle independent
     ];
     render(<ExpenseReviewSection items={items} />);
 
-    expect(screen.getByText("2. Tinjauan Pengajuan Biaya (3)")).toBeInTheDocument();
+    // Group-level collapse (R2): the section itself starts collapsed —
+    // open it before its item rows are reachable.
+    expect(screen.getByRole("button", { name: /2\. Tinjauan Pengajuan Biaya \(3\)/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await user.click(screen.getByRole("button", { name: /2\. Tinjauan Pengajuan Biaya \(3\)/ }));
+
     expect(screen.getByRole("button", { name: /Kapal 1/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Kapal 2/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Kapal 3/ })).toBeInTheDocument();
@@ -133,6 +141,7 @@ describe("ExpenseReviewSection — full backlog renders, rows toggle independent
     ];
     render(<ExpenseReviewSection items={items} />);
 
+    await user.click(screen.getByRole("button", { name: /2\. Tinjauan Pengajuan Biaya \(2\)/ }));
     await user.click(screen.getByRole("button", { name: /Kapal 1/ }));
 
     expect(screen.getByRole("button", { name: /Kapal 1/ })).toHaveAttribute("aria-expanded", "true");

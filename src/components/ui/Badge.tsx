@@ -8,6 +8,14 @@ const BADGE_TONE_CLASSES: Record<Tone, string> = {
   info: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
 };
 
+// Default "sm" keeps every existing call site byte-identical; "md" is for
+// spots that need a status pill to carry more visual weight (e.g. Owner
+// Control's Kas/EOD status, called out as "too small" in Founder UAT).
+const BADGE_SIZE_CLASSES: Record<"sm" | "md", string> = {
+  sm: "px-2.5 py-0.5 text-xs",
+  md: "px-3 py-1 text-sm",
+};
+
 const DOT_TONE_CLASSES: Record<Tone, string> = {
   success: "bg-emerald-600 dark:bg-emerald-400",
   warning: "bg-amber-600 dark:bg-amber-400",
@@ -20,18 +28,20 @@ const DOT_TONE_CLASSES: Record<Tone, string> = {
 // never the sole signal, always paired with the existing text label.
 export function Badge({
   tone,
+  size = "sm",
   dot = false,
   children,
   className = "",
 }: {
   tone: Tone;
+  size?: "sm" | "md";
   dot?: boolean;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${BADGE_TONE_CLASSES[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${BADGE_SIZE_CLASSES[size]} ${BADGE_TONE_CLASSES[tone]} ${className}`}
     >
       {dot ? <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT_TONE_CLASSES[tone]}`} /> : null}
       {children}

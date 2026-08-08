@@ -118,7 +118,8 @@ describe("EodReviewSection — full backlog renders, rows toggle independently",
     cleanup();
   });
 
-  it("counts only pending (latest + submitted) reconciliations in the header, but still renders historical rows", () => {
+  it("counts only pending (latest + submitted) reconciliations in the header, but still renders historical rows", async () => {
+    const user = userEvent.setup();
     const items = [
       item({ reconciliation: reconciliation({ reconciliation_id: "recon-1", business_date: "2026-07-20" }) }),
       item({
@@ -128,7 +129,13 @@ describe("EodReviewSection — full backlog renders, rows toggle independently",
     ];
     render(<EodReviewSection items={items} />);
 
-    expect(screen.getByText("4. Tinjauan Rekonsiliasi Akhir Hari (EOD) (1)")).toBeInTheDocument();
+    // Group-level collapse (R2): the section itself starts collapsed —
+    // open it before its item rows are reachable.
+    expect(
+      screen.getByRole("button", { name: /4\. Tinjauan Rekonsiliasi Akhir Hari \(EOD\) \(1\)/ }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await user.click(screen.getByRole("button", { name: /4\. Tinjauan Rekonsiliasi Akhir Hari \(EOD\) \(1\)/ }));
+
     expect(screen.getByRole("button", { name: /20 Juli 2026/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /19 Juli 2026/ })).toBeInTheDocument();
   });
@@ -141,6 +148,7 @@ describe("EodReviewSection — full backlog renders, rows toggle independently",
     ];
     render(<EodReviewSection items={items} />);
 
+    await user.click(screen.getByRole("button", { name: /4\. Tinjauan Rekonsiliasi Akhir Hari \(EOD\)/ }));
     await user.click(screen.getByRole("button", { name: /20 Juli 2026/ }));
 
     expect(screen.getByRole("button", { name: /20 Juli 2026/ })).toHaveAttribute("aria-expanded", "true");
