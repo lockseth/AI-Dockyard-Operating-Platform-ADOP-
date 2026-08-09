@@ -18,6 +18,7 @@ import {
   setPasswordFormSchema,
 } from "@/lib/auth/validation";
 import { clearMustChangePasswordFlag } from "@/lib/user-management/admin-repository";
+import { resolvePostAuthDestination } from "@/lib/owner-control/access";
 
 export interface LoginActionState {
   error?: string;
@@ -51,7 +52,7 @@ export async function loginAction(
 
   if (memberships.length === 1) {
     await applyActiveTenantSelection(data.user.id, memberships[0].tenantId);
-    redirect("/app");
+    redirect(resolvePostAuthDestination(memberships[0].roles));
   }
 
   redirect("/select-tenant");
@@ -84,7 +85,9 @@ export async function selectTenantAction(
     return { error: "Anda tidak memiliki akses ke tenant tersebut." };
   }
 
-  redirect("/app");
+  const memberships = await listActiveMemberships(user.userId);
+  const selected = memberships.find((m) => m.tenantId === tenantId);
+  redirect(resolvePostAuthDestination(selected?.roles ?? []));
 }
 
 export interface ForgotPasswordActionState {
@@ -174,7 +177,12 @@ export async function updatePasswordAction(
     // row (this repo's convention: getClaims() is always re-verified from
     // the current token, never a session-scoped cache) before redirecting.
     await supabase.auth.refreshSession();
-    redirect("/app");
+    // Single-membership is the common case and unambiguous; with more than
+    // one membership there's no active-tenant cookie yet at this point in
+    // the forced flow, so this falls back to /app (unchanged from before
+    // this fix) rather than guessing which tenant's role should apply.
+    const memberships = await listActiveMemberships(user.userId);
+    redirect(memberships.length === 1 ? resolvePostAuthDestination(memberships[0].roles) : "/app");
   }
 
   await supabase.rpc("log_own_password_reset_completed");

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { applyActiveTenantSelection, listActiveMemberships } from "@/lib/auth/tenant";
+import { resolvePostAuthDestination } from "@/lib/owner-control/access";
 
 // Bootstrap-only resolver for the single-active-membership case, where the
 // active-tenant cookie is missing/forged and there is exactly one valid
@@ -22,5 +23,5 @@ export async function GET() {
   }
 
   const ok = await applyActiveTenantSelection(user.userId, memberships[0].tenantId);
-  redirect(ok ? "/app" : "/select-tenant");
+  redirect(ok ? resolvePostAuthDestination(memberships[0].roles) : "/select-tenant");
 }
