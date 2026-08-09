@@ -132,7 +132,28 @@ function SidebarContent({
             {collapsed ? "⏻" : "Keluar"}
           </button>
         </form>
-        {!collapsed ? <p className="px-2 text-[11px] text-adop-accent-900/40">{branding.poweredByLabel}</p> : null}
+        {!collapsed ? (
+          <div className="flex items-center gap-1.5 px-2">
+            <span className="text-[11px] text-adop-accent-900/40">Powered by</span>
+            <Image
+              src="/branding/chamelonix-logo.png"
+              alt="CHAMELONIX"
+              width={14}
+              height={14}
+              className="h-3.5 w-3.5 shrink-0 rounded-sm object-contain opacity-70"
+            />
+          </div>
+        ) : (
+          <div className="flex justify-center px-2" title={branding.poweredByLabel}>
+            <Image
+              src="/branding/chamelonix-logo.png"
+              alt="CHAMELONIX"
+              width={14}
+              height={14}
+              className="h-3.5 w-3.5 shrink-0 rounded-sm object-contain opacity-60"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
