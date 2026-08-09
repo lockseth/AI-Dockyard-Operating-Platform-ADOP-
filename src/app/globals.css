@@ -194,6 +194,73 @@ select:disabled {
   opacity: 0.6;
 }
 
+/* Owner Control panel color revision — soft tone-tinted gradients (same
+   success/info/warning/danger family Badge/Card already use, just a gentle
+   135deg fade to white instead of a flat fill) plus a soft navy-tinted
+   shadow for depth. Unlayered CSS, so — like .adop-sidebar-surface above —
+   it reliably wins over Card's own Tailwind utility background class
+   regardless of source order, without needing to touch Card.tsx itself.
+   Neutral tone intentionally has no gradient variant here: low-signal
+   panels (nothing pending) should stay muted, not equally colorful. */
+.adop-panel-success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+  box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-brand-navy) 12%, transparent);
+}
+
+.adop-panel-info {
+  background: linear-gradient(135deg, var(--color-adop-accent-50) 0%, #ffffff 100%);
+  box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-brand-navy) 12%, transparent);
+}
+
+/* Bolder indigo treatment for the one "primary summary" card (Posisi Kas) —
+   a deeper starting stop (accent-100, not accent-50) so it reads clearly
+   against the white page instead of nearly disappearing into it, per
+   Founder feedback that the plain success-tinted version had too little
+   contrast with white. */
+.adop-panel-primary {
+  background: linear-gradient(135deg, var(--color-adop-accent-100) 0%, #ffffff 100%);
+  box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-brand-navy) 14%, transparent);
+}
+
+.adop-panel-warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+  box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-brand-navy) 12%, transparent);
+}
+
+.adop-panel-danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+  box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-brand-navy) 12%, transparent);
+}
+
+/* Simple CSS hover lift for the panels above — no cursor-tracking, no
+   shimmer/glow, no layout shift. Stronger shadow + a slightly brighter
+   gradient + a small lift, nothing more. */
+.adop-panel-hover {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.adop-panel-hover:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.02);
+  box-shadow: 0 10px 22px -6px color-mix(in srgb, var(--color-brand-navy) 20%, transparent);
+}
+
+.adop-panel-hover:focus-visible {
+  outline: 2px solid var(--color-adop-accent-600);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adop-panel-hover,
+  .adop-panel-hover:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* Login dock/ship illustration — decorative, aria-hidden. Pure CSS
    keyframes so the scene needs no client JS and no state; sizing is fixed
    up front (login-dock-scene has a fixed height) so nothing shifts layout

@@ -23,8 +23,16 @@ const DAILY_CLOSE_STATUS_TONE: Record<string, Tone> = {
   closed: "success",
 };
 
-const HOVER_LIFT_CLASSES =
-  "transition duration-200 motion-reduce:transition-none hover:shadow hover:brightness-[0.98] motion-safe:hover:-translate-y-px";
+// Owner Control color revision — soft tone-tinted gradient per panel,
+// mapped to the same tone family Badge/Card already use elsewhere on this
+// page. Neutral tone deliberately has no entry: a "nothing pending" tile
+// should stay muted, not equally colorful as an active one.
+const TONE_PANEL_GRADIENT: Partial<Record<Tone, string>> = {
+  success: "adop-panel-success",
+  info: "adop-panel-info",
+  warning: "adop-panel-warning",
+  danger: "adop-panel-danger",
+};
 
 export function OwnerSummarySection({
   summary,
@@ -42,7 +50,7 @@ export function OwnerSummarySection({
       {/* Posisi Kas — the four existing cash metrics as one compact card
           (mini-stat grid) instead of four equal-weight cards, so an all-Rp0
           early-morning state doesn't dominate the page (Founder UAT R1). */}
-      <Card className="p-5">
+      <Card tone="info" className="adop-panel-primary p-5">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <h2 className="text-xs font-bold tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
             Posisi Kas
@@ -79,7 +87,7 @@ export function OwnerSummarySection({
         <IndicatorTile
           href="#tinjauan-duplikasi"
           icon="duplicate"
-          tone={summary.duplicateCandidatesPendingCount > 0 ? "danger" : "neutral"}
+          tone={summary.duplicateCandidatesPendingCount > 0 ? "danger" : "success"}
           value={summary.duplicateCandidatesPendingCount}
           label="Kandidat Duplikasi Pending"
           showBadge={summary.duplicateCandidatesPendingCount > 0}
@@ -99,7 +107,10 @@ export function OwnerSummarySection({
           rather than "system error". */}
       {unbilledIndicator && unbilledIndicator.count > 0 ? (
         <Link href="/billing/workspace" className="block no-underline">
-          <Card tone="warning" className={`relative flex items-center gap-4 overflow-hidden ${HOVER_LIFT_CLASSES}`}>
+          <Card
+            tone="warning"
+            className="adop-panel-warning adop-panel-hover relative flex items-center gap-4 overflow-hidden"
+          >
             <span aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-amber-500 dark:bg-amber-400" />
             <SectionIconChip kind="billing" tone="warning" size="lg" />
             <div className="min-w-0 flex-1">
@@ -169,12 +180,12 @@ export function OwnerSummarySection({
 
 function MiniStat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="rounded-lg bg-neutral-50 px-3 py-2.5 dark:bg-neutral-900/60">
-      <p className="truncate text-[10.5px] font-semibold tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+    <div className="rounded-lg bg-white/60 px-3 py-2.5 dark:bg-neutral-900/60">
+      <p className="truncate text-[10.5px] font-semibold tracking-wide text-neutral-600 uppercase dark:text-neutral-400">
         {label}
       </p>
       <p className="mt-1 text-base font-bold text-neutral-900 tabular-nums dark:text-neutral-50">{value}</p>
-      {note ? <p className="mt-0.5 text-[10.5px] text-neutral-400 dark:text-neutral-500">{note}</p> : null}
+      {note ? <p className="mt-0.5 text-[10.5px] text-neutral-500 dark:text-neutral-500">{note}</p> : null}
     </div>
   );
 }
@@ -194,9 +205,10 @@ function IndicatorTile({
   label: string;
   showBadge?: boolean;
 }) {
+  const toneGradient = TONE_PANEL_GRADIENT[tone] ?? "";
   return (
     <Link href={href} className="block no-underline">
-      <Card className={`flex items-start gap-3 ${HOVER_LIFT_CLASSES}`}>
+      <Card className={`adop-panel-hover flex items-start gap-3 ${toneGradient}`}>
         <SectionIconChip kind={icon} tone={tone} />
         <div className="min-w-0 flex-1">
           <p className="text-xl font-extrabold text-neutral-900 tabular-nums dark:text-neutral-50">{value}</p>
