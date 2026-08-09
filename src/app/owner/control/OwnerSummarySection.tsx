@@ -58,10 +58,10 @@ export function OwnerSummarySection({
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          <MiniStat label="Opening Cash" value={formatRupiah(summary.openingCash)} />
-          <MiniStat label="Total Cash-In" value={formatRupiah(summary.totalCashIn)} />
-          <MiniStat label="Total Cash-Out (Approved)" value={formatRupiah(summary.totalCashOutApproved)} />
-          <MiniStat label="Expected Closing Cash" value={formatRupiah(summary.expectedClosingCash)} note="Terhitung sistem" />
+          <MiniStat label="Saldo Awal" value={formatRupiah(summary.openingCash)} />
+          <MiniStat label="Total Kas Masuk" value={formatRupiah(summary.totalCashIn)} />
+          <MiniStat label="Total Kas Keluar Disetujui" value={formatRupiah(summary.totalCashOutApproved)} />
+          <MiniStat label="Perkiraan Saldo Akhir" value={formatRupiah(summary.expectedClosingCash)} note="Terhitung sistem" />
         </div>
       </Card>
 
@@ -89,7 +89,7 @@ export function OwnerSummarySection({
           icon="vessel"
           tone="info"
           value={summary.activeProjectCount}
-          label="Project Kapal Aktif"
+          label="Proyek Kapal Aktif"
         />
       </div>
 
@@ -125,16 +125,16 @@ export function OwnerSummarySection({
           table (Founder UAT R1: "masih seperti tabel administratif"). */}
       <div>
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-medium text-neutral-500">Biaya per Project Kapal Aktif</h3>
+          <h3 className="text-sm font-medium text-neutral-500">Biaya per Proyek Kapal Aktif</h3>
           <Link
             href="/app/vessel-projects"
             className="rounded text-xs font-semibold text-adop-accent-800 outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:text-blue-300"
           >
-            Lihat Semua Project
+            Lihat Semua Proyek
           </Link>
         </div>
         {activeProjectCostRows.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-400">Belum ada Project Kapal aktif.</p>
+          <p className="mt-2 text-sm text-neutral-400">Belum ada Proyek Kapal aktif.</p>
         ) : (
           <>
             <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200 shadow-sm dark:border-neutral-800">
@@ -157,7 +157,7 @@ export function OwnerSummarySection({
             {activeProjectCostRows.length > PROJECT_PREVIEW_LIMIT ? (
               <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
                 Menampilkan {Math.min(PROJECT_PREVIEW_LIMIT, activeProjectCostRows.length)} dari{" "}
-                {activeProjectCostRows.length} Project Kapal aktif (biaya tertinggi lebih dulu).
+                {activeProjectCostRows.length} Proyek Kapal aktif (biaya tertinggi lebih dulu).
               </p>
             ) : null}
           </>

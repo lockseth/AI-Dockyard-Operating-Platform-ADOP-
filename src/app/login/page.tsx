@@ -14,13 +14,13 @@ export default async function LoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col md:flex-row">
-      <section className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-brand-navy p-14 text-white md:flex">
+      <section className="adop-sidebar-surface relative hidden flex-1 flex-col justify-between overflow-hidden p-14 md:flex">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(115deg, #fff 0px, #fff 1px, transparent 1px, transparent 64px)",
+              "repeating-linear-gradient(115deg, #262e89 0px, #262e89 1px, transparent 1px, transparent 64px)",
           }}
         />
 
@@ -33,16 +33,16 @@ export default async function LoginPage() {
             className="h-[38px] w-[38px] shrink-0 rounded-lg object-contain"
           />
           <div>
-            <p className="text-xl font-extrabold tracking-tight">{branding.productName}</p>
-            <p className="text-[11px] font-medium text-adop-ink-sidebar-muted">{branding.subtitle}</p>
+            <p className="text-xl font-extrabold tracking-tight text-adop-accent-950">{branding.productName}</p>
+            <p className="text-[11px] font-medium text-adop-accent-900/50">{branding.subtitle}</p>
           </div>
         </div>
 
         <div className="relative z-10 max-w-[480px]">
-          <h1 className="mb-3.5 text-[30px] leading-[1.25] font-extrabold">
+          <h1 className="mb-3.5 text-[30px] leading-[1.25] font-extrabold text-adop-accent-950">
             Kendali operasional dan keuangan galangan, dalam satu platform.
           </h1>
-          <p className="text-[14.5px] font-medium text-white/70">
+          <p className="text-[14.5px] font-medium text-adop-accent-900/70">
             Kelola proyek kapal, penagihan, piutang, dan persetujuan owner secara terpusat dan dapat diaudit.
           </p>
         </div>
@@ -53,11 +53,11 @@ export default async function LoginPage() {
             alt={pilotTenantLoginIdentity.legalName}
             width={30}
             height={30}
-            className="h-[30px] w-[30px] shrink-0 rounded-md border border-white/15 object-contain"
+            className="h-[30px] w-[30px] shrink-0 rounded-md border border-adop-accent-900/15 bg-white object-contain"
           />
           <div>
-            <p className="text-[12.5px] font-bold">{pilotTenantLoginIdentity.legalName}</p>
-            <p className="text-[10.5px] text-white/50">{branding.poweredByLabel}</p>
+            <p className="text-[12.5px] font-bold text-adop-accent-950">{pilotTenantLoginIdentity.legalName}</p>
+            <p className="text-[10.5px] text-adop-accent-900/50">{branding.poweredByLabel}</p>
           </div>
         </div>
       </section>

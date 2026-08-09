@@ -26,17 +26,26 @@
   --shadow-brand-sm: 0 1px 2px rgba(15, 23, 30, 0.08);
   --shadow-brand-lg: 0 12px 32px rgba(15, 23, 30, 0.22);
 
-  /* ADOP accent ramp (teal) — links, focus rings, badges, chart bars
-     across the shell/dashboard. Ported 1:1 from the approved prototype's
-     design tokens, additive alongside the emerald/amber/red/blue/neutral
-     tone system in components/ui/tone.ts. */
-  --color-adop-accent: #0088b0;
-  --color-adop-accent-cyan: #7dd3e0;
-  --color-adop-accent-100: #e9f8ff;
-  --color-adop-accent-200: #cbeeff;
-  --color-adop-accent-600: #1186ac;
-  --color-adop-accent-700: #006786;
-  --color-adop-accent-800: #004961;
+  /* ADOP accent ramp (indigo) — links, focus rings, badges, chart bars
+     across the shell/dashboard. Updated from the original teal ramp to the
+     Owner Control visual-target reskin (Founder-approved TailAdmin-inspired
+     palette, see ADOP_RESKIN_PROTOTYPE_TAILADMIN_v1.html), additive
+     alongside the emerald/amber/red/blue/neutral tone system in
+     components/ui/tone.ts. Changing this value affects every consumer of
+     --color-adop-accent-* (Sidebar, PageHeader, login, /app, /owner/control)
+     — the color rolls out globally even though the Owner Control page is
+     the first page whose layout was redesigned for it. */
+  --color-adop-accent: #465fff;
+  --color-adop-accent-cyan: #9cb9ff;
+  --color-adop-accent-50: #ecf3ff;
+  --color-adop-accent-100: #dde9ff;
+  --color-adop-accent-200: #c2d6ff;
+  --color-adop-accent-400: #7592ff;
+  --color-adop-accent-600: #3641f5;
+  --color-adop-accent-700: #2a31d8;
+  --color-adop-accent-800: #252dae;
+  --color-adop-accent-900: #262e89;
+  --color-adop-accent-950: #161950;
   --color-adop-ink-700: #3a4448;
   --color-adop-ink-600: #5b6b72;
   --color-adop-ink-500: #8a969b;
@@ -57,11 +66,15 @@
   --shadow-brand-lg: var(--shadow-brand-lg);
   --color-adop-accent: var(--color-adop-accent);
   --color-adop-accent-cyan: var(--color-adop-accent-cyan);
+  --color-adop-accent-50: var(--color-adop-accent-50);
   --color-adop-accent-100: var(--color-adop-accent-100);
   --color-adop-accent-200: var(--color-adop-accent-200);
+  --color-adop-accent-400: var(--color-adop-accent-400);
   --color-adop-accent-600: var(--color-adop-accent-600);
   --color-adop-accent-700: var(--color-adop-accent-700);
   --color-adop-accent-800: var(--color-adop-accent-800);
+  --color-adop-accent-900: var(--color-adop-accent-900);
+  --color-adop-accent-950: var(--color-adop-accent-950);
   --color-adop-ink-700: var(--color-adop-ink-700);
   --color-adop-ink-600: var(--color-adop-ink-600);
   --color-adop-ink-500: var(--color-adop-ink-500);
@@ -110,6 +123,75 @@ option:disabled {
 
 select:disabled {
   background-color: #f8fafc;
+}
+
+/* Authenticated shell sidebar — light indigo-to-white gradient from the
+   approved reskin prototype (ADOP_RESKIN_PROTOTYPE_TAILADMIN_v1.html
+   `.sidebar-glossy`). The two middle stops (#aebdfa, #eef1fc) are one-off
+   blend values from that prototype, not part of the --color-adop-accent-*
+   ramp — kept as literals here rather than inventing named tokens nothing
+   else uses, same approach the prototype itself takes. */
+.adop-sidebar-surface {
+  background: linear-gradient(180deg, var(--color-adop-accent-400) 0%, #aebdfa 30%, #eef1fc 62%, #ffffff 100%);
+}
+
+/* Login page's branded illustration panel reuses .adop-sidebar-surface
+   directly (same class, same gradient, pixel-identical to the Sidebar) —
+   Founder asked for the login panel to match the Sidebar's light
+   indigo-to-white gradient exactly rather than a dark echo of it. Text on
+   this panel switched from white to the dark adop-accent-900/950 shades
+   the Sidebar itself uses on this same gradient. */
+
+/* Login "Masuk" submit button — a compact chip of the same light gradient
+   family as the panel/Sidebar above (dark text, not white, for the same
+   reason). Static (non-animated, non-glassmorphic) glossy top highlight:
+   a soft white sheen across the upper half plus a subtle outer/inset
+   shadow. Hover brightens and lifts slightly; active settles back down;
+   disabled drops the gloss and shadow entirely so it never reads as
+   clickable. */
+.adop-login-cta {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--color-adop-accent-400) 0%, var(--color-adop-accent-200) 100%);
+  border: 1px solid var(--color-adop-accent-200);
+  box-shadow:
+    0 4px 10px -2px color-mix(in srgb, var(--color-adop-accent-900) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition:
+    filter 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.adop-login-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 55% 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.adop-login-cta:hover:not(:disabled) {
+  filter: brightness(1.04);
+  box-shadow:
+    0 6px 14px -2px color-mix(in srgb, var(--color-adop-accent-900) 50%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.adop-login-cta:active:not(:disabled) {
+  transform: translateY(1px);
+  filter: brightness(0.97);
+  box-shadow:
+    0 2px 6px -1px color-mix(in srgb, var(--color-adop-accent-900) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.adop-login-cta:disabled {
+  filter: grayscale(0.15) brightness(0.97);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Login dock/ship illustration — decorative, aria-hidden. Pure CSS

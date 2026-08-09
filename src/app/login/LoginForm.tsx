@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { loginAction, type LoginActionState } from "@/lib/auth/actions";
-import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Button";
 
 const initialState: LoginActionState = {};
 
@@ -12,7 +12,7 @@ const initialState: LoginActionState = {};
 // token is reused across every form in the app, and this task is a login-
 // page visual match, not a global input-height change.
 const loginInputClassName =
-  "h-11 w-full rounded-lg border-[1.5px] border-neutral-300 bg-white px-3.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none aria-[invalid=true]:border-red-500";
+  "h-11 w-full rounded-lg border-[1.5px] border-neutral-300 bg-white px-3.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-adop-accent focus:ring-2 focus:ring-adop-accent/30 focus:outline-none aria-[invalid=true]:border-red-500";
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
@@ -39,7 +39,7 @@ export function LoginForm() {
             Lupa kata sandi?
           </Link>
         </div>
-        <div className="flex h-11 items-center overflow-hidden rounded-lg border-[1.5px] border-neutral-300 bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30">
+        <div className="flex h-11 items-center overflow-hidden rounded-lg border-[1.5px] border-neutral-300 bg-white focus-within:border-adop-accent focus-within:ring-2 focus-within:ring-adop-accent/30">
           <input
             id="password"
             name="password"
@@ -73,9 +73,14 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <Button type="submit" variant="primary" size="lg" loading={isPending} className="mt-1 w-full">
+      <button
+        type="submit"
+        disabled={isPending}
+        className="adop-login-cta mt-1 inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[9px] px-6 text-[15px] font-semibold text-adop-accent-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed"
+      >
+        {isPending ? <Spinner /> : null}
         {isPending ? "Memproses…" : "Masuk"}
-      </Button>
+      </button>
 
       <div className="my-6 flex items-center gap-2.5">
         <div className="h-px flex-1 bg-neutral-200" />

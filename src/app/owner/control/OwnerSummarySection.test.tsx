@@ -42,19 +42,19 @@ describe("OwnerSummarySection — executive summary KPI cards", () => {
       />,
     );
 
-    expect(screen.getByText("Opening Cash")).toBeInTheDocument();
+    expect(screen.getByText("Saldo Awal")).toBeInTheDocument();
     expect(screen.getByText(/Rp\s?1\.000\.000/)).toBeInTheDocument();
-    expect(screen.getByText("Total Cash-In")).toBeInTheDocument();
+    expect(screen.getByText("Total Kas Masuk")).toBeInTheDocument();
     expect(screen.getByText(/Rp\s?250\.000/)).toBeInTheDocument();
-    expect(screen.getByText("Total Cash-Out (Approved)")).toBeInTheDocument();
+    expect(screen.getByText("Total Kas Keluar Disetujui")).toBeInTheDocument();
     expect(screen.getByText(/Rp\s?400\.000/)).toBeInTheDocument();
-    expect(screen.getByText("Expected Closing Cash")).toBeInTheDocument();
+    expect(screen.getByText("Perkiraan Saldo Akhir")).toBeInTheDocument();
     expect(screen.getByText(/Rp\s?850\.000/)).toBeInTheDocument();
     expect(screen.getByText("Pengeluaran Menunggu Review")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("Kandidat Duplikasi Pending")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("Project Kapal Aktif")).toBeInTheDocument();
+    expect(screen.getByText("Proyek Kapal Aktif")).toBeInTheDocument();
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 
@@ -94,10 +94,10 @@ describe("OwnerSummarySection — action indicator routes", () => {
     expect(screen.getByText("Kandidat Duplikasi Pending").closest("a")).toHaveAttribute("href", "#tinjauan-duplikasi");
   });
 
-  it("links Project Kapal Aktif to the existing unbounded Project Kapal list", () => {
+  it("links Proyek Kapal Aktif to the existing unbounded Project Kapal list", () => {
     render(<OwnerSummarySection summary={BASE_SUMMARY} activeProjectCostRows={[]} unbilledIndicator={null} />);
 
-    expect(screen.getByText("Project Kapal Aktif").closest("a")).toHaveAttribute("href", "/app/vessel-projects");
+    expect(screen.getByText("Proyek Kapal Aktif").closest("a")).toHaveAttribute("href", "/app/vessel-projects");
   });
 });
 
@@ -136,7 +136,7 @@ describe("OwnerSummarySection — unbilled attention card", () => {
 
 // Regression coverage for the "49 proyek" once-glance gap: Section 1 must
 // never render the full active-project list by default.
-describe("OwnerSummarySection — bounded Project Kapal Aktif preview", () => {
+describe("OwnerSummarySection — bounded Proyek Kapal Aktif preview", () => {
   it("renders every row unbounded when there are 5 or fewer", () => {
     const rows = [projectRow(1, 100), projectRow(2, 200), projectRow(3, 300)];
     render(<OwnerSummarySection summary={BASE_SUMMARY} activeProjectCostRows={rows} unbilledIndicator={null} />);
@@ -157,7 +157,7 @@ describe("OwnerSummarySection — bounded Project Kapal Aktif preview", () => {
     expect(screen.queryByText("Kapal 0")).not.toBeInTheDocument();
     expect(screen.getAllByText(/^Kapal \d+$/)).toHaveLength(5);
 
-    expect(screen.getByText("Menampilkan 5 dari 49 Project Kapal aktif (biaya tertinggi lebih dulu).")).toBeInTheDocument();
-    expect(screen.getByText("Lihat Semua Project")).toHaveAttribute("href", "/app/vessel-projects");
+    expect(screen.getByText("Menampilkan 5 dari 49 Proyek Kapal aktif (biaya tertinggi lebih dulu).")).toBeInTheDocument();
+    expect(screen.getByText("Lihat Semua Proyek")).toHaveAttribute("href", "/app/vessel-projects");
   });
 });

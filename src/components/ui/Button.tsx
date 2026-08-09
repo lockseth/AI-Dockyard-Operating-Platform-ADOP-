@@ -80,7 +80,7 @@ export function Button({
   );
 }
 
-function Spinner() {
+export function Spinner() {
   return (
     <svg
       width="14"
