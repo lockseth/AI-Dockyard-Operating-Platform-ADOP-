@@ -207,17 +207,19 @@ function IndicatorTile({
 }) {
   const toneGradient = TONE_PANEL_GRADIENT[tone] ?? "";
   return (
-    <Link href={href} className="block no-underline">
-      <Card className={`adop-panel-hover flex items-start gap-3 ${toneGradient}`}>
+    <Link href={href} className="block h-full no-underline">
+      <Card className={`adop-panel-hover flex h-full items-start gap-3 ${toneGradient}`}>
         <SectionIconChip kind={icon} tone={tone} />
         <div className="min-w-0 flex-1">
           <p className="text-xl font-extrabold text-neutral-900 tabular-nums dark:text-neutral-50">{value}</p>
           <p className="mt-0.5 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">{label}</p>
-          {showBadge ? (
-            <Badge tone="warning" dot className="mt-1.5">
-              Perlu review
-            </Badge>
-          ) : null}
+          {/* Reserved slot, always rendered — keeps all three tiles the same
+              height whether or not this one has a badge (AODP visual lock:
+              badge must never make one tile taller than its siblings).
+              `hidden` keeps it out of the accessibility tree when unused. */}
+          <Badge tone="warning" dot hidden={!showBadge} className="mt-1.5">
+            Perlu review
+          </Badge>
         </div>
       </Card>
     </Link>

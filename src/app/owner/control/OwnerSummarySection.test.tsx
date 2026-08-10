@@ -58,7 +58,7 @@ describe("OwnerSummarySection — executive summary KPI cards", () => {
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 
-  it("shows a 'Perlu review' badge on pending-count cards only when the count is > 0", () => {
+  it("shows a visible 'Perlu review' badge only on pending-count cards with a count > 0 — the other tiles keep a hidden badge slot so all three tiles stay the same height", () => {
     render(
       <OwnerSummarySection
         summary={{ ...BASE_SUMMARY, expensesPendingReviewCount: 0, duplicateCandidatesPendingCount: 2 }}
@@ -66,7 +66,16 @@ describe("OwnerSummarySection — executive summary KPI cards", () => {
         unbilledIndicator={null}
       />,
     );
-    expect(screen.getAllByText("Perlu review")).toHaveLength(1);
+    const badges = screen.getAllByText("Perlu review");
+    expect(badges).toHaveLength(3);
+    const visible = badges.filter((badge) => !badge.className.includes("invisible"));
+    expect(visible).toHaveLength(1);
+    const hidden = badges.filter((badge) => badge.className.includes("invisible"));
+    expect(hidden).toHaveLength(2);
+    // Reserved-but-unused badges must be pulled out of the accessibility
+    // tree, not just styled invisible.
+    hidden.forEach((badge) => expect(badge).toHaveAttribute("aria-hidden", "true"));
+    expect(visible[0]).not.toHaveAttribute("aria-hidden");
   });
 
   it("renders the daily-close and EOD reconciliation status as badges using the existing label functions", () => {

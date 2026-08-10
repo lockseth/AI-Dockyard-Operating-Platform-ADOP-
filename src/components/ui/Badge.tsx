@@ -26,23 +26,36 @@ const DOT_TONE_CLASSES: Record<Tone, string> = {
 
 // `dot` renders a small leading status dot (design-system badge spec) —
 // never the sole signal, always paired with the existing text label.
+// `hidden` is for reserved-but-unused layout slots (e.g. a tile that keeps
+// another tile's badge space to stay the same height) — visually hidden
+// *and* pulled out of the accessibility tree, not just styled invisible.
 export function Badge({
   tone,
   size = "sm",
   dot = false,
   children,
   className = "",
+  hidden = false,
 }: {
   tone: Tone;
   size?: "sm" | "md";
   dot?: boolean;
   children: React.ReactNode;
   className?: string;
+  hidden?: boolean;
 }) {
+  const classes = [
+    "inline-flex items-center gap-1.5 rounded-full font-medium",
+    BADGE_SIZE_CLASSES[size],
+    BADGE_TONE_CLASSES[tone],
+    hidden ? "invisible" : null,
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${BADGE_SIZE_CLASSES[size]} ${BADGE_TONE_CLASSES[tone]} ${className}`}
-    >
+    <span aria-hidden={hidden || undefined} className={classes}>
       {dot ? <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT_TONE_CLASSES[tone]}`} /> : null}
       {children}
     </span>
