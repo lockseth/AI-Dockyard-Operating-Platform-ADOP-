@@ -177,6 +177,232 @@ describe("buildExecutiveAttentionItems", () => {
 
     expect(items).toHaveLength(0);
   });
+
+  it("orders items by Founder's corrected five-level severity map — DELIVERY_FAILED outranks UNBILLED", () => {
+    const rows = [
+      // Deliberately fed in reverse-severity order — input order must not
+      // leak through if sorting is working. One row per tag/level.
+      billingRow({
+        projectId: "not-acknowledged",
+        status: "READY_TO_SEND",
+        activeInvoice: { id: "invoice-sent", status: "issued", total_amount: 1 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({
+        projectId: "draft-incomplete",
+        status: "DRAFT_INCOMPLETE",
+        activeInvoice: { id: "invoice-draft", status: "draft", total_amount: 1 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({
+        projectId: "not-delivered",
+        status: "ISSUED_EVIDENCE_PENDING",
+        activeInvoice: { id: "invoice-not-delivered", status: "issued", total_amount: 1 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({ projectId: "unbilled", isUnbilledAlert: true, unbilledAmountTotal: 1 }),
+      billingRow({
+        projectId: "delivery-failed",
+        status: "ISSUED_EVIDENCE_PENDING",
+        activeInvoice: { id: "invoice-failed", status: "issued", total_amount: 1 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+    ];
+
+    const items = buildExecutiveAttentionItems({
+      billingRows: rows,
+      latestDeliveryEventByInvoiceId: new Map([
+        ["invoice-sent", deliveryEvent({ event_type: "delivered" })],
+        ["invoice-not-delivered", null],
+        ["invoice-failed", deliveryEvent({ event_type: "failed" })],
+      ]),
+    });
+
+    // DELIVERY_FAILED(0) > UNBILLED(1) > NOT_DELIVERED(2) > DRAFT_INCOMPLETE(3) > NOT_ACKNOWLEDGED(4)
+    expect(items.map((item) => item.projectId)).toEqual([
+      "delivery-failed",
+      "unbilled",
+      "not-delivered",
+      "draft-incomplete",
+      "not-acknowledged",
+    ]);
+  });
+
+  it("ranks a project by its single most-severe tag, not its first tag", () => {
+    const rows = [
+      // NOT_DELIVERED(2) + NOT_ACKNOWLEDGED(4) — most-severe tag is
+      // NOT_DELIVERED, so this must still outrank a NOT_ACKNOWLEDGED-only
+      // project below, even though NOT_ACKNOWLEDGED is pushed second.
+      billingRow({
+        projectId: "mixed-not-delivered-and-not-acknowledged",
+        status: "ISSUED_EVIDENCE_PENDING",
+        activeInvoice: { id: "invoice-mixed", status: "issued", total_amount: 1 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({
+        projectId: "not-acknowledged-only",
+        status: "READY_TO_SEND",
+        activeInvoice: { id: "invoice-sent-2", status: "issued", total_amount: 1 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+    ];
+
+    const items = buildExecutiveAttentionItems({
+      billingRows: rows,
+      latestDeliveryEventByInvoiceId: new Map([
+        ["invoice-mixed", null],
+        ["invoice-sent-2", deliveryEvent({ event_type: "delivered" })],
+      ]),
+    });
+
+    expect(items.map((item) => item.projectId)).toEqual(["mixed-not-delivered-and-not-acknowledged", "not-acknowledged-only"]);
+  });
+
+  it("UNBILLED tie-break uses the project's own closedAt (its true, only available unresolved-since signal)", () => {
+    const rows = [
+      billingRow({ projectId: "closed-recent", isUnbilledAlert: true, unbilledAmountTotal: 1, closedAt: "2026-03-01T00:00:00Z" }),
+      billingRow({ projectId: "closed-oldest", isUnbilledAlert: true, unbilledAmountTotal: 2, closedAt: "2026-01-01T00:00:00Z" }),
+      billingRow({ projectId: "closed-middle", isUnbilledAlert: true, unbilledAmountTotal: 3, closedAt: "2026-02-01T00:00:00Z" }),
+    ];
+
+    const items = buildExecutiveAttentionItems({ billingRows: rows, latestDeliveryEventByInvoiceId: new Map() });
+
+    expect(items.map((item) => item.projectId)).toEqual(["closed-oldest", "closed-middle", "closed-recent"]);
+  });
+
+  it("DRAFT_INCOMPLETE tie-break uses the draft invoice's own created_at, proven against a deliberately-misleading closedAt", () => {
+    const rows = [
+      // closedAt ordering (if wrongly reused here) would sort B before A —
+      // the opposite of what invoice created_at (the correct anchor) gives.
+      billingRow({
+        projectId: "draft-a-older-invoice",
+        status: "DRAFT_INCOMPLETE",
+        closedAt: "2026-03-01T00:00:00Z",
+        activeInvoice: { id: "invoice-a", status: "draft", total_amount: 1, created_at: "2026-01-01T00:00:00Z" } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({
+        projectId: "draft-b-newer-invoice",
+        status: "DRAFT_INCOMPLETE",
+        closedAt: "2026-01-01T00:00:00Z",
+        activeInvoice: { id: "invoice-b", status: "draft", total_amount: 1, created_at: "2026-03-01T00:00:00Z" } as BillingWorkspaceRow["activeInvoice"],
+      }),
+    ];
+
+    const items = buildExecutiveAttentionItems({ billingRows: rows, latestDeliveryEventByInvoiceId: new Map() });
+
+    expect(items.map((item) => item.projectId)).toEqual(["draft-a-older-invoice", "draft-b-newer-invoice"]);
+  });
+
+  it("NOT_DELIVERED tie-break uses the invoice's issued_at (no delivery event exists yet), proven against a deliberately-misleading closedAt", () => {
+    const rows = [
+      billingRow({
+        projectId: "not-delivered-a-issued-earlier",
+        status: "ISSUED_EVIDENCE_PENDING",
+        closedAt: "2026-03-01T00:00:00Z",
+        activeInvoice: { id: "invoice-a", status: "issued", total_amount: 1, issued_at: "2026-01-01T00:00:00Z" } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({
+        projectId: "not-delivered-b-issued-later",
+        status: "ISSUED_EVIDENCE_PENDING",
+        closedAt: "2026-01-01T00:00:00Z",
+        activeInvoice: { id: "invoice-b", status: "issued", total_amount: 1, issued_at: "2026-03-01T00:00:00Z" } as BillingWorkspaceRow["activeInvoice"],
+      }),
+    ];
+
+    const items = buildExecutiveAttentionItems({
+      billingRows: rows,
+      latestDeliveryEventByInvoiceId: new Map([
+        ["invoice-a", null],
+        ["invoice-b", null],
+      ]),
+    });
+
+    expect(items.map((item) => item.projectId)).toEqual(["not-delivered-a-issued-earlier", "not-delivered-b-issued-later"]);
+  });
+
+  it("DELIVERY_FAILED tie-break uses the failed delivery event's own created_at, proven against deliberately-misleading closedAt and issued_at", () => {
+    const rows = [
+      // Both closedAt and issued_at point the wrong way; only the failed
+      // event's own created_at gives the correct order.
+      billingRow({
+        projectId: "failed-a-earlier-event",
+        status: "ISSUED_EVIDENCE_PENDING",
+        closedAt: "2026-03-01T00:00:00Z",
+        activeInvoice: { id: "invoice-a", status: "issued", total_amount: 1, issued_at: "2026-03-01T00:00:00Z" } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({
+        projectId: "failed-b-later-event",
+        status: "ISSUED_EVIDENCE_PENDING",
+        closedAt: "2026-01-01T00:00:00Z",
+        activeInvoice: { id: "invoice-b", status: "issued", total_amount: 1, issued_at: "2026-01-01T00:00:00Z" } as BillingWorkspaceRow["activeInvoice"],
+      }),
+    ];
+
+    const items = buildExecutiveAttentionItems({
+      billingRows: rows,
+      latestDeliveryEventByInvoiceId: new Map([
+        ["invoice-a", deliveryEvent({ event_type: "failed", created_at: "2026-02-01T00:00:00Z" })],
+        ["invoice-b", deliveryEvent({ event_type: "failed", created_at: "2026-02-15T00:00:00Z" })],
+      ]),
+    });
+
+    expect(items.map((item) => item.projectId)).toEqual(["failed-a-earlier-event", "failed-b-later-event"]);
+  });
+
+  it("a multi-tag project's tie-break timestamp is its dominant tag's own anchor, not the co-occurring tag's", () => {
+    // Both rows carry UNBILLED + DELIVERY_FAILED. DELIVERY_FAILED is the
+    // dominant tag, so its own event created_at must drive the order — with
+    // closedAt (UNBILLED's own anchor) set to the OPPOSITE order, proving
+    // UNBILLED's timestamp is not what's actually used here.
+    const rows = [
+      billingRow({
+        projectId: "mixed-a",
+        isUnbilledAlert: true,
+        unbilledAmountTotal: 1,
+        closedAt: "2026-01-01T00:00:00Z",
+        status: "ISSUED_EVIDENCE_PENDING",
+        activeInvoice: { id: "invoice-a", status: "issued", total_amount: 1, issued_at: "2026-01-01T00:00:00Z" } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({
+        projectId: "mixed-b",
+        isUnbilledAlert: true,
+        unbilledAmountTotal: 1,
+        closedAt: "2026-03-01T00:00:00Z",
+        status: "ISSUED_EVIDENCE_PENDING",
+        activeInvoice: { id: "invoice-b", status: "issued", total_amount: 1, issued_at: "2026-03-01T00:00:00Z" } as BillingWorkspaceRow["activeInvoice"],
+      }),
+    ];
+
+    const items = buildExecutiveAttentionItems({
+      billingRows: rows,
+      latestDeliveryEventByInvoiceId: new Map([
+        // mixed-a's failure happened LATER than mixed-b's, even though
+        // mixed-a's closedAt/issued_at are both earlier.
+        ["invoice-a", deliveryEvent({ event_type: "failed", created_at: "2026-04-01T00:00:00Z" })],
+        ["invoice-b", deliveryEvent({ event_type: "failed", created_at: "2026-02-01T00:00:00Z" })],
+      ]),
+    });
+
+    expect(items[0].tags).toContain("DELIVERY_FAILED"); // sanity: DELIVERY_FAILED is present (and dominant)
+    expect(items.map((item) => item.projectId)).toEqual(["mixed-b", "mixed-a"]);
+  });
+
+  it("falls back to original input order when severity AND the dominant tag's unresolved-since both tie", () => {
+    const rows = [
+      billingRow({ projectId: "same-closedAt-a", isUnbilledAlert: true, unbilledAmountTotal: 1, closedAt: "2026-02-01T00:00:00Z" }),
+      billingRow({ projectId: "same-closedAt-b", isUnbilledAlert: true, unbilledAmountTotal: 2, closedAt: "2026-02-01T00:00:00Z" }),
+      billingRow({ projectId: "same-closedAt-c", isUnbilledAlert: true, unbilledAmountTotal: 3, closedAt: "2026-02-01T00:00:00Z" }),
+    ];
+
+    const items = buildExecutiveAttentionItems({ billingRows: rows, latestDeliveryEventByInvoiceId: new Map() });
+
+    expect(items.map((item) => item.projectId)).toEqual(["same-closedAt-a", "same-closedAt-b", "same-closedAt-c"]);
+  });
+
+  it("falls back to original input order when the dominant tag's unresolved-since is null (defensive — must not crash or misorder)", () => {
+    const rows = [
+      billingRow({ projectId: "null-closedAt-a", isUnbilledAlert: true, unbilledAmountTotal: 1, closedAt: null }),
+      billingRow({ projectId: "null-closedAt-b", isUnbilledAlert: true, unbilledAmountTotal: 2, closedAt: null }),
+    ];
+
+    const items = buildExecutiveAttentionItems({ billingRows: rows, latestDeliveryEventByInvoiceId: new Map() });
+
+    expect(items.map((item) => item.projectId)).toEqual(["null-closedAt-a", "null-closedAt-b"]);
+  });
 });
 
 describe("buildExecutiveAttentionBreakdown", () => {
@@ -323,5 +549,82 @@ describe("buildExecutiveReportSummary", () => {
       summary.attentionBreakdown.notAcknowledged;
     expect(breakdownSum).toBe(3);
     expect(summary.attentionTotalCount).not.toBe(breakdownSum);
+  });
+
+  it("returns attentionItems already sorted by severity — a caller truncating to a preview size sees the most severe items, not the most recent input rows", () => {
+    const rows = [
+      billingRow({
+        projectId: "not-acknowledged-only",
+        status: "READY_TO_SEND",
+        activeInvoice: { id: "invoice-sent-3", status: "issued", total_amount: 1 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({ projectId: "unbilled-1", isUnbilledAlert: true, unbilledAmountTotal: 1 }),
+      billingRow({
+        projectId: "not-acknowledged-only-2",
+        status: "READY_TO_SEND",
+        activeInvoice: { id: "invoice-sent-4", status: "issued", total_amount: 1 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({ projectId: "unbilled-2", isUnbilledAlert: true, unbilledAmountTotal: 1 }),
+    ];
+
+    const summary = buildExecutiveReportSummary({
+      roles: ["owner"],
+      projects: [],
+      vessels: [],
+      costSummaries: [],
+      billingRows: rows,
+      latestDeliveryEventByInvoiceId: new Map([
+        ["invoice-sent-3", deliveryEvent({ event_type: "delivered" })],
+        ["invoice-sent-4", deliveryEvent({ event_type: "delivered" })],
+      ]),
+    });
+
+    // Sorting already happened inside the summary — a preview slice of the
+    // first N items (as AttentionSection.tsx's PREVIEW_LIMIT does) must
+    // never see this array in raw input order.
+    const preview = summary.attentionItems.slice(0, 2);
+    expect(preview.map((item) => item.projectId)).toEqual(["unbilled-1", "unbilled-2"]);
+  });
+
+  it("keeps attentionTotalCount and attentionBreakdown identical no matter what order the billing rows arrive in", () => {
+    const rows = [
+      billingRow({ projectId: "p1", isUnbilledAlert: true, unbilledAmountTotal: 100_000 }),
+      billingRow({
+        projectId: "p2",
+        status: "DRAFT_INCOMPLETE",
+        activeInvoice: { id: "invoice-draft-3", status: "draft", total_amount: 200_000 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+      billingRow({
+        projectId: "p3",
+        status: "ISSUED_EVIDENCE_PENDING",
+        activeInvoice: { id: "invoice-p3", status: "issued", total_amount: 300_000 } as BillingWorkspaceRow["activeInvoice"],
+      }),
+    ];
+    const deliveryMap = new Map([["invoice-p3", null]]);
+
+    const forward = buildExecutiveReportSummary({
+      roles: ["owner"],
+      projects: [],
+      vessels: [],
+      costSummaries: [],
+      billingRows: rows,
+      latestDeliveryEventByInvoiceId: deliveryMap,
+    });
+    const reversed = buildExecutiveReportSummary({
+      roles: ["owner"],
+      projects: [],
+      vessels: [],
+      costSummaries: [],
+      billingRows: [...rows].reverse(),
+      latestDeliveryEventByInvoiceId: deliveryMap,
+    });
+
+    expect(reversed.attentionTotalCount).toBe(forward.attentionTotalCount);
+    expect(reversed.attentionBreakdown).toEqual(forward.attentionBreakdown);
+    // The set of projects present is unaffected by input order or sorting —
+    // only their position changes, not membership or counts.
+    expect(new Set(reversed.attentionItems.map((item) => item.projectId))).toEqual(
+      new Set(forward.attentionItems.map((item) => item.projectId)),
+    );
   });
 });
