@@ -50,7 +50,7 @@ export function ApprovalGroupCard({
         aria-expanded={open}
         aria-controls={contentId}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
       >
         <SectionIconChip kind={icon} tone={tone} />
         <span className="min-w-0 flex-1">
