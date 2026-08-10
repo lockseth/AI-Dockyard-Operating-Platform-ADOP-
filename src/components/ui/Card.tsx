@@ -42,20 +42,35 @@ export function CardEyebrow({ tone = "default", children }: { tone?: "default" |
 }
 
 // KPI/stat tile — label, a large figure, and an optional helper note below.
+// `icon` is optional and additive (every existing call site renders
+// byte-identical without it) — a soft-blue chip in the eyebrow row, for
+// pages that want the AODP-style "icon KPI" treatment locally.
 export function StatCard({
   eyebrow,
   value,
   note,
+  icon,
   className = "",
 }: {
   eyebrow: string;
   value: React.ReactNode;
   note?: React.ReactNode;
+  icon?: React.ReactNode;
   className?: string;
 }) {
   return (
     <Card className={className}>
-      <CardEyebrow>{eyebrow}</CardEyebrow>
+      <div className="flex items-start justify-between gap-2">
+        <CardEyebrow>{eyebrow}</CardEyebrow>
+        {icon ? (
+          <span
+            aria-hidden
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+          >
+            {icon}
+          </span>
+        ) : null}
+      </div>
       <div className="mt-2 text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-50">
         {value}
       </div>
