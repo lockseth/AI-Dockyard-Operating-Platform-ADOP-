@@ -267,17 +267,11 @@ select:disabled {
    on load. Reduced-motion swaps every animation for a static single frame
    (barge centered, no wave drift) instead of hiding the scene. */
 @keyframes adop-login-barge-sail {
-  0% {
+  from {
     transform: translateX(0);
   }
-  50% {
-    transform: translateX(calc(100% + 60px));
-  }
-  50.01% {
-    transform: translateX(calc(-100% - 60px));
-  }
-  100% {
-    transform: translateX(0);
+  to {
+    transform: translateX(calc(100% + 70px));
   }
 }
 
@@ -342,7 +336,8 @@ select:disabled {
   position: absolute;
   bottom: 20px;
   left: -70px;
-  animation: adop-login-barge-sail 9s ease-in-out infinite;
+  width: 100%;
+  animation: adop-login-barge-sail 5s ease-in-out infinite;
 }
 
 .login-dock-barge-bob {
@@ -359,6 +354,7 @@ select:disabled {
 
   .login-dock-barge-track {
     left: 50%;
+    width: auto;
     transform: translateX(-50%);
   }
 }
