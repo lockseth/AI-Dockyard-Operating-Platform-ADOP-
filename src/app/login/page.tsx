@@ -26,15 +26,19 @@ export default async function LoginPage() {
 
         <div className="relative z-10 flex items-center gap-3">
           <Image
-            src="/branding/chamelonix-logo.png"
-            alt=""
-            width={38}
-            height={38}
-            className="h-[38px] w-[38px] shrink-0 rounded-lg object-contain"
+            src={pilotTenantLoginIdentity.logoPath}
+            alt={pilotTenantLoginIdentity.legalName}
+            width={44}
+            height={44}
+            className="h-11 w-11 shrink-0 rounded-lg border border-adop-accent-900/15 bg-white object-contain"
           />
           <div>
-            <p className="text-xl font-extrabold tracking-tight text-adop-accent-950">{branding.productName}</p>
-            <p className="text-[11px] font-medium text-adop-accent-900/50">{branding.subtitle}</p>
+            <p className="text-xl font-extrabold tracking-tight text-adop-accent-950">
+              {pilotTenantLoginIdentity.legalName}
+            </p>
+            <p className="text-[11px] font-medium text-adop-accent-900/50">
+              {branding.productName} — {branding.subtitle}
+            </p>
           </div>
         </div>
 
@@ -49,16 +53,13 @@ export default async function LoginPage() {
 
         <div className="relative z-10 flex items-center gap-2.5">
           <Image
-            src={pilotTenantLoginIdentity.logoPath}
-            alt={pilotTenantLoginIdentity.legalName}
-            width={30}
-            height={30}
-            className="h-[30px] w-[30px] shrink-0 rounded-md border border-adop-accent-900/15 bg-white object-contain"
+            src="/branding/chamelonix-logo.png"
+            alt=""
+            width={24}
+            height={24}
+            className="h-6 w-6 shrink-0 rounded-md object-contain"
           />
-          <div>
-            <p className="text-[12.5px] font-bold text-adop-accent-950">{pilotTenantLoginIdentity.legalName}</p>
-            <p className="text-[10.5px] text-adop-accent-900/50">{branding.poweredByLabel}</p>
-          </div>
+          <p className="text-[10.5px] text-adop-accent-900/50">{branding.poweredByLabel}</p>
         </div>
       </section>
 
