@@ -109,7 +109,7 @@ function buildInternalRequest(
 }
 
 interface ClaimResponseBody {
-  event: { id: string; message: string } | null;
+  event: { id: string; message: string; recipient: string } | null;
 }
 interface StatusResponseBody {
   status?: string;
@@ -160,6 +160,45 @@ function randomBusinessDate(): string {
   return new Date(base + offsetDays * 86_400_000).toISOString().slice(0, 10);
 }
 
+// Same generator morning-brief.integration.test.ts / assistant-inbound.
+// integration.test.ts already use for collision-free dummy WhatsApp numbers
+// — local-only, never a real Founder/Pak Hanafi number.
+function randomFakeE164(): string {
+  const suffix = Math.floor(1_000_000 + Math.random() * 8_999_999);
+  return `+62809${suffix}`;
+}
+
+// Gate 1L-R2 (src/lib/notification-outbox/service.ts's
+// claimNextNotificationForDelivery) now resolves the claim's recipient via
+// resolve_verified_owner_recipient before returning a claimed event, which
+// requires exactly one verified WhatsApp identity bound to an active owner
+// membership — a plain "owner" membership (what createEphemeralMember above
+// already grants ownerA) is no longer sufficient on its own. Pairs through
+// the same real, service-role-gated RPCs morning-brief.integration.test.ts
+// uses (assistant_issue_pairing_challenge / assistant_complete_pairing) —
+// never a raw insert into assistant_channel_identities.
+async function pairOwnerWhatsAppRecipient(owner: EphemeralMember, tenantId: string): Promise<string> {
+  const ownerClient = await signInAsMember(owner.email);
+  const address = randomFakeE164();
+  const { data: issued, error: issueError } = await ownerClient.rpc("assistant_issue_pairing_challenge", {
+    p_tenant_id: tenantId,
+    p_channel: "whatsapp",
+    p_normalized_address: address,
+  });
+  if (issueError || !issued?.[0]) {
+    throw new Error(`assistant_issue_pairing_challenge failed: ${issueError?.message}`);
+  }
+  const { error: completeError } = await admin.rpc("assistant_complete_pairing", {
+    p_channel: "whatsapp",
+    p_normalized_address: address,
+    p_code: issued[0].challenge_code,
+  });
+  if (completeError) {
+    throw new Error(`assistant_complete_pairing failed: ${completeError.message}`);
+  }
+  return address;
+}
+
 // One opening row + one cash top-up row — the minimum shape that reaches
 // ready_for_review (no vessel/project fixture needed, since 'cash' mapping
 // never references one). Amount values below are asserted to NEVER appear
@@ -199,6 +238,9 @@ describe("owner control -> WhatsApp notification delivery — full local E2E cha
   const createdUserIds: string[] = [];
   let ownerA: EphemeralMember;
   let adminA: EphemeralMember;
+  // Set in beforeAll, right after ownerA is created — every test in this
+  // file needs a resolvable recipient (Gate 1L-R2).
+  let ownerWhatsAppRecipient: string;
 
   // Local-only mock of Fonnte's HTTP send endpoint. Bound to 127.0.0.1 with
   // an OS-assigned port (never 0.0.0.0, never a fixed/well-known port) so
@@ -211,6 +253,7 @@ describe("owner control -> WhatsApp notification delivery — full local E2E cha
   beforeAll(async () => {
     ownerA = await createEphemeralMember({ emailPrefix: "wa-e2e-owner-a", role: "owner" });
     createdUserIds.push(ownerA.id);
+    ownerWhatsAppRecipient = await pairOwnerWhatsAppRecipient(ownerA, TENANT_A_ID);
     adminA = await createEphemeralMember({ emailPrefix: "wa-e2e-admin-a", role: "admin" });
     createdUserIds.push(adminA.id);
 
@@ -330,6 +373,7 @@ describe("owner control -> WhatsApp notification delivery — full local E2E cha
     const claimed = await callClaim(routes, workerId);
     expect(claimed.httpStatus).toBe(200);
     expect(claimed.body.event).not.toBeNull();
+    expect(claimed.body.event!.recipient).toBe(ownerWhatsAppRecipient);
     const { id: eventId, message } = claimed.body.event!;
 
     // --- message safety: minimum data only, no raw amounts, no secrets ---
