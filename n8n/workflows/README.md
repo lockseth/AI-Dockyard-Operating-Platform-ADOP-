@@ -233,6 +233,110 @@ never calls any ADOP approve/reject/import endpoint.
 7. Pak Hanafi's number must not be used before an internal test to
    Hendro's number PASSes and the Founder gives explicit approval.
 
+## owner-control-whatsapp-notification.credential-based.proposal.json
+
+Gate 1L-R1 — a credential-based candidate for `owner-control-whatsapp-notification.json`
+(Gate 1L) above, produced to close the same `$env not accessible via UI` gap
+already fixed for the inbound gateway (Gate 6J-D5) and Morning Brief
+(Gate 6J-E1). It does **not** replace the canonical Gate 1L workflow — that
+decision is pending separate Founder authorization, exactly as with
+Gate 6J-D5's relationship to the canonical inbound gateway.
+
+What changed vs. the canonical `owner-control-whatsapp-notification.json` graph:
+
+- **Base URL**: `Claim Notification`, `Complete Notification`, and
+  `Fail Notification` no longer read `$env.ADOP_APP_URL` — the URL is now the
+  literal production endpoint (`https://adop-demo-gema.vercel.app/...`), same
+  reasoning as Gate 6J-D5's `Post ADOP Inbound` node and every URL in
+  `owner-morning-brief.json`.
+- **Internal API auth**: those same three nodes no longer send a literal
+  `x-internal-secret` header built from `$env.ADOP_INTERNAL_API_SECRET`.
+  Authorization is now a `genericCredentialType` / `httpHeaderAuth` credential
+  named **`ADOP Internal API Secret`** — the identical credential name already
+  used by `owner-morning-brief.json` (same secret, same three-node reuse
+  pattern: Claim/Compose, Complete, Fail).
+- **Fonnte auth**: `Send via Fonnte (Hendro's paired device -> owner
+  recipient)` no longer reads `$env.FONNTE_SENDER_DEVICE_TOKEN`. Authorization
+  is now a `genericCredentialType` / `httpHeaderAuth` credential named
+  **`ADOP Fonnte Sender Device Token`** — the identical credential name already
+  used by `owner-morning-brief.json`'s Fonnte node (same paired device, not a
+  second one).
+
+Everything NOT listed above — schedule cadence (every minute), the
+Claim → Has Event? → Send → Fonnte Success? → Complete/Fail branching, the
+claimed-event id/message expressions, and the fail-closed graph shape — is
+unchanged from `owner-control-whatsapp-notification.json` and covered by
+`owner-control-whatsapp-notification.credential-based.proposal.test.ts`.
+
+### Recipient number (`target`) — resolved server-side (Gate 1L-R2)
+
+Gate 1L-R1 left the Fonnte `target` body parameter empty and documented it as
+an open gap: `$env.RECIPIENT_OWNER_WHATSAPP_NUMBER` is not reachable from the
+hosted UI, `httpHeaderAuth` credentials only inject headers (not a body
+field), and `ClaimedNotification` (`src/lib/notification-outbox/types.ts`)
+was `{ id, message }` only.
+
+Gate 1L-R2 (`supabase/migrations/20260811000000_notification_recipient_
+resolution.sql`) closes that gap without a workaround, `$vars`, or a
+literal/hard-coded number: `ClaimedNotification` now also carries
+`recipient`, resolved server-side by
+`src/lib/notification-outbox/service.ts` — via the new service_role-only
+RPC `public.resolve_verified_owner_recipient(tenant_id)` — from the
+claimed event's tenant's existing verified owner WhatsApp pairing
+(`public.assistant_channel_identities`, Gate 6J-B, joined to an active
+`owner`-role membership). This node's `target` now reads
+`{{ $('Claim Notification').item.json.event.recipient }}` — the exact same
+trust boundary as `message` (n8n reads it, never chooses or supplies it).
+
+Fail-closed: if zero or more than one verified owner identity exists for a
+tenant, `resolve_verified_owner_recipient` returns `NULL`, the internal
+`/claim` route never returns that event at all (the claim is failed and
+released back to the outbox's own bounded-retry lease, not sent with a
+blank or guessed number), and n8n's `Has Event?` branch sees nothing to
+send. There is no fallback to any other number.
+
+`owner-morning-brief.json`'s own recipient posture is unchanged by this
+gate — it is Morning Brief's own workflow file, out of this gate's scope
+(the instruction locking this gate explicitly excludes it unless the shared
+`ClaimedNotification`/RPC contract itself needed adjusting, which it did
+not — Morning Brief's internal route composes its own request and can adopt
+the same resolver in a later, separate gate).
+
+### Credential contract (Founder/operator sets up in hosted n8n — no values here)
+
+| Credential name | Type | Used by (nodes) | Function | Header produced |
+| --- | --- | --- | --- | --- |
+| `ADOP Internal API Secret` | `httpHeaderAuth` | Claim Notification, Complete Notification, Fail Notification | Authenticates all three ADOP-facing calls to `/api/internal/notifications/*` | `x-internal-secret: <value>` |
+| `ADOP Fonnte Sender Device Token` | `httpHeaderAuth` | Send via Fonnte | Authenticates the outbound Fonnte send as Hendro's paired device | `Authorization: <value>` |
+| *(base application URL)* | n/a — literal | Claim/Complete/Fail Notification | No credential mechanism needed; URL is a fixed public production endpoint, not a secret | n/a |
+
+Both credentials are the same two already required by `owner-morning-brief.json`
+— an operator who has already set those up for Morning Brief can reuse them
+here rather than creating new ones.
+
+### Migration procedure (documentation only — not executed by this gate)
+
+1. In the hosted n8n instance, confirm (or create) the two `httpHeaderAuth`
+   credentials above by name, entering secret values only in n8n's own
+   credential UI — never in a workflow JSON, chat, or file in this repo.
+2. Import this candidate JSON as a **new** workflow (do not overwrite the
+   canonical Gate 1L workflow in place) so both can be compared side by side
+   before cutover.
+3. Confirm the imported workflow's `active` toggle is OFF immediately after
+   import — do not rely on the checked-in `"active": false` surviving import
+   unexamined.
+4. Open each of the four `httpRequest` nodes (Claim, Send via Fonnte,
+   Complete, Fail) and confirm the credential dropdown resolves to the
+   correct named credential — a broken/unresolved reference will show as an
+   empty or errored credential picker, not a silent failure.
+5. Open the schedule trigger node and confirm the every-minute interval is
+   configured as expected, without enabling/activating the workflow.
+6. Take a screenshot of each node's credential-reference state (not the
+   credential's value) for the audit trail.
+7. Do not click Execute/Test on any node and do not activate the workflow in
+   this step — a manual one-shot test against exactly one authorized
+   notification event is a separate, later, explicitly-authorized gate.
+
 ## owner-morning-brief.json
 
 Gate 6J-E1 — daily 07:00 Asia/Jakarta trigger that calls ADOP's own

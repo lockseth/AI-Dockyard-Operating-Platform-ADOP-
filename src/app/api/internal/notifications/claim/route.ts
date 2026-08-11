@@ -4,9 +4,11 @@ import { claimNextNotificationForDelivery } from "@/lib/notification-outbox/serv
 import { claimNotificationRequestSchema } from "@/lib/notification-outbox/validation";
 
 // n8n-only. Claims at most one pending (or lease-expired) notification and
-// returns the exact WhatsApp text to send — n8n never composes the message
-// itself and never sees tenant_id, batch id, or any other internal
-// reference beyond the notification event id it needs to complete/fail.
+// returns the exact WhatsApp text and recipient to send to — n8n never
+// composes the message, never chooses or supplies the recipient (Gate
+// 1L-R2: server-resolved from the tenant's verified owner pairing), and
+// never sees tenant_id, batch id, or any other internal reference beyond
+// the notification event id it needs to complete/fail.
 export async function POST(request: NextRequest) {
   if (!isAuthorizedInternalRequest(request)) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });

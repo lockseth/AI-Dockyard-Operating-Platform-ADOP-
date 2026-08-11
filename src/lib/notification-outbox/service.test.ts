@@ -4,12 +4,14 @@ const claimNextNotificationEvent = vi.fn();
 const completeNotificationEvent = vi.fn();
 const failNotificationEvent = vi.fn();
 const enqueueAndClaimMorningBriefNotification = vi.fn();
+const resolveVerifiedOwnerRecipient = vi.fn();
 
 vi.mock("./repository", () => ({
   claimNextNotificationEvent: (...args: unknown[]) => claimNextNotificationEvent(...args),
   completeNotificationEvent: (...args: unknown[]) => completeNotificationEvent(...args),
   failNotificationEvent: (...args: unknown[]) => failNotificationEvent(...args),
   enqueueAndClaimMorningBriefNotification: (...args: unknown[]) => enqueueAndClaimMorningBriefNotification(...args),
+  resolveVerifiedOwnerRecipient: (...args: unknown[]) => resolveVerifiedOwnerRecipient(...args),
 }));
 
 describe("notification-outbox service", () => {
@@ -20,6 +22,7 @@ describe("notification-outbox service", () => {
     completeNotificationEvent.mockReset();
     failNotificationEvent.mockReset();
     enqueueAndClaimMorningBriefNotification.mockReset();
+    resolveVerifiedOwnerRecipient.mockReset();
     vi.stubEnv("APP_URL", "https://adop.example.com");
   });
 
@@ -29,16 +32,19 @@ describe("notification-outbox service", () => {
 
     const result = await claimNextNotificationForDelivery({ workerId: "w1" });
     expect(result).toBeNull();
+    expect(resolveVerifiedOwnerRecipient).not.toHaveBeenCalled();
   });
 
   it("composes the review-requested message with the app-url-prefixed link, from trusted payload only", async () => {
     claimNextNotificationEvent.mockResolvedValue({
       id: "evt-1",
+      tenant_id: "tenant-1",
       payload: {
         message_line1: "Pak Hanafi, ada hasil import kas yang menunggu pemeriksaan.",
         link_path: "/owner/review/cash-import/batch-1",
       },
     });
+    resolveVerifiedOwnerRecipient.mockResolvedValue("+6281100000001");
     const { claimNextNotificationForDelivery } = await import("./service");
 
     const result = await claimNextNotificationForDelivery({ workerId: "w1" });
@@ -47,20 +53,44 @@ describe("notification-outbox service", () => {
       message:
         "Pak Hanafi, ada hasil import kas yang menunggu pemeriksaan.\n\n" +
         "[Buka Review Transaksi] https://adop.example.com/owner/review/cash-import/batch-1",
+      recipient: "+6281100000001",
     });
+    expect(resolveVerifiedOwnerRecipient).toHaveBeenCalledWith("tenant-1");
   });
 
   it("composes the confirmation message with no link line when link_path is absent", async () => {
     claimNextNotificationEvent.mockResolvedValue({
       id: "evt-2",
+      tenant_id: "tenant-1",
       payload: { message_line1: "Pak Hanafi, hasil import telah disetujui dan berhasil dicatat di ADOP." },
     });
+    resolveVerifiedOwnerRecipient.mockResolvedValue("+6281100000001");
     const { claimNextNotificationForDelivery } = await import("./service");
 
     const result = await claimNextNotificationForDelivery({ workerId: "w1" });
     expect(result).toEqual({
       id: "evt-2",
       message: "Pak Hanafi, hasil import telah disetujui dan berhasil dicatat di ADOP.",
+      recipient: "+6281100000001",
+    });
+  });
+
+  it("fails the claim closed and returns null when no authorized recipient can be resolved — never a fallback number", async () => {
+    claimNextNotificationEvent.mockResolvedValue({
+      id: "evt-3",
+      tenant_id: "tenant-1",
+      payload: { message_line1: "Pak Hanafi, hasil import telah disetujui dan berhasil dicatat di ADOP." },
+    });
+    resolveVerifiedOwnerRecipient.mockResolvedValue(null);
+    failNotificationEvent.mockResolvedValue({ status: "pending" });
+    const { claimNextNotificationForDelivery } = await import("./service");
+
+    const result = await claimNextNotificationForDelivery({ workerId: "w1" });
+    expect(result).toBeNull();
+    expect(failNotificationEvent).toHaveBeenCalledWith({
+      eventId: "evt-3",
+      workerId: "w1",
+      error: "RECIPIENT_NOT_RESOLVED",
     });
   });
 

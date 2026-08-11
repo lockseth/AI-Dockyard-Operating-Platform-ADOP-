@@ -66,12 +66,14 @@ describe("POST /api/internal/notifications/claim", () => {
     expect(claimNextNotificationForDelivery).toHaveBeenCalledWith({ workerId: "n8n-1" });
   });
 
-  it("returns the claimed event on success with a correct secret", async () => {
-    claimNextNotificationForDelivery.mockResolvedValue({ id: "evt-1", message: "hello" });
+  it("returns the claimed event, including the server-resolved recipient, on success with a correct secret", async () => {
+    claimNextNotificationForDelivery.mockResolvedValue({ id: "evt-1", message: "hello", recipient: "+6281100000001" });
     const { POST } = await import("./route");
     const response = await POST(buildRequest({ workerId: "n8n-1" }, { "x-internal-secret": "top-secret-value" }));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ event: { id: "evt-1", message: "hello" } });
+    await expect(response.json()).resolves.toEqual({
+      event: { id: "evt-1", message: "hello", recipient: "+6281100000001" },
+    });
   });
 });

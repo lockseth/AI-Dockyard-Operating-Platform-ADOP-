@@ -24,6 +24,21 @@ export async function claimNextNotificationEvent(
   return data?.id ? data : null;
 }
 
+// Gate 1L-R2. Resolves fresh on every claim — recipient is the tenant's
+// CURRENT verified-owner pairing state, not a value baked into the
+// notification_events row at enqueue time (a pairing can be revoked long
+// after a notification was enqueued). Returns null (never a fallback
+// number) when zero or more than one candidate exists; see the migration
+// for the exact fail-closed rule.
+export async function resolveVerifiedOwnerRecipient(tenantId: string): Promise<string | null> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc("resolve_verified_owner_recipient", {
+    p_tenant_id: tenantId,
+  });
+  if (error) throw error;
+  return data ?? null;
+}
+
 export async function completeNotificationEvent(params: {
   eventId: string;
   workerId: string;

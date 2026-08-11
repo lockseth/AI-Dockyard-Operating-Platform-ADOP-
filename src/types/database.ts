@@ -5615,6 +5615,10 @@ export type Database = {
           token_id: string
         }[]
       }
+      resolve_verified_owner_recipient: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
       reverse_cash_pool_entry: {
         Args: { p_entry_id: string; p_reason: string }
         Returns: {

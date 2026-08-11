@@ -58,6 +58,38 @@ describe("claimNextNotificationEvent", () => {
   });
 });
 
+describe("resolveVerifiedOwnerRecipient", () => {
+  it("calls the RPC with the exact p_-prefixed argument name the migration defines", async () => {
+    rpc.mockResolvedValue({ data: "+6281100000001", error: null });
+    const { resolveVerifiedOwnerRecipient } = await import("./repository");
+
+    await resolveVerifiedOwnerRecipient("tenant-1");
+
+    expect(rpc).toHaveBeenCalledWith("resolve_verified_owner_recipient", { p_tenant_id: "tenant-1" });
+  });
+
+  it("returns the resolved recipient on success", async () => {
+    rpc.mockResolvedValue({ data: "+6281100000001", error: null });
+    const { resolveVerifiedOwnerRecipient } = await import("./repository");
+
+    await expect(resolveVerifiedOwnerRecipient("tenant-1")).resolves.toBe("+6281100000001");
+  });
+
+  it("returns null when the RPC resolves nothing (zero or ambiguous candidates)", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const { resolveVerifiedOwnerRecipient } = await import("./repository");
+
+    await expect(resolveVerifiedOwnerRecipient("tenant-1")).resolves.toBeNull();
+  });
+
+  it("throws on an RPC error", async () => {
+    rpc.mockResolvedValue({ data: null, error: new Error("db unavailable") });
+    const { resolveVerifiedOwnerRecipient } = await import("./repository");
+
+    await expect(resolveVerifiedOwnerRecipient("tenant-1")).rejects.toThrow("db unavailable");
+  });
+});
+
 describe("enqueueAndClaimMorningBriefNotification", () => {
   it("calls the RPC with the exact p_-prefixed argument names the migration defines", async () => {
     rpc.mockResolvedValue({ data: { id: "evt-mb-1", status: "processing" }, error: null });

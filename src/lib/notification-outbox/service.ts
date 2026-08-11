@@ -5,6 +5,7 @@ import {
   completeNotificationEvent,
   enqueueAndClaimMorningBriefNotification,
   failNotificationEvent,
+  resolveVerifiedOwnerRecipient,
 } from "./repository";
 import type { ClaimedNotification, NotificationEventPayload, NotificationEventRow } from "./types";
 
@@ -38,11 +39,22 @@ export async function claimNextNotificationForDelivery(input: {
     return null;
   }
 
+  // Server-resolved, from the tenant this exact claimed row belongs to —
+  // never from the request body. A claim that cannot resolve exactly one
+  // authorized recipient right now is failed through the same bounded-retry
+  // path as any other delivery failure, rather than leaving the row
+  // claimed indefinitely or guessing a fallback number.
+  const recipient = await resolveVerifiedOwnerRecipient(row.tenant_id);
+  if (!recipient) {
+    await failNotificationEvent({ eventId: row.id, workerId: input.workerId, error: "RECIPIENT_NOT_RESOLVED" });
+    return null;
+  }
+
   const payload = row.payload as unknown as NotificationEventPayload;
   const env = getServerEnv();
   const linkLine = payload.link_path ? `\n\n[Buka Review Transaksi] ${env.APP_URL}${payload.link_path}` : "";
 
-  return { id: row.id, message: `${payload.message_line1}${linkLine}` };
+  return { id: row.id, message: `${payload.message_line1}${linkLine}`, recipient };
 }
 
 export async function completeNotificationDelivery(input: {

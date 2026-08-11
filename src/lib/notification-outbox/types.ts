@@ -13,4 +13,9 @@ export interface NotificationEventPayload {
 export interface ClaimedNotification {
   id: string;
   message: string;
+  // Server-resolved (see resolveVerifiedOwnerRecipient in ./repository) —
+  // never supplied by n8n and never a literal fallback. A claim that cannot
+  // resolve exactly one verified owner recipient never reaches this shape
+  // (see claimNextNotificationForDelivery in ./service).
+  recipient: string;
 }
