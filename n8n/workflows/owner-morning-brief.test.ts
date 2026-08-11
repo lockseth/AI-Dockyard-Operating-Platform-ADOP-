@@ -30,7 +30,7 @@ const workflowPath = path.join(__dirname, "owner-morning-brief.json");
 const rawSource = readFileSync(workflowPath, "utf-8");
 const workflow: Workflow = JSON.parse(rawSource);
 
-const SEND_VIA_FONNTE = "Send via Fonnte (PT-controlled device -> Pak Hanafi)";
+const SEND_VIA_FONNTE = "Send via Fonnte (PT-controlled device -> Authorized Owner)";
 
 function edgeTargets(sourceName: string): string[] {
   const branches = workflow.connections[sourceName]?.main ?? [];
@@ -139,12 +139,12 @@ describe("owner-morning-brief.json graph contract", () => {
     }
   });
 
-  it("the Fonnte send target is left empty in the repo — no recipient number is checked in", () => {
+  it("the Fonnte send target is read verbatim from Compose Morning Brief's resolved recipient — never a literal number", () => {
     const fonnteNode = node(SEND_VIA_FONNTE);
     const bodyParams = (fonnteNode.parameters?.bodyParameters as { parameters: Array<{ name: string; value: string }> })
       ?.parameters;
     const target = bodyParams?.find((p) => p.name === "target");
-    expect(target?.value).toBe("");
+    expect(target?.value).toBe("={{ $('Compose Morning Brief').item.json.event.recipient }}");
   });
 
   it("the Fonnte message is read verbatim from Compose Morning Brief's response — the workflow never composes text itself", () => {

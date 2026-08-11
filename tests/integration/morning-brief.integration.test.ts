@@ -1,7 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { type SupabaseClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
-import { createAdminClient } from "./support/members";
+import {
+  createAdminClient,
+  createEphemeralMember as createEphemeralMemberBase,
+  signInAsMember as signInAsMemberBase,
+  type EphemeralMember,
+} from "./support/members";
 
 // Gate 6J-E1-B — real local Supabase AND the real Next.js route handlers:
 // the morning-brief compose+enqueue+claim route, plus the EXISTING,
@@ -23,14 +28,16 @@ import { createAdminClient } from "./support/members";
 // when the concurrency test below runs; re-run `pnpm db:reset` before
 // re-running this file on the same calendar day.
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET;
 const PILOT_TENANT_SLUG = process.env.MORNING_BRIEF_PILOT_TENANT_SLUG;
 
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !INTERNAL_SECRET || !PILOT_TENANT_SLUG) {
+if (!SUPABASE_URL || !ANON_KEY || !SERVICE_ROLE_KEY || !INTERNAL_SECRET || !PILOT_TENANT_SLUG) {
   throw new Error(
-    "morning-brief.integration.test requires NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, " +
-      "INTERNAL_API_SECRET and MORNING_BRIEF_PILOT_TENANT_SLUG in .env.local — run `pnpm supabase:start` first.",
+    "morning-brief.integration.test requires NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, " +
+      "SUPABASE_SERVICE_ROLE_KEY, INTERNAL_API_SECRET and MORNING_BRIEF_PILOT_TENANT_SLUG in .env.local — " +
+      "run `pnpm supabase:start` first.",
   );
 }
 
@@ -42,6 +49,7 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !INTERNAL_SECRET || !PILOT_TENANT_SLUG
 const PILOT_TENANT_SLUG_SEEDED = "tenant-a";
 const PILOT_TENANT_ID = "a1111111-1111-4111-8111-111111111111";
 const SECOND_TENANT_SLUG_SEEDED = "tenant-b";
+const SECOND_TENANT_ID = "b2222222-2222-4222-8222-222222222222";
 
 if (PILOT_TENANT_SLUG !== PILOT_TENANT_SLUG_SEEDED) {
   throw new Error(
@@ -51,6 +59,61 @@ if (PILOT_TENANT_SLUG !== PILOT_TENANT_SLUG_SEEDED) {
 }
 
 const admin: SupabaseClient = createAdminClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+async function createEphemeralMember(params: {
+  emailPrefix: string;
+  tenantId: string;
+  role: "owner" | "admin" | "reviewer" | "viewer";
+}): Promise<EphemeralMember> {
+  return createEphemeralMemberBase(admin, {
+    emailPrefix: params.emailPrefix,
+    memberships: [{ tenantId: params.tenantId, role: params.role }],
+  });
+}
+
+async function signInAsMember(email: string): Promise<SupabaseClient> {
+  return signInAsMemberBase(SUPABASE_URL!, ANON_KEY!, email);
+}
+
+// Randomized synthetic numbers to avoid cross-test/cross-suite collisions in
+// the shared local database (same reasoning as assistant-inbound.
+// integration.test.ts's randomFakeE164()).
+function randomFakeE164(): string {
+  const suffix = Math.floor(1_000_000 + Math.random() * 8_999_999);
+  return `+62809${suffix}`;
+}
+
+// Gate 1L-R4D-R1 — pairs and verifies a tenant's owner WhatsApp identity
+// through the real, already-proven RPCs (assistant_issue_pairing_challenge /
+// assistant_complete_pairing — see assistant-inbound.integration.test.ts),
+// never a raw table insert. This is what makes resolveVerifiedOwnerRecipient
+// resolve a real value for that tenant, exactly as it would in production
+// once an owner actually pairs.
+async function pairVerifiedOwnerRecipient(params: {
+  emailPrefix: string;
+  tenantId: string;
+}): Promise<{ owner: EphemeralMember; recipient: string }> {
+  const owner = await createEphemeralMember({ emailPrefix: params.emailPrefix, tenantId: params.tenantId, role: "owner" });
+  const ownerClient = await signInAsMember(owner.email);
+  const address = randomFakeE164();
+  const { data: issued, error: issueError } = await ownerClient.rpc("assistant_issue_pairing_challenge", {
+    p_tenant_id: params.tenantId,
+    p_channel: "whatsapp",
+    p_normalized_address: address,
+  });
+  if (issueError || !issued?.[0]) {
+    throw new Error(`assistant_issue_pairing_challenge failed: ${issueError?.message}`);
+  }
+  const { error: completeError } = await admin.rpc("assistant_complete_pairing", {
+    p_channel: "whatsapp",
+    p_normalized_address: address,
+    p_code: issued[0].challenge_code,
+  });
+  if (completeError) {
+    throw new Error(`assistant_complete_pairing failed: ${completeError.message}`);
+  }
+  return { owner, recipient: address };
+}
 
 async function importRoute(): Promise<typeof import("@/app/api/internal/morning-brief/route")> {
   vi.resetModules();
@@ -88,6 +151,27 @@ function stubBaseEnv(pilotSlug: string): void {
 }
 
 describe("POST /api/internal/morning-brief — real local Supabase", () => {
+  const createdUserIds: string[] = [];
+  let tenantARecipient: string;
+
+  // Gate 1L-R4D-R1 — tenant-a's owner is paired+verified once, up front, so
+  // every test below that expects a real claim (not recipient_unavailable)
+  // has a resolvable recipient from the start. tenant-b is deliberately left
+  // unpaired here — see the dedicated "no verified owner recipient yet" test,
+  // which pairs tenant-b's owner itself, right before the pre-existing
+  // fail-callback test (further down) needs one.
+  beforeAll(async () => {
+    const paired = await pairVerifiedOwnerRecipient({ emailPrefix: "mb-it-owner-a", tenantId: PILOT_TENANT_ID });
+    createdUserIds.push(paired.owner.id);
+    tenantARecipient = paired.recipient;
+  });
+
+  afterAll(async () => {
+    for (const id of createdUserIds) {
+      await admin.auth.admin.deleteUser(id);
+    }
+  });
+
   beforeEach(() => {
     vi.unstubAllEnvs();
     stubBaseEnv(PILOT_TENANT_SLUG_SEEDED);
@@ -179,6 +263,31 @@ describe("POST /api/internal/morning-brief — real local Supabase", () => {
   });
 
   it(
+    "returns RECIPIENT_UNAVAILABLE and enqueues nothing when the pilot tenant has a valid tenant but no verified " +
+      "owner WhatsApp recipient yet — tenant-b, still unpaired at this point in the suite",
+    async () => {
+      vi.unstubAllEnvs();
+      stubBaseEnv(SECOND_TENANT_SLUG_SEEDED);
+      const { POST } = await importRoute();
+
+      const response = await POST(
+        buildMorningBriefRequest({ workerId: "mb-it-no-recipient" }, { "x-internal-secret": INTERNAL_SECRET! }),
+      );
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toEqual({ error: "RECIPIENT_UNAVAILABLE" });
+
+      // Pairs tenant-b's owner now, right after proving the unpaired-tenant
+      // rejection, so the fail-callback test further below (which reuses
+      // tenant-b) has a resolvable recipient by the time it runs. If the
+      // 503 above had incorrectly enqueued/claimed a row anyway, that test's
+      // own claim would come back `duplicate` instead of a fresh claim,
+      // failing loudly there.
+      const paired = await pairVerifiedOwnerRecipient({ emailPrefix: "mb-it-owner-b", tenantId: SECOND_TENANT_ID });
+      createdUserIds.push(paired.owner.id);
+    },
+  );
+
+  it(
     "N concurrent real (non-dryRun) requests for the pilot tenant produce at most one fresh claim; a further " +
       "call afterwards still reports duplicate; the response never exposes a tenant id or internal row field",
     async () => {
@@ -225,9 +334,11 @@ describe("POST /api/internal/morning-brief — real local Supabase", () => {
 
       // Response shape never leaks a tenant id or any other internal row
       // field beyond the notification event id the caller needs to
-      // complete/fail it.
-      expect(Object.keys(winner.event).sort()).toEqual(["id", "message"]);
+      // complete/fail it, plus the recipient Gate 1L-R4D-R1 added — proven
+      // against the exact address paired in beforeAll, never a fallback.
+      expect(Object.keys(winner.event).sort()).toEqual(["id", "message", "recipient"]);
       expect(Object.keys(winner).sort()).toEqual(["businessDate", "event"]);
+      expect(winner.event.recipient).toBe(tenantARecipient);
       expect(JSON.stringify(winner)).not.toContain(PILOT_TENANT_ID);
 
       // Close the loop through the EXISTING, unmodified complete route —

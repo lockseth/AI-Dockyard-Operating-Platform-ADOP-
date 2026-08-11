@@ -97,7 +97,7 @@
         "specifyBody": "keypair",
         "bodyParameters": {
           "parameters": [
-            { "name": "target", "value": "" },
+            { "name": "target", "value": "={{ $('Compose Morning Brief').item.json.event.recipient }}" },
             { "name": "message", "value": "={{ $('Compose Morning Brief').item.json.event.message }}" }
           ]
         },
@@ -106,7 +106,7 @@
         }
       },
       "id": "send-via-fonnte",
-      "name": "Send via Fonnte (PT-controlled device -> Pak Hanafi)",
+      "name": "Send via Fonnte (PT-controlled device -> Authorized Owner)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [660, -80],
@@ -118,7 +118,7 @@
           "name": "ADOP Fonnte Sender Device Token"
         }
       },
-      "notes": "Authorization header via the \"ADOP Fonnte Sender Device Token\" credential — never a literal token in this file. Message text comes verbatim from Compose Morning Brief's response; this node never composes or edits it. target is deliberately left empty here (no phone number in the repo, no $env available) — the operator must set Pak Hanafi's WhatsApp number directly on this parameter in the hosted n8n editor before activation. Single-tenant pilot scope: one fixed recipient, no per-tenant routing."
+      "notes": "Authorization header via the \"ADOP Fonnte Sender Device Token\" credential — never a literal token in this file. Message text and target both come verbatim from Compose Morning Brief's response; this node never composes, edits, or supplies either. target is the pilot tenant's single verified owner WhatsApp recipient, resolved server-side by resolveVerifiedOwnerRecipient before ADOP ever enqueues/claims the event (Gate 1L-R4D-R1) — never a literal number, env var, or operator-set value in this editor. Single-tenant pilot scope: one resolved recipient, no per-tenant routing."
     },
     {
       "parameters": {
@@ -224,11 +224,11 @@
     },
     "Has Event?": {
       "main": [
-        [{ "node": "Send via Fonnte (PT-controlled device -> Pak Hanafi)", "type": "main", "index": 0 }],
+        [{ "node": "Send via Fonnte (PT-controlled device -> Authorized Owner)", "type": "main", "index": 0 }],
         []
       ]
     },
-    "Send via Fonnte (PT-controlled device -> Pak Hanafi)": {
+    "Send via Fonnte (PT-controlled device -> Authorized Owner)": {
       "main": [[{ "node": "Fonnte Success?", "type": "main", "index": 0 }]]
     },
     "Fonnte Success?": {

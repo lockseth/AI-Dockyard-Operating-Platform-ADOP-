@@ -9,6 +9,12 @@ import {
 } from "./repository";
 import type { ClaimedNotification, NotificationEventPayload, NotificationEventRow } from "./types";
 
+// Re-exported so other domains (Gate 1L-R4D-R1 — morning-brief/service.ts)
+// reuse the exact same resolver instead of reaching into this module's
+// repository.ts directly or duplicating the RPC call — same "resolved fresh,
+// never a fallback number" contract either caller gets.
+export { resolveVerifiedOwnerRecipient } from "./repository";
+
 export class NotificationClaimMismatchError extends Error {
   constructor() {
     super("Notification event is not claimed by this worker.");

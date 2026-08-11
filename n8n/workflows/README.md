@@ -371,23 +371,26 @@ The ADOP endpoint URLs are literal (`https://adop-demo-gema.vercel.app/...`),
 same reasoning as Gate 6J-D5's `Post ADOP Inbound` node — no `$env.ADOP_APP_URL`
 available.
 
-### Recipient number — open question, not yet resolved
+### Recipient number — resolved server-side (Gate 1L-R4D-R1)
 
-Gate 1L solved "recipient number, hosted config, not in the repo" with
-`$env.RECIPIENT_OWNER_WHATSAPP_NUMBER`, which is no longer viable on the
-hosted instance. This workflow has **no equivalent credential mechanism for
-a body field** (`httpHeaderAuth` only injects headers, not the Fonnte
-`target` body parameter) and does not assume the hosted instance's n8n plan
-includes the separate "Variables" (`$vars`) feature — that has not been
-verified, the same caution already applied to `$env` and Code-node `crypto`
-in earlier gates. The checked-in JSON therefore ships the Fonnte send node's
-`target` parameter **empty**; an operator must set Pak Hanafi's real number
-directly on that node in the hosted n8n editor before activation, which
-satisfies "never in the repo" but does not yet satisfy "from hosted
-config" in the same structured way `ADOP Internal API Secret` does. Resolving
-this properly (a real `$vars` entry, or a small internal ADOP lookup instead
-of a literal target) is left for the same supervised-dry-run gate that
-activates this workflow, not decided here.
+Closed the same way Gate 1L-R2 closed it for the generic notification
+workflow: `POST /api/internal/morning-brief`'s successful (non-dryRun)
+response now carries `event.recipient` — the pilot tenant's single verified
+owner WhatsApp number, resolved server-side by the same
+`resolveVerifiedOwnerRecipient` RPC-backed resolver, called from
+`src/lib/morning-brief/service.ts` strictly after the pilot tenant resolves
+and strictly before any enqueue/claim is attempted. If no single verified
+owner can be resolved, the route returns `503 RECIPIENT_UNAVAILABLE` and
+nothing is enqueued or claimed — there is no path that leaves a claimed
+event waiting for a recipient that doesn't exist.
+
+The Fonnte send node's `target` parameter is therefore no longer empty — it
+reads `={{ $('Compose Morning Brief').item.json.event.recipient }}`, the
+exact same "n8n reads it, never chooses or supplies it" trust boundary
+already used for `message` and for the generic workflow's own `target`
+(Gate 1L-R2). No `$env`, no `$vars`, no operator-set literal, no credential
+mechanism for a body field — the gaps this section used to describe are
+moot because the value now arrives from ADOP itself on every call.
 
 ### Pilot constraints (same as Gate 1L)
 

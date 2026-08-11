@@ -1,6 +1,6 @@
 import "server-only";
 import { getServerEnv } from "@/lib/env/server";
-import { enqueueAndClaimMorningBriefDelivery } from "@/lib/notification-outbox/service";
+import { enqueueAndClaimMorningBriefDelivery, resolveVerifiedOwnerRecipient } from "@/lib/notification-outbox/service";
 import { getJakartaBusinessDate } from "@/lib/operations-daily/format";
 import { composeMorningBrief } from "./composer";
 import { getExecutiveReportSummaryForTenant } from "./read-model";
@@ -37,14 +37,25 @@ export async function previewMorningBrief(now: Date = new Date()): Promise<Morni
 }
 
 export type MorningBriefDeliveryResult =
-  | { status: "claimed"; businessDate: string; event: { id: string; message: string } }
+  | { status: "claimed"; businessDate: string; event: { id: string; message: string; recipient: string } }
   | { status: "duplicate"; businessDate: string }
-  | { status: "pilot_tenant_unavailable" };
+  | { status: "pilot_tenant_unavailable" }
+  | { status: "recipient_unavailable"; businessDate: string };
 
 // Real (non-dryRun) path — composes, then enqueues+claims via the
 // once-per-tenant-per-business_date RPC. workerId/leaseSeconds come from
 // the caller (n8n's execution id), never generated here, so a genuine retry
 // with the same workerId is observable as the same claim.
+//
+// Gate 1L-R4D-R1 — authorized-recipient-before-enqueue: the pilot tenant's
+// single verified owner WhatsApp recipient is resolved fresh, right after
+// the tenant itself resolves and strictly before any enqueue/claim is
+// attempted (same resolver — resolveVerifiedOwnerRecipient — the generic
+// notification path already uses at claim time; see
+// notification-outbox/service.ts's claimNextNotificationForDelivery). If no
+// single verified owner can be resolved, nothing is enqueued or claimed —
+// there is never a claimed row left waiting for a recipient that doesn't
+// exist, and never a fallback/manual number.
 export async function composeAndEnqueueMorningBrief(input: {
   workerId: string;
   leaseSeconds?: number;
@@ -52,6 +63,11 @@ export async function composeAndEnqueueMorningBrief(input: {
 }): Promise<MorningBriefDeliveryResult> {
   const composed = await composeForPilotTenant(input.now ?? new Date());
   if (!composed) return { status: "pilot_tenant_unavailable" };
+
+  const recipient = await resolveVerifiedOwnerRecipient(composed.tenantId);
+  if (!recipient) {
+    return { status: "recipient_unavailable", businessDate: composed.businessDate };
+  }
 
   const { row, claimedByThisCall } = await enqueueAndClaimMorningBriefDelivery({
     tenantId: composed.tenantId,
@@ -68,6 +84,6 @@ export async function composeAndEnqueueMorningBrief(input: {
   return {
     status: "claimed",
     businessDate: composed.businessDate,
-    event: { id: row.id, message: composed.message },
+    event: { id: row.id, message: composed.message, recipient },
   };
 }

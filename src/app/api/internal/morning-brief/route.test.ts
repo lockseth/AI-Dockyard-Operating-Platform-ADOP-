@@ -103,18 +103,18 @@ describe("POST /api/internal/morning-brief", () => {
   });
 
   describe("dryRun=false (default)", () => {
-    it("returns the claimed event on a fresh claim", async () => {
+    it("returns the claimed event, including the resolved recipient, on a fresh claim", async () => {
       composeAndEnqueueMorningBrief.mockResolvedValue({
         status: "claimed",
         businessDate: "2026-07-31",
-        event: { id: "evt-mb-1", message: "Ringkasan ADOP pagi ini." },
+        event: { id: "evt-mb-1", message: "Ringkasan ADOP pagi ini.", recipient: "+6281100000001" },
       });
       const { POST } = await import("./route");
       const response = await POST(buildRequest({ workerId: "n8n-1" }, { "x-internal-secret": "top-secret-value" }));
 
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toEqual({
-        event: { id: "evt-mb-1", message: "Ringkasan ADOP pagi ini." },
+        event: { id: "evt-mb-1", message: "Ringkasan ADOP pagi ini.", recipient: "+6281100000001" },
         businessDate: "2026-07-31",
       });
     });
@@ -139,6 +139,29 @@ describe("POST /api/internal/morning-brief", () => {
 
       expect(response.status).toBe(503);
       await expect(response.json()).resolves.toEqual({ error: "PILOT_TENANT_UNAVAILABLE" });
+    });
+
+    it("returns 503 with no recipient/message leaked when no verified owner recipient can be resolved", async () => {
+      composeAndEnqueueMorningBrief.mockResolvedValue({ status: "recipient_unavailable", businessDate: "2026-07-31" });
+      const { POST } = await import("./route");
+      const response = await POST(buildRequest({ workerId: "n8n-1" }, { "x-internal-secret": "top-secret-value" }));
+
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toEqual({ error: "RECIPIENT_UNAVAILABLE" });
+    });
+
+    it("never accepts a recipient in the body — silently dropped, not honored", async () => {
+      composeAndEnqueueMorningBrief.mockResolvedValue({ status: "duplicate", businessDate: "2026-07-31" });
+      const { POST } = await import("./route");
+      const response = await POST(
+        buildRequest(
+          { workerId: "n8n-1", recipient: "+6281199999999" },
+          { "x-internal-secret": "top-secret-value" },
+        ),
+      );
+
+      expect(response.status).toBe(200);
+      expect(composeAndEnqueueMorningBrief).toHaveBeenCalledWith({ workerId: "n8n-1", leaseSeconds: undefined });
     });
   });
 });
