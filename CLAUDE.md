@@ -102,6 +102,8 @@ Billing, collection, bank API, dan automasi fase lanjut bukan pilot default.
 - Reminder Phase 3 mengikuti state delivery/acknowledgement (belum delivered/unread/unacknowledged/acknowledged/disputed = tindakan beda); disputed → stop reminder + human review; read/open = risk signal saja, bukan bukti approval; paid hanya setelah payment matching+verification.
 - Cash Collection: invoice tracking, reminders, partial payment, aging, matching bank API/CSV, risk score, executive brief.
 
+**PHASE 2 — 100% — OFFICIALLY LOCKED** (closeout audit, local evidence): scope Billing Metadata (Gate 2A, `ADOP_PHASE_2A_BILLING_METADATA_UNBILLED_CONTROL_CONTRACT_v1.0.md`, `supabase/migrations/20260723000000_invoice_evidence_documents.sql` + `20260724000000_invoice_evidence_read_model.sql`), Review/Recap (`src/app/billing/workspace/[projectId]/*`, `src/lib/invoice-evidence/service.ts`), dan Export (`src/app/billing/invoices/[invoiceId]/recap/route.ts`, `src/lib/invoice-evidence/cost-recap.ts`) sudah terimplementasi, tenant-isolated (RLS + composite tenant FK + `requireTenantRole(["owner","admin"])`), dan `invoice_date`/`due_date` konsisten lokal (`formatInvoiceMetadataDate`) di Billing Workspace maupun Invoice Detail — dibuktikan 162 test lulus di 22 file terkait billing/review/recap/export (`npx vitest run src/app/billing src/lib/billing-workspace src/lib/invoice-evidence`). Lock ini berlaku untuk scope Phase 2 yang disepakati (metadata, review, recap, export); Invoice Delivery & Acknowledgement, Assisted Billing template/generator (Phase 2B), dan seluruh Phase 3+ **tidak** termasuk dan tetap mengikuti status masing-masing di atas.
+
 ## 5. Token-Efficient Workflow
 
 Default loop:
