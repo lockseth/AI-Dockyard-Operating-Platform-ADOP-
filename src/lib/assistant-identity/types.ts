@@ -62,3 +62,25 @@ export interface ClientVerificationCompletionResult {
   tenantId: string | null;
   verifiedAt: string | null;
 }
+
+// Gate 1L-R4A: the Owner's own WhatsApp recipient registration, as
+// displayed on Settings/Personal. Deliberately collapses the underlying
+// assistant_channel_identity_status enum's 'revoked' into 'not_registered'
+// — a revoked-with-nothing-newer row means "nothing currently registered"
+// from the Owner's point of view (task LOCK: exactly three ringkas states).
+export type OwnerWhatsappRegistrationStatus = "not_registered" | "pending" | "verified";
+
+export interface OwnerWhatsappRegistration {
+  status: OwnerWhatsappRegistrationStatus;
+  normalizedAddress: string | null;
+  challengeExpiresAt: string | null;
+}
+
+export type RegisterOwnerWhatsappOutcome = "challenge_issued" | "already_verified";
+
+export interface RegisterOwnerWhatsappResult {
+  outcome: RegisterOwnerWhatsappOutcome;
+  normalizedAddress: string;
+  challengeCode?: string;
+  challengeExpiresAt?: string;
+}

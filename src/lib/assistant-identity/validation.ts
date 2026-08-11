@@ -8,6 +8,35 @@ import { ASSISTANT_CHANNEL_WHATSAPP } from "./types";
 // and any future normalization helper stay in sync with the same rule.
 export const E164_PATTERN = /^\+[1-9][0-9]{6,14}$/;
 
+// Deliberately Indonesia-only normalization (ADOP's pilot design partner —
+// PT PELAYARAN GEMA BAHARI — is Indonesia-only per CLAUDE.md): a bare "0..."
+// local prefix or a bare "62..." country code without "+" both resolve
+// unambiguously to +62. Anything else is rejected outright rather than
+// guessed. Lives here (not in assistant-inbound) since it is the general
+// Owner/Admin/Client phone-normalization rule for this whole domain —
+// assistant-inbound/validation.ts re-exports this exact function for its
+// own inbound-envelope schema rather than keeping a second copy.
+const ID_LOCAL_PREFIX = "0";
+const ID_COUNTRY_CODE = "62";
+
+export function normalizeE164Address(raw: string): string | null {
+  const stripped = raw.trim().replace(/[\s\-()]/g, "");
+  if (!stripped) return null;
+
+  let candidate: string;
+  if (stripped.startsWith("+")) {
+    candidate = stripped;
+  } else if (stripped.startsWith(ID_LOCAL_PREFIX)) {
+    candidate = `+${ID_COUNTRY_CODE}${stripped.slice(1)}`;
+  } else if (stripped.startsWith(ID_COUNTRY_CODE)) {
+    candidate = `+${stripped}`;
+  } else {
+    return null;
+  }
+
+  return E164_PATTERN.test(candidate) ? candidate : null;
+}
+
 export const normalizedAddressSchema = z
   .string()
   .trim()
@@ -56,3 +85,12 @@ export const completeClientVerificationInputSchema = z.object({
   code: z.string().trim().min(1, "Kode wajib diisi."),
 });
 export type CompleteClientVerificationInput = z.infer<typeof completeClientVerificationInputSchema>;
+
+// Gate 1L-R4A: raw, not-yet-normalized Owner input from Settings/Personal
+// (08…, 628…, or +628…) — shape-only validation here; the actual
+// Indonesia-only E.164 normalization/rejection is normalizeE164Address
+// above.
+export const registerOwnerWhatsappNumberInputSchema = z.object({
+  rawNumber: z.string().trim().min(1, "Nomor WhatsApp wajib diisi."),
+});
+export type RegisterOwnerWhatsappNumberInput = z.infer<typeof registerOwnerWhatsappNumberInputSchema>;

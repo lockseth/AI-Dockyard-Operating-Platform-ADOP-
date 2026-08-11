@@ -6,14 +6,20 @@ function flatten(groups: ReturnType<typeof getNavGroupsForRoles>) {
 }
 
 describe("getNavGroupsForRoles — Owner", () => {
-  it("shows exactly the three approved entries, in the approved group structure", () => {
+  it("shows exactly the four approved entries, in the approved group structure", () => {
     const groups = getNavGroupsForRoles(["owner"]);
 
     expect(groups.map((g) => ({ title: g.title, items: g.items.map((i) => i.label) }))).toEqual([
       { title: "RINGKASAN", items: ["Dashboard Owner"] },
       { title: "OWNER", items: ["Laporan Eksekutif"] },
-      { title: "PENGATURAN", items: ["User & Hak Akses"] },
+      { title: "PENGATURAN", items: ["Profil & Notifikasi WhatsApp", "User & Hak Akses"] },
     ]);
+  });
+
+  it("keeps PENGATURAN as a single group, not a duplicate section per item", () => {
+    const groups = getNavGroupsForRoles(["owner"]);
+    const pengaturanGroups = groups.filter((g) => g.title === "PENGATURAN");
+    expect(pengaturanGroups).toHaveLength(1);
   });
 
   it("never includes operational/data/billing menu items", () => {

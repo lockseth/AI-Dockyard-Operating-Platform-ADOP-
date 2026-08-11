@@ -1,32 +1,13 @@
 import { z } from "zod";
-import { E164_PATTERN } from "@/lib/assistant-identity/validation";
+import { normalizeE164Address } from "@/lib/assistant-identity/validation";
 
-// Deliberately Indonesia-only normalization (ADOP's pilot design partner —
-// PT PELAYARAN GEMA BAHARI — is Indonesia-only per CLAUDE.md): a bare "0..."
-// local prefix or a bare "62..." country code without "+" both resolve
-// unambiguously to +62. Anything else is rejected outright rather than
-// guessed (engine_chatbot.md §3.2: "Nilai tidak valid ditolak; jangan
-// ditebak").
-const ID_LOCAL_PREFIX = "0";
-const ID_COUNTRY_CODE = "62";
-
-export function normalizeE164Address(raw: string): string | null {
-  const stripped = raw.trim().replace(/[\s\-()]/g, "");
-  if (!stripped) return null;
-
-  let candidate: string;
-  if (stripped.startsWith("+")) {
-    candidate = stripped;
-  } else if (stripped.startsWith(ID_LOCAL_PREFIX)) {
-    candidate = `+${ID_COUNTRY_CODE}${stripped.slice(1)}`;
-  } else if (stripped.startsWith(ID_COUNTRY_CODE)) {
-    candidate = `+${stripped}`;
-  } else {
-    return null;
-  }
-
-  return E164_PATTERN.test(candidate) ? candidate : null;
-}
+// normalizeE164Address moved to assistant-identity/validation.ts (Gate
+// 1L-R4A) — it is the general Owner/Admin/Client phone-normalization rule
+// for the whole assistant-identity domain, not an inbound-gateway-specific
+// concern. Re-exported here so this route's own contract and every existing
+// import of it from "./validation" (route tests included) keep working
+// unchanged.
+export { normalizeE164Address };
 
 // A caller-supplied field that MUST already be a raw phone string; the
 // schema below runs normalizeE164Address as a preprocess step so a route

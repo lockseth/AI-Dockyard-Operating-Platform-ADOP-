@@ -4,13 +4,59 @@ import {
   completePairingInputSchema,
   issueClientVerificationChallengeInputSchema,
   issuePairingChallengeInputSchema,
+  normalizeE164Address,
   normalizedAddressSchema,
+  registerOwnerWhatsappNumberInputSchema,
   resetClientVerificationInputSchema,
   revokePairingInputSchema,
 } from "./validation";
 
 const VALID_TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const VALID_ADDRESS = "+6281234567890";
+
+describe("normalizeE164Address", () => {
+  it("passes through an already-valid E.164 number unchanged", () => {
+    expect(normalizeE164Address("+6281234567890")).toBe("+6281234567890");
+  });
+
+  it("converts a local 0-prefixed number to +62", () => {
+    expect(normalizeE164Address("081234567890")).toBe("+6281234567890");
+  });
+
+  it("prepends + to a bare 62-prefixed number", () => {
+    expect(normalizeE164Address("6281234567890")).toBe("+6281234567890");
+  });
+
+  it("strips spaces/dashes/parentheses before normalizing", () => {
+    expect(normalizeE164Address("0812-3456-7890")).toBe("+6281234567890");
+    expect(normalizeE164Address("+62 812 3456 7890")).toBe("+6281234567890");
+    expect(normalizeE164Address("(0812) 3456 7890")).toBe("+6281234567890");
+  });
+
+  it("rejects a format it cannot unambiguously resolve, rather than guessing a country code", () => {
+    expect(normalizeE164Address("8123456789")).toBeNull();
+    expect(normalizeE164Address("1-800-555-0100")).toBeNull();
+  });
+
+  it("rejects an empty or whitespace-only value", () => {
+    expect(normalizeE164Address("")).toBeNull();
+    expect(normalizeE164Address("   ")).toBeNull();
+  });
+});
+
+describe("registerOwnerWhatsappNumberInputSchema", () => {
+  it("accepts a raw number string", () => {
+    expect(registerOwnerWhatsappNumberInputSchema.safeParse({ rawNumber: "081234567890" }).success).toBe(true);
+  });
+
+  it("rejects a blank rawNumber", () => {
+    expect(registerOwnerWhatsappNumberInputSchema.safeParse({ rawNumber: "" }).success).toBe(false);
+  });
+
+  it("rejects a missing rawNumber", () => {
+    expect(registerOwnerWhatsappNumberInputSchema.safeParse({}).success).toBe(false);
+  });
+});
 
 describe("normalizedAddressSchema (E.164)", () => {
   it("accepts a valid E.164 address", () => {

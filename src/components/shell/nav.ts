@@ -1,5 +1,6 @@
 import { canAccessDailyOperations } from "@/lib/operations-daily/access";
 import { canAccessOwnerControl } from "@/lib/owner-control/access";
+import { canAccessOwnerWhatsappRegistration } from "@/lib/assistant-identity/access";
 import { canReadCashImportStaging } from "@/lib/cash-import-staging/access";
 import { canViewUserManagement } from "@/lib/user-management/access";
 import { canAccessInvoiceEvidence } from "@/lib/invoice-evidence/access";
@@ -49,8 +50,19 @@ function getOwnerNavGroups(roles: TenantRole[]): NavGroup[] {
     groups.push({ title: "OWNER", items: [{ href: "/app/executive-report", label: "Laporan Eksekutif" }] });
   }
 
+  // Single PENGATURAN group — items append onto the SAME group rather than
+  // each pushing their own group, so adding a new settings destination
+  // (Gate 1L-R4A) never renders a second "PENGATURAN" header in the
+  // sidebar (task LOCK: "bukan menu utama baru").
+  const pengaturanItems: NavItem[] = [];
+  if (canAccessOwnerWhatsappRegistration(roles)) {
+    pengaturanItems.push({ href: "/app/settings/personal", label: "Profil & Notifikasi WhatsApp" });
+  }
   if (canViewUserManagement(roles)) {
-    groups.push({ title: "PENGATURAN", items: [{ href: "/app/users", label: "User & Hak Akses" }] });
+    pengaturanItems.push({ href: "/app/users", label: "User & Hak Akses" });
+  }
+  if (pengaturanItems.length > 0) {
+    groups.push({ title: "PENGATURAN", items: pengaturanItems });
   }
 
   return groups;

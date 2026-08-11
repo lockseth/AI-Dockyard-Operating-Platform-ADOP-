@@ -15,6 +15,8 @@ const NON_ADMIN_SOURCE_FILES = [
   "errors.ts",
   "repository.ts",
   "service.ts",
+  "access.ts",
+  "actions.ts",
 ];
 
 describe("assistant-identity: admin client usage confined to admin-repository.ts", () => {

@@ -70,3 +70,34 @@ export async function listAssistantChannelIdentitiesForTenant(
   if (error) throw error;
   return data ?? [];
 }
+
+// Gate 1L-R4A: the caller's own most recent pairing attempt for one channel
+// — every issue_pairing_challenge call supersedes (revokes) whichever row
+// used to be 'pending' for this exact (tenant, user, channel), so the
+// newest row by created_at is always the one that reflects "current state"
+// (not_registered when none exists or the latest row is 'revoked', pending,
+// or verified). Scoped by .eq("user_id", ...) in addition to the RLS policy
+// (defense-in-depth, same convention as listActiveMemberships's own
+// `.eq("user_id", userId)` comment) — this must never be able to return
+// another user's row even if a future policy loosens the SELECT check.
+export async function getLatestAssistantChannelIdentityForUser(params: {
+  tenantId: string;
+  userId: string;
+  channel: string;
+}): Promise<AssistantChannelIdentitySummaryRow | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("assistant_channel_identities")
+    .select(
+      "id, tenant_id, user_id, channel, normalized_address, status, challenge_expires_at, challenge_attempt_count, verified_at, revoked_at, revoked_by, revoked_reason, created_by, created_at, updated_at",
+    )
+    .eq("tenant_id", params.tenantId)
+    .eq("user_id", params.userId)
+    .eq("channel", params.channel)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ?? null;
+}
