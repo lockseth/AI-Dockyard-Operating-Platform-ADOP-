@@ -94,6 +94,26 @@ describe("notification-outbox service", () => {
     });
   });
 
+  it("never treats a phone-number-shaped field inside payload as the recipient — only resolveVerifiedOwnerRecipient's return value is used", async () => {
+    claimNextNotificationEvent.mockResolvedValue({
+      id: "evt-4",
+      tenant_id: "tenant-1",
+      payload: {
+        message_line1: "Pak Hanafi, ada hasil import kas yang menunggu pemeriksaan.",
+        // Not a field the type declares — simulates a corrupted/forged row
+        // payload smuggling a phone number in under an unexpected key.
+        recipient: "+6281199999999",
+        phone: "+6281199999999",
+      },
+    });
+    resolveVerifiedOwnerRecipient.mockResolvedValue("+6281100000001");
+    const { claimNextNotificationForDelivery } = await import("./service");
+
+    const result = await claimNextNotificationForDelivery({ workerId: "w1" });
+    expect(result?.recipient).toBe("+6281100000001");
+    expect(resolveVerifiedOwnerRecipient).toHaveBeenCalledWith("tenant-1");
+  });
+
   it("maps a NOTIFICATION_CLAIM_MISMATCH error from complete into NotificationClaimMismatchError", async () => {
     // supabase-js rejects with a plain PostgrestError object shaped like
     // { code, details, hint, message } for a PL/pgSQL RAISE EXCEPTION — NOT

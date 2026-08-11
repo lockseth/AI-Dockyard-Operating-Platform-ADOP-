@@ -110,6 +110,34 @@ select is(
 );
 
 -- =============================================================================
+-- 4b. A REVOKED owner identity never qualifies — status <> 'verified' is
+--     sufficient by construction, but Gate 1L-R3 requires this proven
+--     explicitly rather than left implicit in the status filter.
+-- =============================================================================
+
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous
+) values
+  ('00000000-0000-0000-0000-000000000000', 'f9000000-0000-4000-0000-000000000007', 'authenticated', 'authenticated', 'owner-revoked-p@pgtap-notif-recipient.local', 'x', now(), now(), now(), '{}', '{}', false, false);
+
+insert into public.tenant_memberships (id, tenant_id, user_id, status) values
+  ('f9500000-4000-0000-0000-000000000007', 'f9f9f9f9-f9f9-4f9f-8f9f-f9f9f9f9f9f1', 'f9000000-0000-4000-0000-000000000007', 'active');
+
+insert into public.membership_roles (membership_id, role) values
+  ('f9500000-4000-0000-0000-000000000007', 'owner');
+
+insert into public.assistant_channel_identities (tenant_id, user_id, channel, normalized_address, status, verified_at, revoked_at, revoked_reason)
+values ('f9f9f9f9-f9f9-4f9f-8f9f-f9f9f9f9f9f1', 'f9000000-0000-4000-0000-000000000007', 'whatsapp', '+628110000007', 'revoked', now(), now(), 'pgtap fixture');
+
+select is(
+  public.resolve_verified_owner_recipient('f9f9f9f9-f9f9-4f9f-8f9f-f9f9f9f9f9f1'),
+  null::text,
+  'a revoked owner identity (previously verified, now revoked) is never a valid recipient'
+);
+
+-- =============================================================================
 -- 5. Exactly one verified, active owner identity — the happy path.
 -- =============================================================================
 
@@ -120,6 +148,25 @@ select is(
   public.resolve_verified_owner_recipient('f9f9f9f9-f9f9-4f9f-8f9f-f9f9f9f9f9f1'),
   '+628110000001'::text,
   'the single verified active owner identity resolves as the recipient'
+);
+
+-- =============================================================================
+-- 5b. Retry / re-claim proof: calling the resolver again for the SAME
+--     tenant while the canonical state is unchanged must return the exact
+--     same recipient every time — a retry never drifts to a different
+--     number on its own.
+-- =============================================================================
+
+select is(
+  public.resolve_verified_owner_recipient('f9f9f9f9-f9f9-4f9f-8f9f-f9f9f9f9f9f1'),
+  '+628110000001'::text,
+  'a repeated call (simulating a delivery retry) with unchanged state resolves the identical recipient'
+);
+
+select is(
+  public.resolve_verified_owner_recipient('f9f9f9f9-f9f9-4f9f-8f9f-f9f9f9f9f9f1'),
+  public.resolve_verified_owner_recipient('f9f9f9f9-f9f9-4f9f-8f9f-f9f9f9f9f9f1'),
+  'two consecutive calls agree with each other — no non-determinism to drift on'
 );
 
 -- =============================================================================

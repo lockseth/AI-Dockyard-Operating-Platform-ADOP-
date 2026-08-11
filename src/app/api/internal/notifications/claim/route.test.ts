@@ -66,6 +66,20 @@ describe("POST /api/internal/notifications/claim", () => {
     expect(claimNextNotificationForDelivery).toHaveBeenCalledWith({ workerId: "n8n-1" });
   });
 
+  it("never accepts a recipient override in the body — the schema has no such field, so it is silently dropped, not honored", async () => {
+    claimNextNotificationForDelivery.mockResolvedValue(null);
+    const { POST } = await import("./route");
+    const response = await POST(
+      buildRequest(
+        { workerId: "n8n-1", recipient: "+6281199999999" },
+        { "x-internal-secret": "top-secret-value" },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(claimNextNotificationForDelivery).toHaveBeenCalledWith({ workerId: "n8n-1" });
+  });
+
   it("returns the claimed event, including the server-resolved recipient, on success with a correct secret", async () => {
     claimNextNotificationForDelivery.mockResolvedValue({ id: "evt-1", message: "hello", recipient: "+6281100000001" });
     const { POST } = await import("./route");
