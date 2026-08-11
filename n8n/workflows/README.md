@@ -339,7 +339,10 @@ here rather than creating new ones.
 
 ## owner-morning-brief.json
 
-Gate 6J-E1 — daily 07:00 Asia/Jakarta trigger that calls ADOP's own
+Gate 6J-E1, schedule updated under Gate B (production activation readiness
+task, Founder-approved) — Mon-Fri 08:30 Asia/Jakarta trigger (cron
+`30 8 * * 1-5`, superseding the original every-day-of-week 07:00 default)
+that calls ADOP's own
 `POST /api/internal/morning-brief` (composes and enqueues+claims the
 canonical Morning Brief server-side, from trusted ADOP read-models only —
 never in n8n, never by an LLM), sends the returned text via Fonnte, then

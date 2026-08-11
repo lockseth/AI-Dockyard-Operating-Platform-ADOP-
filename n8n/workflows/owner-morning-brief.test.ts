@@ -65,7 +65,7 @@ describe("owner-morning-brief.json graph contract", () => {
   });
 
   it("wires the critical happy-path edges", () => {
-    expect(edgeTargets("Every Morning 07:00 WIB")).toEqual(["Compose Morning Brief"]);
+    expect(edgeTargets("Weekdays 08:30 WIB (Mon-Fri)")).toEqual(["Compose Morning Brief"]);
     expect(edgeTargets("Compose Morning Brief")).toEqual(["Has Event?"]);
     expect(edgeTargets(SEND_VIA_FONNTE)).toEqual(["Fonnte Success?"]);
     expect(edgeTargets("Fonnte Success?")).toEqual(["Complete Notification", "Fail Notification"]);
@@ -89,11 +89,11 @@ describe("owner-morning-brief.json graph contract", () => {
     expect(workflow.settings?.timezone).toBe("Asia/Jakarta");
   });
 
-  it("schedules a single daily trigger at 07:00, the Gate 6J-A §14 default", () => {
-    const trigger = node("Every Morning 07:00 WIB");
+  it("schedules a single Mon-Fri 08:30 WIB trigger via a deterministic cron expression (Founder-approved Gate B schedule)", () => {
+    const trigger = node("Weekdays 08:30 WIB (Mon-Fri)");
     expect(trigger.type).toBe("n8n-nodes-base.scheduleTrigger");
     const interval = (trigger.parameters?.rule as { interval: Array<Record<string, unknown>> })?.interval;
-    expect(interval).toEqual([{ field: "days", triggerAtHour: 7, triggerAtMinute: 0 }]);
+    expect(interval).toEqual([{ field: "cronExpression", expression: "30 8 * * 1-5" }]);
   });
 
   it("never accesses $env.* in any node expression (prose in `notes` explaining why $env is avoided is fine)", () => {

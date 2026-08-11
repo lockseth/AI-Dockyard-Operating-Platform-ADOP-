@@ -6,19 +6,18 @@
         "rule": {
           "interval": [
             {
-              "field": "days",
-              "triggerAtHour": 7,
-              "triggerAtMinute": 0
+              "field": "cronExpression",
+              "expression": "30 8 * * 1-5"
             }
           ]
         }
       },
       "id": "schedule-trigger",
-      "name": "Every Morning 07:00 WIB",
+      "name": "Weekdays 08:30 WIB (Mon-Fri)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [0, 0],
-      "notes": "Anchored by this workflow's settings.timezone (Asia/Jakarta), not $env — $env is unavailable on the hosted BOC n8n instance (Gate 6J-D1 finding)."
+      "notes": "Founder-approved schedule (Gate B, production activation readiness task): Senin-Jumat 08:30 WIB. Cron `30 8 * * 1-5` (minute hour * * day-of-week, 1-5 = Mon-Fri) is anchored by this workflow's settings.timezone (Asia/Jakarta) below, not $env — $env is unavailable on the hosted BOC n8n instance (Gate 6J-D1 finding). Using an explicit cron expression instead of the UI 'days'/'weeks' interval picker keeps the weekday restriction deterministic and auditable from this file alone, without relying on n8n's own weekday-numbering UI state. Previous value was daily (every day of week) at 07:00 WIB — superseded, not additive."
     },
     {
       "parameters": {
@@ -216,7 +215,7 @@
     }
   ],
   "connections": {
-    "Every Morning 07:00 WIB": {
+    "Weekdays 08:30 WIB (Mon-Fri)": {
       "main": [[{ "node": "Compose Morning Brief", "type": "main", "index": 0 }]]
     },
     "Compose Morning Brief": {
