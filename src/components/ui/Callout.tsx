@@ -6,7 +6,7 @@ const CALLOUT_TONE_CLASSES: Record<Tone, string> = {
   warning: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200",
   danger: "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300",
   neutral: "border-neutral-200 bg-neutral-50 text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400",
-  info: "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/20 dark:text-blue-300",
+  info: "border-adop-accent-200 bg-adop-accent-50 text-adop-accent-800 dark:border-blue-800 dark:bg-blue-950/20 dark:text-blue-300",
 };
 
 export function Callout({

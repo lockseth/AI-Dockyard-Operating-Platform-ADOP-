@@ -17,7 +17,7 @@ describe("StatCard — icon prop stays opt-in", () => {
     expect(screen.getByText("Terhitung sistem")).toBeInTheDocument();
     // No icon container should exist in the DOM at all when icon is omitted.
     expect(document.querySelector('[aria-hidden] svg')).not.toBeInTheDocument();
-    expect(document.querySelector(".bg-blue-100")).not.toBeInTheDocument();
+    expect(document.querySelector(".bg-adop-accent-100")).not.toBeInTheDocument();
   });
 
   it("renders no note block when `note` is omitted, same as before the icon prop existed", () => {
@@ -27,9 +27,9 @@ describe("StatCard — icon prop stays opt-in", () => {
     expect(screen.queryByText("Terhitung sistem")).not.toBeInTheDocument();
   });
 
-  it("renders a soft-blue icon chip only when `icon` is explicitly passed", () => {
+  it("renders a soft-indigo icon chip only when `icon` is explicitly passed", () => {
     render(<StatCard eyebrow="Project Kapal Aktif" value={48} icon={<svg data-testid="kpi-icon" />} />);
     expect(screen.getByTestId("kpi-icon")).toBeInTheDocument();
-    expect(document.querySelector(".bg-blue-100")).toBeInTheDocument();
+    expect(document.querySelector(".bg-adop-accent-100")).toBeInTheDocument();
   });
 });

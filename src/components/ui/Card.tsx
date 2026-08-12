@@ -9,7 +9,7 @@ const TONE_CLASSES = {
   warning: "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30",
   danger: "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30",
   neutral: "border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/40",
-  info: "border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/30",
+  info: "border-adop-accent-200 bg-adop-accent-50 dark:border-blue-900/50 dark:bg-blue-950/30",
 } as const;
 
 export function Card({
@@ -65,7 +65,7 @@ export function StatCard({
         {icon ? (
           <span
             aria-hidden
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-adop-accent-100 text-adop-accent-700 dark:bg-blue-900/30 dark:text-blue-300"
           >
             {icon}
           </span>

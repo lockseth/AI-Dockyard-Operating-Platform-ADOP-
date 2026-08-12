@@ -9,16 +9,16 @@ export type ButtonSize = "sm" | "md" | "lg";
 // the existing `{isPending ? "..." : "..."}` pattern used across the app).
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-navy text-white hover:bg-brand-navy-hover active:bg-brand-navy-active disabled:opacity-40",
+    "bg-adop-accent text-white hover:bg-adop-accent-600 active:bg-adop-accent-700 disabled:opacity-40",
   brand:
     "bg-brand-gold text-brand-navy font-bold hover:bg-brand-gold-hover active:bg-brand-gold-active disabled:opacity-40",
   secondary:
     "bg-white text-brand-navy border-[1.5px] border-neutral-300 hover:bg-neutral-100 active:bg-neutral-200 disabled:opacity-40 dark:bg-neutral-900 dark:text-white dark:border-neutral-700 dark:hover:bg-neutral-800",
   ghost:
-    "bg-transparent text-blue-800 hover:bg-blue-50 active:bg-blue-100 disabled:opacity-40 dark:text-blue-300 dark:hover:bg-blue-950/30",
+    "bg-transparent text-adop-accent-800 hover:bg-adop-accent-50 active:bg-adop-accent-100 disabled:opacity-40 dark:text-blue-300 dark:hover:bg-blue-950/30",
   destructive:
     "bg-red-700 text-white hover:bg-red-800 active:bg-red-900 disabled:opacity-40",
-  icon: "bg-brand-navy text-white hover:bg-brand-navy-hover active:bg-brand-navy-active disabled:opacity-40",
+  icon: "bg-adop-accent text-white hover:bg-adop-accent-600 active:bg-adop-accent-700 disabled:opacity-40",
 };
 
 const SIZE_CLASSES: Record<ButtonVariant, Record<ButtonSize, string>> = {
@@ -71,7 +71,7 @@ export function Button({
     <button
       type={props.type ?? "button"}
       disabled={disabled || loading}
-      className={`inline-flex cursor-pointer items-center justify-center font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[variant][size]} ${className}`}
+      className={`inline-flex cursor-pointer items-center justify-center font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-adop-accent-600 disabled:cursor-not-allowed ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[variant][size]} ${className}`}
       {...props}
     >
       {loading ? <Spinner /> : null}

@@ -11,5 +11,5 @@ export const TEXT_TONE_CLASSES: Record<Tone, string> = {
   warning: "text-amber-700 dark:text-amber-400",
   danger: "text-red-700 dark:text-red-400",
   neutral: "text-neutral-500 dark:text-neutral-400",
-  info: "text-blue-700 dark:text-blue-400",
+  info: "text-adop-accent-700 dark:text-blue-400",
 };

@@ -59,7 +59,7 @@ export function Disclosure({
         aria-expanded={open}
         aria-controls={contentId}
         onClick={() => setOpen((value) => !value)}
-        className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 ${
+        className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-adop-accent-600 ${
           emphasized ? "hover:bg-brand-navy/[0.04] dark:hover:bg-brand-navy/[0.08]" : "hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
         }`}
       >

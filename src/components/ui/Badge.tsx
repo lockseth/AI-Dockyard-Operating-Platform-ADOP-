@@ -5,7 +5,7 @@ const BADGE_TONE_CLASSES: Record<Tone, string> = {
   warning: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
   danger: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
   neutral: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400",
-  info: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  info: "bg-adop-accent-100 text-adop-accent-800 dark:bg-blue-900/40 dark:text-blue-300",
 };
 
 // Default "sm" keeps every existing call site byte-identical; "md" is for
@@ -21,7 +21,7 @@ const DOT_TONE_CLASSES: Record<Tone, string> = {
   warning: "bg-amber-600 dark:bg-amber-400",
   danger: "bg-red-600 dark:bg-red-400",
   neutral: "bg-neutral-500 dark:bg-neutral-400",
-  info: "bg-blue-600 dark:bg-blue-400",
+  info: "bg-adop-accent-600 dark:bg-blue-400",
 };
 
 // `dot` renders a small leading status dot (design-system badge spec) —
