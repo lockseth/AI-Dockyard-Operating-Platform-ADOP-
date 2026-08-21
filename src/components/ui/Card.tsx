@@ -9,7 +9,10 @@ const TONE_CLASSES = {
   warning: "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30",
   danger: "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30",
   neutral: "border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/40",
-  info: "border-adop-accent-200 bg-adop-accent-50 dark:border-blue-900/50 dark:bg-blue-950/30",
+  // "Sunny day" reference palette (#FFBF00 / #807040 / #007EFF / #2400FF) —
+  // sky blue carries the neutral/info tone rather than the palette's gold,
+  // so it doesn't collide with the LOCKED Gold / Owner Action surface above.
+  info: "border-[#bfe2ff] bg-[#eaf6ff] dark:border-blue-900/50 dark:bg-blue-950/30",
 } as const;
 
 export function Card({

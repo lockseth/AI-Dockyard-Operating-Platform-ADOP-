@@ -221,8 +221,17 @@ select:disabled {
   box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-brand-navy) 12%, transparent);
 }
 
+/* "Sunny day" Figma reference (#FFBF00 amber, #807040 olive, #007EFF sky
+   blue, #2400FF indigo), applied only to the two NEUTRAL/informational
+   panels below (Posisi Kas hero card, small info indicator tiles) — the
+   success/warning/danger panels above keep their existing green/amber/red
+   meaning untouched, since those carry real risk signals (duplicate
+   detection, pending review) that must stay visually distinct. Sky blue
+   carries plain info tiles; gold is reserved for the primary card's accent
+   corner only, so it never reads as the LOCKED Gold / Owner Action surface
+   (Card.tsx's `owner` tone) used elsewhere. */
 .adop-panel-info {
-  background: linear-gradient(135deg, var(--color-adop-accent-50) 0%, #ffffff 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, #007eff 12%, white) 0%, #ffffff 100%);
   box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-brand-navy) 12%, transparent);
 }
 
@@ -232,7 +241,11 @@ select:disabled {
    Founder feedback that the plain success-tinted version had too little
    contrast with white. */
 .adop-panel-primary {
-  background: linear-gradient(135deg, var(--color-adop-accent-100) 0%, #ffffff 100%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, #ffbf00 18%, white) 0%,
+    color-mix(in srgb, #007eff 14%, white) 100%
+  );
   box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-brand-navy) 14%, transparent);
 }
 
