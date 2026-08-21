@@ -80,14 +80,28 @@
   --color-adop-ink-500: var(--color-adop-ink-500);
   --color-adop-ink-sidebar-muted: var(--color-adop-ink-sidebar-muted);
   --color-adop-divider: var(--color-adop-divider);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-source-sans);
+  --font-heading: var(--font-ubuntu);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-source-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Ubuntu on every semantic heading (PageHeader's <h1>, Modal's <h2>, etc.)
+   so the heading/body pairing applies app-wide without touching each call
+   site. Body/UI text stays on --font-sans (Source Sans Pro) via `body`
+   above and Tailwind's default font-sans utility. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading), Arial, Helvetica, sans-serif;
 }
 
 /* Native <select>/<option> popups are OS-rendered — on Windows/Chrome the
